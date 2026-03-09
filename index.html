@@ -1347,14 +1347,19 @@ function renderFormInserir(prova, jornada) {
 
   document.getElementById('inserirConteudo').innerHTML = html;
 
-  // Restaurar posições
-  atletas.forEach(atleta => atualizarPosLabel(prova, jornada, atleta.id));
+  // Restaurar cores e posições para dados já existentes
+  atletas.forEach(atleta => {
+    colorirInputsAtleta(prova, jornada, atleta.id);
+    atualizarPosLabel(prova, jornada, atleta.id);
+  });
 }
 
 function onInputChange(provaId, jornada, atletaId) {
   // Ler valor atual do input e atualizar posição em tempo real
   const prova = provas.find(p => p.id === provaId);
   if (!prova) return;
+  // Aplicar cor imediatamente, antes de qualquer cálculo
+  colorirInputsAtleta(prova, jornada, atletaId);
 
   // Guardar dados temporários na prova (sem salvarDados para não ser lento)
   const jRes = prova.resultados[jornada] || {};
@@ -1411,18 +1416,28 @@ function atualizarPosLabel(prova, jornada, atletaId) {
   const medal = medals[pos-1] || '';
   el.textContent = `${medal} ${pos}º lugar (${total} tacadas)`;
 
-  // Colorir input com cores oficiais
+  // Colorir inputs — sempre, independente de ter total
+  colorirInputsAtleta(prova, jornada, atletaId);
+}
+
+function colorirInputsAtleta(prova, jornada, atletaId) {
   const esp = prova.jornadaEspecial?.[jornada];
   const campos = esp?.tipo === 'peter4voltas' ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
+  const coresMap = {'t-azul':'#60a5fa','t-verde':'#4ade80','t-vermelho':'#f87171','t-preto':'#9ca3af'};
   campos.forEach(campo => {
     const inp = document.getElementById(`inp_${atletaId}_${campo}`);
-    if (!inp || !inp.value) return;
+    if (!inp) return;
+    if (!inp.value || isNaN(parseInt(inp.value))) {
+      inp.style.color = '';
+      inp.style.fontWeight = '';
+      return;
+    }
     const val = parseInt(inp.value);
     const tipo = campo.startsWith('m') ? 'mini' : 'peter';
     const cor = tipo === 'mini' ? corMini(val) : corPeter(val);
-    const cores = {'t-azul':'#60a5fa','t-verde':'#4ade80','t-vermelho':'#f87171','t-preto':'#9ca3af'};
-    inp.style.color = cores[cor] || '';
+    inp.style.color = coresMap[cor] || '';
     inp.style.fontWeight = cor ? '700' : '';
+    inp.style.fontSize = '1rem';
   });
 }
 
