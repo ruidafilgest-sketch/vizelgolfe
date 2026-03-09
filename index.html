@@ -5,6 +5,53 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vizelgolfe — Sistema de Competições 2026</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script type="module">
+  // Firebase config
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDr7wfBzKbH1VAiXbte4YzkejuvJpQvltE",
+    authDomain: "vizelgolfe-ec270.firebaseapp.com",
+    projectId: "vizelgolfe-ec270",
+    storageBucket: "vizelgolfe-ec270.firebasestorage.app",
+    messagingSenderId: "386073357614",
+    appId: "1:386073357614:web:098f635403f605650e5ebf"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Expor funções globais para o código principal
+  window._fbSalvar = async function(dados) {
+    try {
+      await setDoc(doc(db, 'vizelgolfe', 'dados'), dados);
+      return true;
+    } catch(e) {
+      console.error('Firebase save error:', e);
+      return false;
+    }
+  };
+
+  window._fbCarregar = async function() {
+    try {
+      const snap = await getDoc(doc(db, 'vizelgolfe', 'dados'));
+      return snap.exists() ? snap.data() : null;
+    } catch(e) {
+      console.error('Firebase load error:', e);
+      return null;
+    }
+  };
+
+  window._fbEscutar = function(callback) {
+    return onSnapshot(doc(db, 'vizelgolfe', 'dados'), (snap) => {
+      if (snap.exists()) callback(snap.data());
+    });
+  };
+
+  window._fbPronto = true;
+  window.dispatchEvent(new Event('firebase-pronto'));
+</script>
 <style>
 :root {
   --azul-escuro: #0d1f3c;
@@ -305,7 +352,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <span>Sistema de Competições 2026</span>
     </div>
   </div>
-  <div class="header-actions">
+  <div class="header-actions"><span id="syncStatus" style="font-size:0.72rem;margin-right:8px"></span>
     <span class="modo-label" id="modoLabel"></span>
     <button class="btn btn-secundario" id="btnAdmin" onclick="toggleAdmin()" style="display:none">🔒 Admin</button>
   </div>
@@ -493,19 +540,76 @@ let empatePendente = null;
 // ============================================================
 // DADOS — localStorage
 // ============================================================
-function salvarDados() {
-  localStorage.setItem('vzg_atletas', JSON.stringify(atletas));
-  localStorage.setItem('vzg_provas', JSON.stringify(provas));
-  localStorage.setItem('vzg_empates', JSON.stringify(empates));
+async function salvarDados() {
+  const dados = {
+    atletas: JSON.parse(JSON.stringify(atletas)),
+    provas: JSON.parse(JSON.stringify(provas)),
+    empates: JSON.parse(JSON.stringify(empates)),
+    proximoId, proximoProvaId
+  };
+  // Guardar localmente como backup
+  try {
+    localStorage.setItem('vzg_backup', JSON.stringify(dados));
+  } catch(e) {}
+  // Guardar no Firebase
+  if (window._fbSalvar) {
+    const ok = await window._fbSalvar(dados);
+    if (ok) {
+      mostrarSyncStatus('✅ Guardado na cloud');
+    } else {
+      mostrarSyncStatus('⚠️ Erro a guardar na cloud', true);
+    }
+  }
 }
 
-function carregarDados() {
-  const a = localStorage.getItem('vzg_atletas');
-  const p = localStorage.getItem('vzg_provas');
-  const e = localStorage.getItem('vzg_empates');
-  if (a) atletas = JSON.parse(a);
-  if (p) provas = JSON.parse(p);
-  if (e) empates = JSON.parse(e);
+async function carregarDados() {
+  mostrarSyncStatus('🔄 A carregar dados...');
+  // Tentar Firebase primeiro
+  if (window._fbCarregar) {
+    const dados = await window._fbCarregar();
+    if (dados) {
+      aplicarDados(dados);
+      mostrarSyncStatus('✅ Dados carregados da cloud');
+      iniciarEscuta();
+      return;
+    }
+  }
+  // Fallback: localStorage
+  try {
+    const backup = localStorage.getItem('vzg_backup');
+    if (backup) {
+      aplicarDados(JSON.parse(backup));
+      mostrarSyncStatus('⚠️ Dados locais (sem cloud)', true);
+    }
+  } catch(e) {}
+}
+
+function aplicarDados(dados) {
+  if (dados.atletas) atletas = dados.atletas;
+  if (dados.provas) provas = dados.provas;
+  if (dados.empates) empates = dados.empates;
+  if (dados.proximoId) proximoId = dados.proximoId;
+  if (dados.proximoProvaId) proximoProvaId = dados.proximoProvaId;
+}
+
+let escutaAtiva = false;
+function iniciarEscuta() {
+  if (escutaAtiva || !window._fbEscutar) return;
+  escutaAtiva = true;
+  window._fbEscutar((dados) => {
+    aplicarDados(dados);
+    renderTudo();
+    mostrarSyncStatus('🔄 Atualizado em tempo real');
+  });
+}
+
+function mostrarSyncStatus(msg, aviso) {
+  let el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = aviso ? '#fbbf24' : '#5dce90';
+  clearTimeout(window._syncTimeout);
+  window._syncTimeout = setTimeout(() => { el.textContent = ''; }, 3000);
 }
 
 // ============================================================
@@ -631,8 +735,8 @@ function toggleAdmin() {
   }
 }
 
-function iniciarApp(modo) {
-  carregarDados();
+async function iniciarApp(modo) {
+  await carregarDados();
   if (modo === 'admin') {
     document.getElementById('btnAdmin').style.display = 'inline-flex';
     document.getElementById('btnAdmin').textContent = '✅ Admin';
@@ -1662,7 +1766,7 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
   el.addEventListener('click', e => { if (e.target === el) el.classList.remove('aberto'); });
 });
 
-// Enter no login
+// Mostrar login (Firebase carrega em paralelo)
 document.getElementById('loginOverlay').classList.add('aberto');
 </script>
 </body>
