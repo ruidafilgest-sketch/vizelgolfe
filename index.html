@@ -984,43 +984,42 @@ function sortRanking(ranking, provaId) {
 
 // Calcular posição de um atleta numa jornada do campeonato
 function calcularPosicaoCampeonato(prova, jornada, atletaId, grupo) {
+  // Retorna a posição de um atleta na jornada, baseada APENAS no total líquido
+  // Em caso de empate → desempate manual já registado em empates[]
   const jRes = prova.resultados[jornada];
   if (!jRes) return 999;
   const atletasGrupo = atletas.filter(a => CAT_GRUPO[a.categoria] === grupo && jRes[a.id]);
-  const totais = atletasGrupo.map(a => {
-    const r = jRes[a.id];
-    return {id: a.id, total: calcularTotalJornada(prova, jornada, r)};
-  }).filter(x => x.total !== null);
+  const totais = atletasGrupo.map(a => ({
+    id: a.id,
+    t: calcularTotalJornada(prova, jornada, jRes[a.id]) ?? 9999
+  })).filter(x => x.t < 9999);
 
-  // Ordenar pelo total líquido de tacadas
-  // Em caso de empate no total → desempate manual (chave jornada)
   totais.sort((a, b) => {
-    if (a.total !== b.total) return a.total - b.total;
-    // Empate no total líquido → verificar desempate manual por jornada
-    const chave = `${prova.id}_j${jornada}_${Math.min(a.id,b.id)}_${Math.max(a.id,b.id)}`;
-    const venc = empates[chave];
-    if (venc) return venc === a.id ? -1 : 1;
-    return 0; // ainda empatados — sem desempate resolvido
+    if (a.t !== b.t) return a.t - b.t;
+    const ch = chaveEmpateJ(prova.id, jornada, a.id, b.id);
+    const v = empates[ch];
+    if (v) return v === a.id ? -1 : 1;
+    return 0;
   });
 
-  // Posição: cada atleta tem posição única após desempate
-  // Se ainda empatados (sem desempate), ocupam o mesmo lugar
-  let pos = 1;
   for (let i = 0; i < totais.length; i++) {
-    if (totais[i].id === atletaId) return pos;
-    // Avançar posição: se próximo tem total diferente OU desempate resolvido
-    if (i+1 < totais.length) {
-      if (totais[i].total !== totais[i+1].total) {
-        pos++;
-      } else {
-        const chave = `${prova.id}_j${jornada}_${Math.min(totais[i].id,totais[i+1].id)}_${Math.max(totais[i].id,totais[i+1].id)}`;
-        if (empates[chave]) pos++; // desempate resolvido → lugar diferente
-        else pos++; // sem desempate → avança mas ambos ficam no mesmo lugar visualmente
-      }
-    }
+    if (totais[i].id === atletaId) return i + 1;
   }
   return 999;
 }
+
+function chaveEmpateJ(provaId, jornada, idA, idB) {
+  return `${provaId}_j${jornada}_${Math.min(idA,idB)}_${Math.max(idA,idB)}`;
+}
+
+function chaveEmpateClass(provaId, idA, idB) {
+  return `${provaId}_class_${Math.min(idA,idB)}_${Math.max(idA,idB)}`;
+}
+
+function chaveEmpateBonus(provaId, jornada, tipo, idA, idB) {
+  return `bonus_${provaId}_${jornada}_${tipo}_${Math.min(idA,idB)}_${Math.max(idA,idB)}`;
+}
+
 
 function calcularTotalJornada(prova, jornada, res) {
   if (!res) return null;
@@ -1139,61 +1138,36 @@ function renderClassCampeonato(prova) {
     <span style="font-size:0.82rem;color:var(--texto-suave);margin-left:12px">${prova.nome}</span>
   </div>`;
 
-  // Grupos a mostrar: categorias normais + Juniores separado
   const grupos = [
-    {label:'Homens', cats:['Homens','Juniores'], mostrarJuniores: false},
-    {label:'Juniores (pódio)', cats:['Juniores'], mostrarJuniores: true},
-    {label:'Senhoras', cats:['Senhoras'], mostrarJuniores: false},
-    {label:'Seniores Masculinos', cats:['Seniores Masculinos'], mostrarJuniores: false},
-    {label:'Veteranos Masculinos', cats:['Veteranos Masculinos'], mostrarJuniores: false},
+    {label:'Homens', cats:['Homens','Juniores'], sigla:'H'},
+    {label:'Juniores (pódio)', cats:['Juniores'], sigla:'J', soPodio:true},
+    {label:'Senhoras', cats:['Senhoras'], sigla:'S'},
+    {label:'Seniores Masculinos', cats:['Seniores Masculinos'], sigla:'SM'},
+    {label:'Veteranos Masculinos', cats:['Veteranos Masculinos'], sigla:'VM'},
   ];
 
   grupos.forEach(grupo => {
-    // Obter todos os atletas das cats do grupo
     const atletasGrupo = atletas.filter(a => grupo.cats.includes(a.categoria));
     if (!atletasGrupo.length) return;
 
-    // Calcular ranking deste grupo
+    // ---- CALCULAR RANKING ----
     const rankingMap = {};
     atletasGrupo.forEach(atleta => {
-      let totalPontos = 0, vitorias = 0, podiums = Array(10).fill(0), jornadas = 0;
-      const pontosPorJornada = {}; // guardar pts + bonus por jornada para mostrar na tabela
+      let totalPontos = 0, vitorias = 0, podiums = Array(10).fill(0), jornadasFeitas = 0;
+      const pontosPorJornada = {};
 
       for (let j = 1; j <= prova.jornadas; j++) {
         const res = prova.resultados[j]?.[atleta.id];
         if (!res) continue;
-        const totalLiquido = calcularTotalJornada(prova, j, res);
-        if (totalLiquido === null) continue;
-        jornadas++;
+        const tLiq = calcularTotalJornada(prova, j, res);
+        if (tLiq === null) continue;
+        jornadasFeitas++;
 
-        // Posição baseada APENAS no total líquido de tacadas
-        // com desempate manual por jornada se necessário
-        const todosGrupo = atletasGrupo.filter(b => prova.resultados[j]?.[b.id]);
-        const totaisGrupo = todosGrupo.map(b => ({
-          id: b.id,
-          t: calcularTotalJornada(prova, j, prova.resultados[j][b.id]) || 999
-        }));
-
-        // Ordenar: total líquido, depois desempate manual
-        totaisGrupo.sort((a, b) => {
-          if (a.t !== b.t) return a.t - b.t;
-          const chave = `${prova.id}_j${j}_${Math.min(a.id,b.id)}_${Math.max(a.id,b.id)}`;
-          const venc = empates[chave];
-          if (venc) return venc === a.id ? -1 : 1;
-          return 0;
-        });
-
-        // Calcular posição — única por atleta após desempate
-        let pos = 999;
-        for (let i = 0; i < totaisGrupo.length; i++) {
-          if (totaisGrupo[i].id === atleta.id) {
-            pos = i + 1;
-            break;
-          }
-        }
-
+        // Posição pelo total líquido com desempate manual
+        const pos = calcularPosicaoCampeonato(prova, j, atleta.id, CAT_GRUPO[atleta.categoria]);
         const pts = pos <= PONTUACAO.length ? pontuacaoCustom(prova.pts1, pos) : 0;
-        // Bónus são pontos extra no campeonato (separados dos pts de classificação)
+
+        // Bónus — pontos extra, separados da posição
         let bonusPts = 0;
         if (res.bonusMini) bonusPts += (prova.bonusMini || 0);
         if (res.bonusPeter) bonusPts += (prova.bonusPeter || 0);
@@ -1203,100 +1177,114 @@ function renderClassCampeonato(prova) {
         totalPontos += pts + bonusPts;
         if (pos === 1) vitorias++;
         if (pos <= 10) podiums[pos-1]++;
-        pontosPorJornada[j] = {totalLiquido, pos, pts, bonusPts};
+        pontosPorJornada[j] = {tLiq, pos, pts, bonusPts};
       }
 
-      if (jornadas === prova.jornadas) totalPontos += (prova.bonusCompleto || 0);
-      // Incluir todos os atletas que participaram (mesmo com 0 pontos)
-      if (jornadas > 0) {
-        rankingMap[atleta.id] = {atleta, nome: atleta.nome, pontos: totalPontos, vitorias, podiums, jornadas, pontosPorJornada};
+      if (jornadasFeitas === prova.jornadas) totalPontos += (prova.bonusCompleto || 0);
+      if (jornadasFeitas > 0) {
+        rankingMap[atleta.id] = {atleta, nome:atleta.nome, pontos:totalPontos, vitorias, podiums, jornadasFeitas, pontosPorJornada};
       }
     });
 
-    const ranking = Object.values(rankingMap).sort((a,b) => {
+    // Ordenar ranking geral: pontos desc, depois vitórias, depois pódios, depois desempate manual
+    const ranking = Object.values(rankingMap).sort((a, b) => {
       if (b.pontos !== a.pontos) return b.pontos - a.pontos;
       if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
-      for (let i=0;i<10;i++) if (b.podiums[i]!==a.podiums[i]) return b.podiums[i]-a.podiums[i];
+      for (let i = 0; i < 10; i++) {
+        if (b.podiums[i] !== a.podiums[i]) return b.podiums[i] - a.podiums[i];
+      }
+      // Empate total → desempate manual
+      const ch = chaveEmpateClass(prova.id, a.atleta.id, b.atleta.id);
+      const v = empates[ch];
+      if (v) return v === a.atleta.id ? -1 : 1;
       return 0;
     });
 
     if (!ranking.length) return;
 
-    // Detectar empates na classificação geral
-    const empateDivs = [];
-    for (let i = 0; i < ranking.length-1; i++) {
-      // Só avisar empate se ambos têm pontos > 0
-      if (ranking[i].pontos === ranking[i+1].pontos && ranking[i].pontos > 0) {
-        const chave = `${prova.id}_class_${ranking[i].atleta.id}_${ranking[i+1].atleta.id}`;
-        const chaveInv = `${prova.id}_class_${ranking[i+1].atleta.id}_${ranking[i].atleta.id}`;
-        if (!empates[chave] && !empates[chaveInv]) {
-          empateDivs.push(`<div class="empate-aviso">⚠️ Empate na classificação: <strong>${ranking[i].nome}</strong> e <strong>${ranking[i+1].nome}</strong> — ambos com <strong>${ranking[i].pontos} pts</strong> (${i+1}º/${i+2}º lugar)
-            ${modoAdmin ? `<button class="btn btn-primario" style="padding:3px 10px;font-size:0.75rem;margin-left:auto" onclick="abrirEmpateClass(${prova.id},'class',${ranking[i].atleta.id},${ranking[i+1].atleta.id},${i+1})">⚡ Resolver Empate</button>` : ''}</div>`);
-        } else {
-          const venc = empates[chave] || empates[chaveInv];
-          const nomeVenc = atletas.find(a => a.id === venc)?.nome;
-          empateDivs.push(`<div class="empate-resolvido">✅ Empate resolvido — <strong>${nomeVenc}</strong> fica à frente (desempate em pista)</div>`);
-        }
-      }
-    }
+    // ---- ALERTAS DE EMPATE ----
+    const alertas = [];
 
-    // Empates no bónus de melhor volta
-    if (prova.empatesBonus) {
-      Object.entries(prova.empatesBonus).forEach(([key, info]) => {
-        const [j, tipo] = key.split('_');
-        if (!empates[info.chave]) {
-          const nomes = info.candidatos.map(id => atletas.find(a=>a.id===id)?.nome).join(' e ');
-          const tipoLabel = tipo === 'mini' ? 'Mini' : tipo === 'peter' ? 'Peter' : tipo === 'manha' ? 'Peter Manhã' : 'Peter Tarde';
-          empateDivs.push(`<div class="empate-aviso">⚠️ Empate no bónus <strong>${tipoLabel}</strong> J${j}: <strong>${nomes}</strong>
-            ${modoAdmin ? `<button class="btn btn-primario" style="padding:3px 10px;font-size:0.75rem;margin-left:auto" onclick="abrirEmpateBonus('${info.chave}',${JSON.stringify(info.candidatos)})">⚡ Resolver Bónus</button>` : ''}</div>`);
-        } else {
-          const venc = empates[info.chave];
-          const nomeVenc = atletas.find(a=>a.id===venc)?.nome;
-          const tipoLabel = tipo === 'mini' ? 'Mini' : tipo === 'peter' ? 'Peter' : tipo === 'manha' ? 'Peter Manhã' : 'Peter Tarde';
-          empateDivs.push(`<div class="empate-resolvido">✅ Bónus ${tipoLabel} J${j} — venceu em pista: <strong>${nomeVenc}</strong></div>`);
-        }
-      });
-    }
-
-    // Adicionar avisos de empate por jornada (total líquido)
+    // 1. Empates por jornada (total líquido igual, com impacto na pontuação)
     for (let j = 1; j <= prova.jornadas; j++) {
       const jRes = prova.resultados[j] || {};
       if (!Object.keys(jRes).length) continue;
-      const atletasComDados = atletasGrupo.filter(a => jRes[a.id]);
-      // Calcular posições provisórias para saber se empate tem impacto na pontuação
-      const totaisJ = atletasComDados.map(a => ({
+      const comDados = atletasGrupo.filter(a => jRes[a.id] && calcularTotalJornada(prova, j, jRes[a.id]) !== null);
+      const totaisJ = comDados.map(a => ({
         id: a.id, nome: a.nome,
-        t: calcularTotalJornada(prova, j, jRes[a.id]) || 9999
+        t: calcularTotalJornada(prova, j, jRes[a.id])
       })).sort((a,b) => a.t - b.t);
 
+      // Verificar pares empatados
+      const vistos = new Set();
       for (let i = 0; i < totaisJ.length; i++) {
         for (let k = i+1; k < totaisJ.length; k++) {
           if (totaisJ[i].t !== totaisJ[k].t) continue;
-          // Empate no total de tacadas — só avisar se afeta pontuação (algum está no top 10)
-          const posA = i + 1, posB = k + 1;
-          if (posA > PONTUACAO.length && posB > PONTUACAO.length) continue; // ambos fora do top 10 — sem impacto
-          const chave = `${prova.id}_j${j}_${Math.min(totaisJ[i].id,totaisJ[k].id)}_${Math.max(totaisJ[i].id,totaisJ[k].id)}`;
-          if (!empates[chave]) {
-            empateDivs.push(`<div class="empate-aviso">⚠️ Empate J${j} — <strong>${totaisJ[i].nome}</strong> e <strong>${totaisJ[k].nome}</strong> com <strong>${totaisJ[i].t} tacadas</strong> (${posA}º/${posB}º)
+          const par = `${Math.min(totaisJ[i].id,totaisJ[k].id)}_${Math.max(totaisJ[i].id,totaisJ[k].id)}`;
+          if (vistos.has(par)) continue;
+          vistos.add(par);
+          // Só avisar se pelo menos um está no top 10 (tem impacto)
+          if (i + 1 > PONTUACAO.length && k + 1 > PONTUACAO.length) continue;
+          const ch = chaveEmpateJ(prova.id, j, totaisJ[i].id, totaisJ[k].id);
+          if (!empates[ch]) {
+            alertas.push(`<div class="empate-aviso">⚠️ Empate J${j} — <strong>${totaisJ[i].nome}</strong> e <strong>${totaisJ[k].nome}</strong> com <strong>${totaisJ[i].t} tacadas</strong>
               ${modoAdmin ? `<button class="btn btn-primario" style="padding:3px 10px;font-size:0.75rem;margin-left:auto"
                 onclick="abrirEmpateJornada(${prova.id},${j},${totaisJ[i].id},${totaisJ[k].id})">⚡ Resolver Empate J${j}</button>` : ''}</div>`);
           } else {
-            const nomeVenc = atletas.find(x=>x.id===empates[chave])?.nome;
-            empateDivs.push(`<div class="empate-resolvido">✅ Empate J${j} resolvido — <strong>${nomeVenc}</strong> fica à frente (${totaisJ[i].t} tacadas)</div>`);
+            const nv = atletas.find(x=>x.id===empates[ch])?.nome;
+            alertas.push(`<div class="empate-resolvido">✅ Empate J${j} resolvido — <strong>${nv}</strong> fica à frente (${totaisJ[i].t} tacadas)</div>`);
           }
         }
       }
     }
 
-    const cat = grupo.cats.length === 1 ? grupo.cats[0] : 'Homens';
-    const sigla = grupo.cats.includes('Juniores') && !grupo.mostrarJuniores ? 'H' : (grupo.cats.length === 1 ? CAT_SIGLA[grupo.cats[0]] : 'H');
+    // 2. Empates no bónus
+    if (prova.empatesBonus) {
+      Object.entries(prova.empatesBonus).forEach(([key, info]) => {
+        if (!info || !info.candidatos) return;
+        // Verificar se os candidatos pertencem a este grupo
+        const pertence = info.candidatos.some(id => atletasGrupo.find(a=>a.id===id));
+        if (!pertence) return;
+        const [j, tipo] = key.split('_');
+        const tipoLabel = {mini:'Mini',peter:'Peter',manha:'Peter Manhã',tarde:'Peter Tarde'}[tipo] || tipo;
+        if (!empates[info.chave]) {
+          const nomes = info.candidatos.map(id => atletas.find(a=>a.id===id)?.nome).filter(Boolean).join(' e ');
+          alertas.push(`<div class="empate-aviso">⚠️ Empate no bónus <strong>${tipoLabel}</strong> J${j}: <strong>${nomes}</strong>
+            ${modoAdmin ? `<button class="btn btn-primario" style="padding:3px 10px;font-size:0.75rem;margin-left:auto"
+              onclick="abrirEmpateBonus('${info.chave}',${JSON.stringify(info.candidatos)})">⚡ Resolver Bónus</button>` : ''}</div>`);
+        } else {
+          const nv = atletas.find(a=>a.id===empates[info.chave])?.nome;
+          alertas.push(`<div class="empate-resolvido">✅ Bónus ${tipoLabel} J${j} resolvido — <strong>${nv}</strong></div>`);
+        }
+      });
+    }
 
+    // 3. Empates na classificação geral (pontos iguais, ambos com pontos > 0)
+    for (let i = 0; i < ranking.length-1; i++) {
+      if (ranking[i].pontos !== ranking[i+1].pontos) continue;
+      if (ranking[i].pontos === 0) continue; // 0 pts não é empate relevante
+      // Verificar se há diferença em vitórias ou pódios
+      let diferente = ranking[i].vitorias !== ranking[i+1].vitorias;
+      if (!diferente) for (let p=0;p<10;p++) if (ranking[i].podiums[p]!==ranking[i+1].podiums[p]) {diferente=true;break;}
+      if (diferente) continue; // já se resolve sem desempate manual
+      const ch = chaveEmpateClass(prova.id, ranking[i].atleta.id, ranking[i+1].atleta.id);
+      if (!empates[ch]) {
+        alertas.push(`<div class="empate-aviso">⚠️ Empate geral: <strong>${ranking[i].nome}</strong> e <strong>${ranking[i+1].nome}</strong> — <strong>${ranking[i].pontos} pts</strong>
+          ${modoAdmin ? `<button class="btn btn-primario" style="padding:3px 10px;font-size:0.75rem;margin-left:auto"
+            onclick="abrirEmpateClass(${prova.id},'class',${ranking[i].atleta.id},${ranking[i+1].atleta.id})">⚡ Resolver Empate Geral</button>` : ''}</div>`);
+      } else {
+        const nv = atletas.find(a=>a.id===empates[ch])?.nome;
+        alertas.push(`<div class="empate-resolvido">✅ Empate geral resolvido — <strong>${nv}</strong> fica à frente</div>`);
+      }
+    }
+
+    // ---- TABELA ----
     html += `<div class="cat-secao">
       <div class="cat-header">
-        <span class="cat-badge cat-${sigla}">${grupo.label}</span>
+        <span class="cat-badge cat-${grupo.sigla}">${grupo.label}</span>
         <span class="cat-count">${ranking.length} atleta(s)</span>
       </div>
-      ${empateDivs.join('')}
+      ${alertas.join('')}
       <div class="tabela-wrap"><table>
         <thead><tr>
           <th>Pos</th><th>Atleta</th>
@@ -1304,28 +1292,26 @@ function renderClassCampeonato(prova) {
             const esp = prova.jornadaEspecial?.[j];
             return `<th>J${j}${esp?' ⚠️':''}<br><small style="color:#666;font-weight:400">${formatData(prova.dataJornadas?.[j]||'')}</small></th>`;
           }).join('')}
-          <th>Vitórias</th><th>Total</th>
+          <th>Vit</th><th>Total pts</th>
         </tr></thead><tbody>
-        ${ranking.map((r,i) => {
-          const pos = i+1;
+        ${ranking.map((r, i) => {
+          const pos = i + 1;
           const medal = pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
           const jCells = Array.from({length:prova.jornadas},(_,idx)=>idx+1).map(j => {
-            const jData = r.pontosPorJornada?.[j];
-            if (!jData) return '<td><span style="color:#555">—</span></td>';
-            const {totalLiquido, pos, pts, bonusPts} = jData;
-            // Verificar empate por jornada ainda não resolvido
-            const jRes = prova.resultados[j] || {};
-            const grupoId = CAT_GRUPO[r.atleta.categoria];
-            const outrosGrupo = atletasGrupo.filter(a => a.id !== r.atleta.id && jRes[a.id]);
-            const empateNaoResolvido = outrosGrupo.some(a => {
-              const outroTotal = calcularTotalJornada(prova, j, jRes[a.id]);
-              if (outroTotal !== totalLiquido) return false;
-              const chave = `${prova.id}_j${j}_${Math.min(a.id,r.atleta.id)}_${Math.max(a.id,r.atleta.id)}`;
-              return !empates[chave];
+            const jd = r.pontosPorJornada?.[j];
+            if (!jd) return `<td><span style="color:#555">—</span></td>`;
+            const {tLiq, pos:posJ, pts, bonusPts} = jd;
+            // Ícone empate por resolver nesta jornada
+            const jRes2 = prova.resultados[j] || {};
+            const temEmpate = atletasGrupo.some(a => {
+              if (a.id === r.atleta.id) return false;
+              const ot = calcularTotalJornada(prova, j, jRes2[a.id]);
+              if (ot !== tLiq) return false;
+              return !empates[chaveEmpateJ(prova.id, j, a.id, r.atleta.id)];
             });
-            const empateIcon = empateNaoResolvido ? '<span title="Empate por resolver" style="color:#fbbf24;font-size:0.8rem"> ⚠️</span>' : '';
-            const bonusStr = bonusPts > 0 ? `<span style="color:var(--dourado-claro);font-size:0.72rem"> +${bonusPts}b</span>` : '';
-            return `<td><span title="${totalLiquido} tacadas → ${pos}º → ${pts}pts">${totalLiquido}${empateIcon}</span><br><small style="color:#9ca3af">${pts}pts${bonusStr}</small></td>`;
+            const icon = temEmpate ? ' <span style="color:#fbbf24;font-size:0.75rem">⚠️</span>' : '';
+            const bStr = bonusPts > 0 ? ` <span style="color:var(--dourado-claro);font-size:0.7rem">+${bonusPts}b</span>` : '';
+            return `<td><span title="${tLiq} tacadas — ${posJ}º lugar">${tLiq}${icon}</span><br><small style="color:#9ca3af">${pts}pts${bStr}</small></td>`;
           }).join('');
           return `<tr>
             <td class="pos pos-${pos}">${medal}${pos}º</td>
@@ -1339,7 +1325,6 @@ function renderClassCampeonato(prova) {
       </table></div>
     </div>`;
 
-    // Notas de jornadas especiais
     for (let j=1;j<=prova.jornadas;j++) {
       const esp = prova.jornadaEspecial?.[j];
       if (esp) html += `<div style="font-size:0.78rem;color:#fbbf24;margin:-16px 0 16px;padding:6px 12px;background:rgba(251,191,36,0.08);border-radius:6px">⚠️ J${j}: ${esp.descricao}</div>`;
@@ -1348,6 +1333,7 @@ function renderClassCampeonato(prova) {
 
   return html || '<div class="empty-state"><div class="icone">📋</div><p>Sem resultados ainda</p></div>';
 }
+
 
 function renderClassTorneio(prova) {
   const jRes = prova.resultados[1] || {};
@@ -1726,134 +1712,74 @@ function guardarResultados(provaId, jornada) {
 }
 
 function calcularBonus(prova, jornada, jRes) {
+  // Calcula bónus por grupo — quem tem a melhor volta individual
+  // Se empate na melhor volta → precisa de desempate manual
   const esp = prova.jornadaEspecial?.[jornada];
-  const chaveEmpate = (provaId, j, tipo, idA, idB) =>
-    `bonus_${provaId}_${j}_${tipo}_${Math.min(idA,idB)}_${Math.max(idA,idB)}`;
 
-  if (esp?.tipo === 'peter4voltas') {
-    // Agrupar por grupo
-    const grupos = {};
-    atletas.forEach(a => {
-      if (!jRes[a.id]) return;
-      const g = CAT_GRUPO[a.categoria];
-      if (!grupos[g]) grupos[g] = [];
-      grupos[g].push(a.id);
-    });
-    Object.values(grupos).forEach(ids => {
-      // Melhor volta manhã e tarde por grupo
-      let gMelhorManha = 999, gMelhorTarde = 999;
+  // Obter grupos com atletas que têm resultados
+  const grupos = {};
+  atletas.forEach(a => {
+    if (!jRes[a.id]) return;
+    const g = CAT_GRUPO[a.categoria];
+    if (!grupos[g]) grupos[g] = [];
+    grupos[g].push(a.id);
+  });
+
+  if (!prova.empatesBonus) prova.empatesBonus = {};
+
+  Object.entries(grupos).forEach(([grupo, ids]) => {
+    if (esp?.tipo === 'peter4voltas') {
+      // J1: bónus melhor volta manhã (pV1,pV2) e tarde (pV3,pV4)
+      const voltasManha = [], voltasTarde = [];
       ids.forEach(id => {
-        const r = jRes[id]; if(!r) return;
-        [r.pV1,r.pV2].forEach(v => { const n=parseInt(v); if(!isNaN(n)) gMelhorManha=Math.min(gMelhorManha,n); });
-        [r.pV3,r.pV4].forEach(v => { const n=parseInt(v); if(!isNaN(n)) gMelhorTarde=Math.min(gMelhorTarde,n); });
+        const r = jRes[id]; if (!r) return;
+        [r.pV1,r.pV2].forEach(v => { const n=parseInt(v); if(!isNaN(n)) voltasManha.push({id,v:n}); });
+        [r.pV3,r.pV4].forEach(v => { const n=parseInt(v); if(!isNaN(n)) voltasTarde.push({id,v:n}); });
       });
-      // Quem tem o bónus manhã
-      const candidatosManha = ids.filter(id => {
-        const r = jRes[id]; if(!r) return false;
-        return [r.pV1,r.pV2].map(v=>parseInt(v)).filter(v=>!isNaN(v)).some(v => v === gMelhorManha);
-      });
-      // Quem tem o bónus tarde
-      const candidatosTarde = ids.filter(id => {
-        const r = jRes[id]; if(!r) return false;
-        return [r.pV3,r.pV4].map(v=>parseInt(v)).filter(v=>!isNaN(v)).some(v => v === gMelhorTarde);
-      });
-      // Atribuir bónus — se empate, verificar desempate manual
+      atribuirBonus(prova, jornada, jRes, ids, voltasManha, 'bonusPeterManha', 'manha');
+      atribuirBonus(prova, jornada, jRes, ids, voltasTarde, 'bonusPeterTarde', 'tarde');
+    } else {
+      // Jornadas normais: bónus melhor volta Mini e melhor volta Peter
+      const voltasMini = [], voltasPeter = [];
       ids.forEach(id => {
-        const r = jRes[id]; if(!r) return;
-        if (candidatosManha.length === 1) {
-          r.bonusPeterManha = candidatosManha[0] === id;
-        } else if (candidatosManha.length > 1) {
-          // Empate no bónus manhã — verificar desempate manual
-          const chaveDes = chaveEmpate(prova.id, jornada, 'manha', candidatosManha[0], candidatosManha[1]);
-          const venc = empates[chaveDes];
-          r.bonusPeterManha = venc ? venc === id : candidatosManha.includes(id); // sem desempate: marca todos
-          r.empateBonus = r.empateBonus || (!venc && candidatosManha.includes(id) ? {tipo:'manha', candidatos: candidatosManha} : null);
-        } else {
-          r.bonusPeterManha = false;
-        }
-        if (candidatosTarde.length === 1) {
-          r.bonusPeterTarde = candidatosTarde[0] === id;
-        } else if (candidatosTarde.length > 1) {
-          const chaveDes = chaveEmpate(prova.id, jornada, 'tarde', candidatosTarde[0], candidatosTarde[1]);
-          const venc = empates[chaveDes];
-          r.bonusPeterTarde = venc ? venc === id : candidatosTarde.includes(id);
-          r.empateBonus = r.empateBonus || (!venc && candidatosTarde.includes(id) ? {tipo:'tarde', candidatos: candidatosTarde} : null);
-        } else {
-          r.bonusPeterTarde = false;
-        }
+        const r = jRes[id]; if (!r) return;
+        [r.mV1,r.mV2].forEach(v => { const n=parseInt(v); if(!isNaN(n)) voltasMini.push({id,v:n}); });
+        [r.pV1,r.pV2].forEach(v => { const n=parseInt(v); if(!isNaN(n)) voltasPeter.push({id,v:n}); });
       });
-      // Guardar info de empates no bónus para mostrar na UI
-      if (candidatosManha.length > 1) {
-        const chaveDes = chaveEmpate(prova.id, jornada, 'manha', candidatosManha[0], candidatosManha[1]);
-        if (!empates[chaveDes]) {
-          if (!prova.empatesBonus) prova.empatesBonus = {};
-          prova.empatesBonus[`${jornada}_manha`] = {candidatos: candidatosManha, chave: chaveDes};
-        }
-      }
-      if (candidatosTarde.length > 1) {
-        const chaveDes = chaveEmpate(prova.id, jornada, 'tarde', candidatosTarde[0], candidatosTarde[1]);
-        if (!empates[chaveDes]) {
-          if (!prova.empatesBonus) prova.empatesBonus = {};
-          prova.empatesBonus[`${jornada}_tarde`] = {candidatos: candidatosTarde, chave: chaveDes};
-        }
-      }
-    });
+      atribuirBonus(prova, jornada, jRes, ids, voltasMini, 'bonusMini', 'mini');
+      atribuirBonus(prova, jornada, jRes, ids, voltasPeter, 'bonusPeter', 'peter');
+    }
+  });
+}
+
+function atribuirBonus(prova, jornada, jRes, ids, voltas, campoBónus, tipo) {
+  if (!voltas.length) return;
+  const melhor = Math.min(...voltas.map(v => v.v));
+  // IDs únicos com a melhor volta (evitar duplicados por ter 2 voltas)
+  const candidatos = [...new Set(voltas.filter(v => v.v === melhor).map(v => v.id))];
+
+  // Limpar bónus anteriores para este campo
+  ids.forEach(id => { if (jRes[id]) jRes[id][campoBónus] = false; });
+
+  if (candidatos.length === 1) {
+    // Sem empate — atribuir direto
+    if (jRes[candidatos[0]]) jRes[candidatos[0]][campoBónus] = true;
+    // Limpar empate anterior se existia
+    delete prova.empatesBonus[`${jornada}_${tipo}`];
   } else {
-    // Jornadas normais: melhor Mini e melhor Peter por grupo
-    const grupos = {};
-    atletas.forEach(a => {
-      if (!jRes[a.id]) return;
-      const g = CAT_GRUPO[a.categoria];
-      if (!grupos[g]) grupos[g] = [];
-      grupos[g].push(a.id);
-    });
-    Object.values(grupos).forEach(ids => {
-      let melhorMini = 999, melhorPeter = 999;
-      ids.forEach(id => {
-        const r = jRes[id]; if(!r) return;
-        [r.mV1,r.mV2].forEach(v => { const n=parseInt(v); if(!isNaN(n)) melhorMini=Math.min(melhorMini,n); });
-        [r.pV1,r.pV2].forEach(v => { const n=parseInt(v); if(!isNaN(n)) melhorPeter=Math.min(melhorPeter,n); });
-      });
-      const candidatosMini = ids.filter(id => {
-        const r = jRes[id]; if(!r) return false;
-        return [r.mV1,r.mV2].map(v=>parseInt(v)).filter(v=>!isNaN(v)).some(v => v === melhorMini);
-      });
-      const candidatosPeter = ids.filter(id => {
-        const r = jRes[id]; if(!r) return false;
-        return [r.pV1,r.pV2].map(v=>parseInt(v)).filter(v=>!isNaN(v)).some(v => v === melhorPeter);
-      });
-      ids.forEach(id => {
-        const r = jRes[id]; if(!r) return;
-        if (candidatosMini.length === 1) {
-          r.bonusMini = candidatosMini[0] === id;
-        } else if (candidatosMini.length > 1) {
-          const chaveDes = chaveEmpate(prova.id, jornada, 'mini', candidatosMini[0], candidatosMini[1]);
-          const venc = empates[chaveDes];
-          r.bonusMini = venc ? venc === id : candidatosMini.includes(id);
-          if (!venc && candidatosMini.includes(id)) {
-            if (!prova.empatesBonus) prova.empatesBonus = {};
-            prova.empatesBonus[`${jornada}_mini`] = {candidatos: candidatosMini, chave: chaveDes};
-          }
-        } else {
-          r.bonusMini = false;
-        }
-        if (candidatosPeter.length === 1) {
-          r.bonusPeter = candidatosPeter[0] === id;
-        } else if (candidatosPeter.length > 1) {
-          const chaveDes = chaveEmpate(prova.id, jornada, 'peter', candidatosPeter[0], candidatosPeter[1]);
-          const venc = empates[chaveDes];
-          r.bonusPeter = venc ? venc === id : candidatosPeter.includes(id);
-          if (!venc && candidatosPeter.includes(id)) {
-            if (!prova.empatesBonus) prova.empatesBonus = {};
-            prova.empatesBonus[`${jornada}_peter`] = {candidatos: candidatosPeter, chave: chaveDes};
-          }
-        } else {
-          r.bonusPeter = false;
-        }
-      });
-    });
+    // Empate no bónus — verificar desempate manual
+    const ch = chaveEmpateBonus(prova.id, jornada, tipo, candidatos[0], candidatos[1]);
+    const venc = empates[ch];
+    if (venc && jRes[venc]) {
+      jRes[venc][campoBónus] = true;
+      delete prova.empatesBonus[`${jornada}_${tipo}`];
+    } else {
+      // Sem desempate ainda — registar para mostrar alerta
+      prova.empatesBonus[`${jornada}_${tipo}`] = { candidatos, chave: ch };
+    }
   }
 }
+
 
 // ============================================================
 // GERIR PROVAS
