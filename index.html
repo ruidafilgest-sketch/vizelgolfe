@@ -1006,17 +1006,19 @@ function calcularTotalJornada(prova, jornada, res) {
   if (!res) return null;
   const esp = prova.jornadaEspecial?.[jornada];
   if (esp?.tipo === 'peter4voltas') {
-    // 4 voltas Peter: melhor manhã (V1,V2) + melhor tarde (V3,V4)
-    const manha = melhorDas(res.pV1, res.pV2);
-    const tarde = melhorDas(res.pV3, res.pV4);
-    if (manha === null && tarde === null) return null;
-    return (manha || 0) + (tarde || 0);
+    // J1 especial: soma das 4 voltas Peter
+    const v1 = parseInt(res.pV1), v2 = parseInt(res.pV2);
+    const v3 = parseInt(res.pV3), v4 = parseInt(res.pV4);
+    const vals = [v1,v2,v3,v4].filter(v => !isNaN(v));
+    if (!vals.length) return null;
+    return vals.reduce((a,b) => a+b, 0);
   } else {
-    // Normal: melhor Mini + melhor Peter
-    const mini = melhorDas(res.mV1, res.mV2);
-    const peter = melhorDas(res.pV1, res.pV2);
-    if (mini === null && peter === null) return null;
-    return (mini || 0) + (peter || 0);
+    // Jornadas normais: soma das 4 voltas (Mini V1+V2 + Peter V1+V2)
+    const mV1 = parseInt(res.mV1), mV2 = parseInt(res.mV2);
+    const pV1 = parseInt(res.pV1), pV2 = parseInt(res.pV2);
+    const vals = [mV1,mV2,pV1,pV2].filter(v => !isNaN(v));
+    if (!vals.length) return null;
+    return vals.reduce((a,b) => a+b, 0);
   }
 }
 
