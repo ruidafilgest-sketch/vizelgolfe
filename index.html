@@ -972,11 +972,11 @@ function sortRanking(ranking, provaId) {
     for (let i = 0; i < 10; i++) {
       if (b.podiums[i] !== a.podiums[i]) return b.podiums[i] - a.podiums[i];
     }
-    // Empate — verificar se há desempate manual
-    const chave = `${provaId}_${a.atleta.id}_${b.atleta.id}`;
-    const chaveInv = `${provaId}_${b.atleta.id}_${a.atleta.id}`;
+    // Empate — verificar desempate manual (chave nova com _class_)
+    const idMin = Math.min(a.atleta.id, b.atleta.id);
+    const idMax = Math.max(a.atleta.id, b.atleta.id);
+    const chave = `${provaId}_class_${idMin}_${idMax}`;
     if (empates[chave]) return empates[chave] === a.atleta.id ? -1 : 1;
-    if (empates[chaveInv]) return empates[chaveInv] === b.atleta.id ? 1 : -1;
     return 0;
   });
   return ranking;
@@ -1172,25 +1172,39 @@ function renderClassCampeonato(prova) {
 
     if (!ranking.length) return;
 
-    // Detectar empates
+    // Detectar empates na classificação geral
     const empateDivs = [];
     for (let i = 0; i < ranking.length-1; i++) {
-      if (ranking[i].pontos === ranking[i+1].pontos && ranking[i].vitorias === ranking[i+1].vitorias) {
-        let igual = true;
-        for (let p=0;p<10;p++) if (ranking[i].podiums[p]!==ranking[i+1].podiums[p]) {igual=false;break;}
-        if (igual) {
-          const chave = `${prova.id}_${ranking[i].atleta.id}_${ranking[i+1].atleta.id}`;
-          const chaveInv = `${prova.id}_${ranking[i+1].atleta.id}_${ranking[i].atleta.id}`;
-          if (!empates[chave] && !empates[chaveInv]) {
-            empateDivs.push(`<div class="empate-aviso">⚠️ Empate entre <strong>${ranking[i].nome}</strong> e <strong>${ranking[i+1].nome}</strong> (${i+1}º/${i+2}º)
-              ${modoAdmin ? `<button class="btn btn-secundario" style="padding:2px 8px;font-size:0.72rem;margin-left:auto" onclick="abrirEmpate(${prova.id},${ranking[i].atleta.id},${ranking[i+1].atleta.id})">Resolver</button>` : ''}</div>`);
-          } else {
-            const venc = empates[chave] || empates[chaveInv];
-            const nomeVenc = atletas.find(a => a.id === venc)?.nome;
-            empateDivs.push(`<div class="empate-resolvido">✅ Empate resolvido — venceu em pista: <strong>${nomeVenc}</strong></div>`);
-          }
+      if (ranking[i].pontos === ranking[i+1].pontos) {
+        const chave = `${prova.id}_class_${ranking[i].atleta.id}_${ranking[i+1].atleta.id}`;
+        const chaveInv = `${prova.id}_class_${ranking[i+1].atleta.id}_${ranking[i].atleta.id}`;
+        if (!empates[chave] && !empates[chaveInv]) {
+          empateDivs.push(`<div class="empate-aviso">⚠️ Empate na classificação: <strong>${ranking[i].nome}</strong> e <strong>${ranking[i+1].nome}</strong> — ambos com <strong>${ranking[i].pontos} pts</strong> (${i+1}º/${i+2}º lugar)
+            ${modoAdmin ? `<button class="btn btn-primario" style="padding:3px 10px;font-size:0.75rem;margin-left:auto" onclick="abrirEmpateClass(${prova.id},'class',${ranking[i].atleta.id},${ranking[i+1].atleta.id},${i+1})">⚡ Resolver Empate</button>` : ''}</div>`);
+        } else {
+          const venc = empates[chave] || empates[chaveInv];
+          const nomeVenc = atletas.find(a => a.id === venc)?.nome;
+          empateDivs.push(`<div class="empate-resolvido">✅ Empate resolvido — <strong>${nomeVenc}</strong> fica à frente (desempate em pista)</div>`);
         }
       }
+    }
+
+    // Empates no bónus de melhor volta
+    if (prova.empatesBonus) {
+      Object.entries(prova.empatesBonus).forEach(([key, info]) => {
+        const [j, tipo] = key.split('_');
+        if (!empates[info.chave]) {
+          const nomes = info.candidatos.map(id => atletas.find(a=>a.id===id)?.nome).join(' e ');
+          const tipoLabel = tipo === 'mini' ? 'Mini' : tipo === 'peter' ? 'Peter' : tipo === 'manha' ? 'Peter Manhã' : 'Peter Tarde';
+          empateDivs.push(`<div class="empate-aviso">⚠️ Empate no bónus <strong>${tipoLabel}</strong> J${j}: <strong>${nomes}</strong>
+            ${modoAdmin ? `<button class="btn btn-primario" style="padding:3px 10px;font-size:0.75rem;margin-left:auto" onclick="abrirEmpateBonus('${info.chave}',${JSON.stringify(info.candidatos)})">⚡ Resolver Bónus</button>` : ''}</div>`);
+        } else {
+          const venc = empates[info.chave];
+          const nomeVenc = atletas.find(a=>a.id===venc)?.nome;
+          const tipoLabel = tipo === 'mini' ? 'Mini' : tipo === 'peter' ? 'Peter' : tipo === 'manha' ? 'Peter Manhã' : 'Peter Tarde';
+          empateDivs.push(`<div class="empate-resolvido">✅ Bónus ${tipoLabel} J${j} — venceu em pista: <strong>${nomeVenc}</strong></div>`);
+        }
+      });
     }
 
     const cat = grupo.cats.length === 1 ? grupo.cats[0] : 'Homens';
@@ -1341,20 +1355,39 @@ function renderClassTaca(prova) {
 // EMPATES
 // ============================================================
 function abrirEmpate(provaId, idA, idB) {
+  abrirEmpateClass(provaId, 'class', idA, idB, '?');
+}
+
+function abrirEmpateClass(provaId, tipo, idA, idB, pos) {
   const nomeA = atletas.find(a => a.id === idA)?.nome;
   const nomeB = atletas.find(a => a.id === idB)?.nome;
-  document.getElementById('empateTexto').textContent = `Empate entre ${nomeA} e ${nomeB}. Quem venceu em pista?`;
+  const chave = `${provaId}_${tipo}_${Math.min(idA,idB)}_${Math.max(idA,idB)}`;
+  document.getElementById('empateTexto').innerHTML =
+    `<strong>Empate na classificação</strong><br>${nomeA} e ${nomeB} têm a mesma pontuação.<br><br>Quem venceu em pista (desempate)?`;
   const sel = document.getElementById('empateVencedor');
   sel.innerHTML = `<option value="${idA}">${nomeA}</option><option value="${idB}">${nomeB}</option>`;
-  empatePendente = {provaId, idA, idB};
+  empatePendente = {provaId, chave};
+  document.getElementById('modalEmpate').classList.add('aberto');
+}
+
+function abrirEmpateBonus(chave, candidatos) {
+  const nomes = candidatos.map(id => atletas.find(a=>a.id===id)?.nome);
+  document.getElementById('empateTexto').innerHTML =
+    `<strong>Empate no bónus de melhor volta</strong><br>${nomes.join(' e ')} têm a mesma melhor volta.<br><br>Quem venceu em pista?`;
+  const sel = document.getElementById('empateVencedor');
+  sel.innerHTML = candidatos.map((id,i) => `<option value="${id}">${nomes[i]}</option>`).join('');
+  // Extrair provaId da chave: bonus_provaId_jornada_tipo_idA_idB
+  const parts = chave.split('_');
+  const provaId = parseInt(parts[1]);
+  empatePendente = {provaId, chave};
   document.getElementById('modalEmpate').classList.add('aberto');
 }
 
 function guardarEmpate() {
   if (!empatePendente) return;
   const venc = parseInt(document.getElementById('empateVencedor').value);
-  const {provaId, idA, idB} = empatePendente;
-  empates[`${provaId}_${idA}_${idB}`] = venc;
+  const {provaId, chave} = empatePendente;
+  empates[chave] = venc;
   salvarDados();
   fecharModal('modalEmpate');
   mostrarClassProva(provaId);
@@ -1589,18 +1622,10 @@ function guardarResultados(provaId, jornada) {
 
 function calcularBonus(prova, jornada, jRes) {
   const esp = prova.jornadaEspecial?.[jornada];
+  const chaveEmpate = (provaId, j, tipo, idA, idB) =>
+    `bonus_${provaId}_${j}_${tipo}_${Math.min(idA,idB)}_${Math.max(idA,idB)}`;
 
   if (esp?.tipo === 'peter4voltas') {
-    // Bónus melhor volta manhã (mínimo de pV1 entre todos)
-    let melhorManha = 999, melhorTarde = 999;
-    Object.values(jRes).forEach(r => {
-      const mV1 = parseInt(r.pV1), mV2 = parseInt(r.pV2);
-      const mV3 = parseInt(r.pV3), mV4 = parseInt(r.pV4);
-      if (!isNaN(mV1)) melhorManha = Math.min(melhorManha, mV1);
-      if (!isNaN(mV2)) melhorManha = Math.min(melhorManha, mV2);
-      if (!isNaN(mV3)) melhorTarde = Math.min(melhorTarde, mV3);
-      if (!isNaN(mV4)) melhorTarde = Math.min(melhorTarde, mV4);
-    });
     // Agrupar por grupo
     const grupos = {};
     atletas.forEach(a => {
@@ -1610,22 +1635,66 @@ function calcularBonus(prova, jornada, jRes) {
       grupos[g].push(a.id);
     });
     Object.values(grupos).forEach(ids => {
+      // Melhor volta manhã e tarde por grupo
       let gMelhorManha = 999, gMelhorTarde = 999;
       ids.forEach(id => {
         const r = jRes[id]; if(!r) return;
         [r.pV1,r.pV2].forEach(v => { const n=parseInt(v); if(!isNaN(n)) gMelhorManha=Math.min(gMelhorManha,n); });
         [r.pV3,r.pV4].forEach(v => { const n=parseInt(v); if(!isNaN(n)) gMelhorTarde=Math.min(gMelhorTarde,n); });
       });
+      // Quem tem o bónus manhã
+      const candidatosManha = ids.filter(id => {
+        const r = jRes[id]; if(!r) return false;
+        return [r.pV1,r.pV2].map(v=>parseInt(v)).filter(v=>!isNaN(v)).some(v => v === gMelhorManha);
+      });
+      // Quem tem o bónus tarde
+      const candidatosTarde = ids.filter(id => {
+        const r = jRes[id]; if(!r) return false;
+        return [r.pV3,r.pV4].map(v=>parseInt(v)).filter(v=>!isNaN(v)).some(v => v === gMelhorTarde);
+      });
+      // Atribuir bónus — se empate, verificar desempate manual
       ids.forEach(id => {
         const r = jRes[id]; if(!r) return;
-        const voltasManha = [r.pV1,r.pV2].map(v=>parseInt(v)).filter(v=>!isNaN(v));
-        const voltasTarde = [r.pV3,r.pV4].map(v=>parseInt(v)).filter(v=>!isNaN(v));
-        r.bonusPeterManha = voltasManha.some(v => v === gMelhorManha);
-        r.bonusPeterTarde = voltasTarde.some(v => v === gMelhorTarde);
+        if (candidatosManha.length === 1) {
+          r.bonusPeterManha = candidatosManha[0] === id;
+        } else if (candidatosManha.length > 1) {
+          // Empate no bónus manhã — verificar desempate manual
+          const chaveDes = chaveEmpate(prova.id, jornada, 'manha', candidatosManha[0], candidatosManha[1]);
+          const venc = empates[chaveDes];
+          r.bonusPeterManha = venc ? venc === id : candidatosManha.includes(id); // sem desempate: marca todos
+          r.empateBonus = r.empateBonus || (!venc && candidatosManha.includes(id) ? {tipo:'manha', candidatos: candidatosManha} : null);
+        } else {
+          r.bonusPeterManha = false;
+        }
+        if (candidatosTarde.length === 1) {
+          r.bonusPeterTarde = candidatosTarde[0] === id;
+        } else if (candidatosTarde.length > 1) {
+          const chaveDes = chaveEmpate(prova.id, jornada, 'tarde', candidatosTarde[0], candidatosTarde[1]);
+          const venc = empates[chaveDes];
+          r.bonusPeterTarde = venc ? venc === id : candidatosTarde.includes(id);
+          r.empateBonus = r.empateBonus || (!venc && candidatosTarde.includes(id) ? {tipo:'tarde', candidatos: candidatosTarde} : null);
+        } else {
+          r.bonusPeterTarde = false;
+        }
       });
+      // Guardar info de empates no bónus para mostrar na UI
+      if (candidatosManha.length > 1) {
+        const chaveDes = chaveEmpate(prova.id, jornada, 'manha', candidatosManha[0], candidatosManha[1]);
+        if (!empates[chaveDes]) {
+          if (!prova.empatesBonus) prova.empatesBonus = {};
+          prova.empatesBonus[`${jornada}_manha`] = {candidatos: candidatosManha, chave: chaveDes};
+        }
+      }
+      if (candidatosTarde.length > 1) {
+        const chaveDes = chaveEmpate(prova.id, jornada, 'tarde', candidatosTarde[0], candidatosTarde[1]);
+        if (!empates[chaveDes]) {
+          if (!prova.empatesBonus) prova.empatesBonus = {};
+          prova.empatesBonus[`${jornada}_tarde`] = {candidatos: candidatosTarde, chave: chaveDes};
+        }
+      }
     });
   } else {
-    // Normal: melhor Mini e melhor Peter por grupo
+    // Jornadas normais: melhor Mini e melhor Peter por grupo
     const grupos = {};
     atletas.forEach(a => {
       if (!jRes[a.id]) return;
@@ -1640,12 +1709,42 @@ function calcularBonus(prova, jornada, jRes) {
         [r.mV1,r.mV2].forEach(v => { const n=parseInt(v); if(!isNaN(n)) melhorMini=Math.min(melhorMini,n); });
         [r.pV1,r.pV2].forEach(v => { const n=parseInt(v); if(!isNaN(n)) melhorPeter=Math.min(melhorPeter,n); });
       });
+      const candidatosMini = ids.filter(id => {
+        const r = jRes[id]; if(!r) return false;
+        return [r.mV1,r.mV2].map(v=>parseInt(v)).filter(v=>!isNaN(v)).some(v => v === melhorMini);
+      });
+      const candidatosPeter = ids.filter(id => {
+        const r = jRes[id]; if(!r) return false;
+        return [r.pV1,r.pV2].map(v=>parseInt(v)).filter(v=>!isNaN(v)).some(v => v === melhorPeter);
+      });
       ids.forEach(id => {
         const r = jRes[id]; if(!r) return;
-        const miniVals = [r.mV1,r.mV2].map(v=>parseInt(v)).filter(v=>!isNaN(v));
-        const peterVals = [r.pV1,r.pV2].map(v=>parseInt(v)).filter(v=>!isNaN(v));
-        r.bonusMini = miniVals.some(v => v === melhorMini);
-        r.bonusPeter = peterVals.some(v => v === melhorPeter);
+        if (candidatosMini.length === 1) {
+          r.bonusMini = candidatosMini[0] === id;
+        } else if (candidatosMini.length > 1) {
+          const chaveDes = chaveEmpate(prova.id, jornada, 'mini', candidatosMini[0], candidatosMini[1]);
+          const venc = empates[chaveDes];
+          r.bonusMini = venc ? venc === id : candidatosMini.includes(id);
+          if (!venc && candidatosMini.includes(id)) {
+            if (!prova.empatesBonus) prova.empatesBonus = {};
+            prova.empatesBonus[`${jornada}_mini`] = {candidatos: candidatosMini, chave: chaveDes};
+          }
+        } else {
+          r.bonusMini = false;
+        }
+        if (candidatosPeter.length === 1) {
+          r.bonusPeter = candidatosPeter[0] === id;
+        } else if (candidatosPeter.length > 1) {
+          const chaveDes = chaveEmpate(prova.id, jornada, 'peter', candidatosPeter[0], candidatosPeter[1]);
+          const venc = empates[chaveDes];
+          r.bonusPeter = venc ? venc === id : candidatosPeter.includes(id);
+          if (!venc && candidatosPeter.includes(id)) {
+            if (!prova.empatesBonus) prova.empatesBonus = {};
+            prova.empatesBonus[`${jornada}_peter`] = {candidatos: candidatosPeter, chave: chaveDes};
+          }
+        } else {
+          r.bonusPeter = false;
+        }
       });
     });
   }
