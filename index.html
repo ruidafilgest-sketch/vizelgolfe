@@ -1157,44 +1157,60 @@ function renderClassCampeonato(prova) {
     const rankingMap = {};
     atletasGrupo.forEach(atleta => {
       let totalPontos = 0, vitorias = 0, podiums = Array(10).fill(0), jornadas = 0;
+      const pontosPorJornada = {}; // guardar pts + bonus por jornada para mostrar na tabela
+
       for (let j = 1; j <= prova.jornadas; j++) {
         const res = prova.resultados[j]?.[atleta.id];
         if (!res) continue;
+        const totalLiquido = calcularTotalJornada(prova, j, res);
+        if (totalLiquido === null) continue;
         jornadas++;
-        const total = calcularTotalJornada(prova, j, res);
-        if (total === null) continue;
 
-        // Posição no grupo completo (H+J) para pontuação
-        const grupoRef = 'Homens'; // Juniores sempre no grupo Homens
-        const catGrupo = grupo.cats.includes('Juniores') && grupo.cats.includes('Homens') ? 'Homens' : grupo.cats[0];
-
-        // Calcular posição entre todos do mesmo grupo nesta jornada
+        // Posição baseada APENAS no total líquido de tacadas
+        // com desempate manual por jornada se necessário
         const todosGrupo = atletasGrupo.filter(b => prova.resultados[j]?.[b.id]);
-        const totaisGrupo = todosGrupo.map(b => ({id:b.id, t: calcularTotalJornada(prova, j, prova.resultados[j][b.id]) || 999}))
-          .sort((a,b) => a.t - b.t);
+        const totaisGrupo = todosGrupo.map(b => ({
+          id: b.id,
+          t: calcularTotalJornada(prova, j, prova.resultados[j][b.id]) || 999
+        }));
 
-        let pos = 1;
+        // Ordenar: total líquido, depois desempate manual
+        totaisGrupo.sort((a, b) => {
+          if (a.t !== b.t) return a.t - b.t;
+          const chave = `${prova.id}_j${j}_${Math.min(a.id,b.id)}_${Math.max(a.id,b.id)}`;
+          const venc = empates[chave];
+          if (venc) return venc === a.id ? -1 : 1;
+          return 0;
+        });
+
+        // Calcular posição — única por atleta após desempate
+        let pos = 999;
         for (let i = 0; i < totaisGrupo.length; i++) {
-          if (totaisGrupo[i].id === atleta.id) break;
-          if (totaisGrupo[i].t !== (totaisGrupo[i+1]?.t)) pos++;
-          else pos++;
+          if (totaisGrupo[i].id === atleta.id) {
+            pos = i + 1;
+            break;
+          }
         }
 
-        const pts = pontuacaoCustom(prova.pts1, pos);
-        totalPontos += pts;
+        const pts = pos <= PONTUACAO.length ? pontuacaoCustom(prova.pts1, pos) : 0;
+        // Bónus são pontos extra no campeonato (separados dos pts de classificação)
+        let bonusPts = 0;
+        if (res.bonusMini) bonusPts += (prova.bonusMini || 0);
+        if (res.bonusPeter) bonusPts += (prova.bonusPeter || 0);
+        if (res.bonusPeterManha) bonusPts += (prova.bonusPeter || 0);
+        if (res.bonusPeterTarde) bonusPts += (prova.bonusPeter || 0);
+
+        totalPontos += pts + bonusPts;
         if (pos === 1) vitorias++;
         if (pos <= 10) podiums[pos-1]++;
-
-        // Bónus
-        if (res.bonusMini) totalPontos += (prova.bonusMini || 0);
-        if (res.bonusPeter) totalPontos += (prova.bonusPeter || 0);
-        if (res.bonusMiniManha) totalPontos += (prova.bonusMini || 0);
-        if (res.bonusMiniTarde) totalPontos += (prova.bonusMini || 0);
-        if (res.bonusPeterManha) totalPontos += (prova.bonusPeter || 0);
-        if (res.bonusPeterTarde) totalPontos += (prova.bonusPeter || 0);
+        pontosPorJornada[j] = {totalLiquido, pos, pts, bonusPts};
       }
+
       if (jornadas === prova.jornadas) totalPontos += (prova.bonusCompleto || 0);
-      if (jornadas > 0) rankingMap[atleta.id] = {atleta, nome: atleta.nome, pontos: totalPontos, vitorias, podiums, jornadas};
+      // Incluir todos os atletas que participaram (mesmo com 0 pontos)
+      if (jornadas > 0) {
+        rankingMap[atleta.id] = {atleta, nome: atleta.nome, pontos: totalPontos, vitorias, podiums, jornadas, pontosPorJornada};
+      }
     });
 
     const ranking = Object.values(rankingMap).sort((a,b) => {
@@ -1209,7 +1225,8 @@ function renderClassCampeonato(prova) {
     // Detectar empates na classificação geral
     const empateDivs = [];
     for (let i = 0; i < ranking.length-1; i++) {
-      if (ranking[i].pontos === ranking[i+1].pontos) {
+      // Só avisar empate se ambos têm pontos > 0
+      if (ranking[i].pontos === ranking[i+1].pontos && ranking[i].pontos > 0) {
         const chave = `${prova.id}_class_${ranking[i].atleta.id}_${ranking[i+1].atleta.id}`;
         const chaveInv = `${prova.id}_class_${ranking[i+1].atleta.id}_${ranking[i].atleta.id}`;
         if (!empates[chave] && !empates[chaveInv]) {
@@ -1246,21 +1263,26 @@ function renderClassCampeonato(prova) {
       const jRes = prova.resultados[j] || {};
       if (!Object.keys(jRes).length) continue;
       const atletasComDados = atletasGrupo.filter(a => jRes[a.id]);
-      for (let i = 0; i < atletasComDados.length; i++) {
-        for (let k = i+1; k < atletasComDados.length; k++) {
-          const a = atletasComDados[i], b = atletasComDados[k];
-          const tA = calcularTotalJornada(prova, j, jRes[a.id]);
-          const tB = calcularTotalJornada(prova, j, jRes[b.id]);
-          if (tA === tB && tA !== null) {
-            const chave = `${prova.id}_j${j}_${Math.min(a.id,b.id)}_${Math.max(a.id,b.id)}`;
-            if (!empates[chave]) {
-              empateDivs.push(`<div class="empate-aviso">⚠️ Empate J${j} — <strong>${a.nome}</strong> e <strong>${b.nome}</strong> com <strong>${tA} tacadas</strong>
-                ${modoAdmin ? `<button class="btn btn-primario" style="padding:3px 10px;font-size:0.75rem;margin-left:auto"
-                  onclick="abrirEmpateJornada(${prova.id},${j},${a.id},${b.id})">⚡ Resolver Empate J${j}</button>` : ''}</div>`);
-            } else {
-              const nomeVenc = atletas.find(x=>x.id===empates[chave])?.nome;
-              empateDivs.push(`<div class="empate-resolvido">✅ Empate J${j} resolvido — <strong>${nomeVenc}</strong> fica à frente (total líquido: ${tA} tacadas)</div>`);
-            }
+      // Calcular posições provisórias para saber se empate tem impacto na pontuação
+      const totaisJ = atletasComDados.map(a => ({
+        id: a.id, nome: a.nome,
+        t: calcularTotalJornada(prova, j, jRes[a.id]) || 9999
+      })).sort((a,b) => a.t - b.t);
+
+      for (let i = 0; i < totaisJ.length; i++) {
+        for (let k = i+1; k < totaisJ.length; k++) {
+          if (totaisJ[i].t !== totaisJ[k].t) continue;
+          // Empate no total de tacadas — só avisar se afeta pontuação (algum está no top 10)
+          const posA = i + 1, posB = k + 1;
+          if (posA > PONTUACAO.length && posB > PONTUACAO.length) continue; // ambos fora do top 10 — sem impacto
+          const chave = `${prova.id}_j${j}_${Math.min(totaisJ[i].id,totaisJ[k].id)}_${Math.max(totaisJ[i].id,totaisJ[k].id)}`;
+          if (!empates[chave]) {
+            empateDivs.push(`<div class="empate-aviso">⚠️ Empate J${j} — <strong>${totaisJ[i].nome}</strong> e <strong>${totaisJ[k].nome}</strong> com <strong>${totaisJ[i].t} tacadas</strong> (${posA}º/${posB}º)
+              ${modoAdmin ? `<button class="btn btn-primario" style="padding:3px 10px;font-size:0.75rem;margin-left:auto"
+                onclick="abrirEmpateJornada(${prova.id},${j},${totaisJ[i].id},${totaisJ[k].id})">⚡ Resolver Empate J${j}</button>` : ''}</div>`);
+          } else {
+            const nomeVenc = atletas.find(x=>x.id===empates[chave])?.nome;
+            empateDivs.push(`<div class="empate-resolvido">✅ Empate J${j} resolvido — <strong>${nomeVenc}</strong> fica à frente (${totaisJ[i].t} tacadas)</div>`);
           }
         }
       }
@@ -1288,26 +1310,22 @@ function renderClassCampeonato(prova) {
           const pos = i+1;
           const medal = pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
           const jCells = Array.from({length:prova.jornadas},(_,idx)=>idx+1).map(j => {
-            const res = prova.resultados[j]?.[r.atleta.id];
-            if (!res) return '<td><span style="color:#555">—</span></td>';
-            const total = calcularTotalJornada(prova, j, res);
-            const esp = prova.jornadaEspecial?.[j];
-            let bonusStr = '';
-            if (res.bonusMini) bonusStr += ' <span style="color:var(--dourado-claro);font-size:0.7rem">+Mini</span>';
-            if (res.bonusPeter) bonusStr += ' <span style="color:var(--dourado-claro);font-size:0.7rem">+Peter</span>';
-            if (res.bonusPeterManha) bonusStr += ' <span style="color:var(--dourado-claro);font-size:0.7rem">+PeterM</span>';
-            if (res.bonusPeterTarde) bonusStr += ' <span style="color:var(--dourado-claro);font-size:0.7rem">+PeterT</span>';
-            // Verificar empate por jornada (total líquido)
+            const jData = r.pontosPorJornada?.[j];
+            if (!jData) return '<td><span style="color:#555">—</span></td>';
+            const {totalLiquido, pos, pts, bonusPts} = jData;
+            // Verificar empate por jornada ainda não resolvido
             const jRes = prova.resultados[j] || {};
-            const grupo = CAT_GRUPO[r.atleta.categoria];
-            const atletasGrupo = atletas.filter(a => CAT_GRUPO[a.categoria] === grupo && jRes[a.id]);
-            const empateJornada = atletasGrupo.some(a => {
-              if (a.id === r.atleta.id) return false;
+            const grupoId = CAT_GRUPO[r.atleta.categoria];
+            const outrosGrupo = atletasGrupo.filter(a => a.id !== r.atleta.id && jRes[a.id]);
+            const empateNaoResolvido = outrosGrupo.some(a => {
               const outroTotal = calcularTotalJornada(prova, j, jRes[a.id]);
-              return outroTotal === total;
+              if (outroTotal !== totalLiquido) return false;
+              const chave = `${prova.id}_j${j}_${Math.min(a.id,r.atleta.id)}_${Math.max(a.id,r.atleta.id)}`;
+              return !empates[chave];
             });
-            const empateIcon = empateJornada ? ' <span title="Empate nesta jornada" style="color:#fbbf24">⚠️</span>' : '';
-            return `<td>${total ?? '—'}${empateIcon}${bonusStr}</td>`;
+            const empateIcon = empateNaoResolvido ? '<span title="Empate por resolver" style="color:#fbbf24;font-size:0.8rem"> ⚠️</span>' : '';
+            const bonusStr = bonusPts > 0 ? `<span style="color:var(--dourado-claro);font-size:0.72rem"> +${bonusPts}b</span>` : '';
+            return `<td><span title="${totalLiquido} tacadas → ${pos}º → ${pts}pts">${totalLiquido}${empateIcon}</span><br><small style="color:#9ca3af">${pts}pts${bonusStr}</small></td>`;
           }).join('');
           return `<tr>
             <td class="pos pos-${pos}">${medal}${pos}º</td>
