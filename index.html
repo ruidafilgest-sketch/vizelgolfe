@@ -398,7 +398,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 <div class="secao" id="secao-atletas">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
     <div class="card-titulo" style="margin-bottom:0">👥 Atletas</div>
-    <button class="btn btn-primario admin-only" onclick="abrirModalAtleta()">+ Novo Atleta</button>
+    <button class="btn btn-primario admin-only" onclick="abrirModalAtleta()" style="display:none">+ Novo Atleta</button>
   </div>
   <div id="atletasConteudo"></div>
 </div>
@@ -842,6 +842,9 @@ function irParaClassificacao(provaId) {
 // ============================================================
 let atletaEditId = null;
 function renderAtletas() {
+  // Botão "+ Novo Atleta" só visível para admin
+  const btnNovoAtleta = document.querySelector('#secao-atletas .btn.btn-primario');
+  if (btnNovoAtleta) btnNovoAtleta.style.display = modoAdmin ? 'inline-flex' : 'none';
   let html = '';
   CATEGORIAS.forEach(cat => {
     const lista = atletas.filter(a => a.categoria === cat);
