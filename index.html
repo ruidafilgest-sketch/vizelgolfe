@@ -1349,71 +1349,83 @@ function renderClassTorneio(prova) {
     <span style="font-size:0.82rem;color:var(--texto-suave);margin-left:12px">${prova.nome} — ${formatData(prova.data)}</span>
   </div>`;
 
-  // Grupos para torneio
   const grupos = [
-    {label:'Homens', cats:['Homens','Juniores']},
-    {label:'Juniores (pódio)', cats:['Juniores']},
-    {label:'Senhoras', cats:['Senhoras']},
-    {label:'Seniores Masculinos', cats:['Seniores Masculinos']},
-    {label:'Veteranos Masculinos', cats:['Veteranos Masculinos']},
+    {label:'Homens', cats:['Homens','Juniores'], sigla:'H'},
+    {label:'Juniores (pódio)', cats:['Juniores'], sigla:'J'},
+    {label:'Senhoras', cats:['Senhoras'], sigla:'S'},
+    {label:'Seniores Masculinos', cats:['Seniores Masculinos'], sigla:'SM'},
+    {label:'Veteranos Masculinos', cats:['Veteranos Masculinos'], sigla:'VM'},
   ];
 
   grupos.forEach(grupo => {
     const atletasGrupo = atletas.filter(a => grupo.cats.includes(a.categoria) && jRes[a.id]);
     if (!atletasGrupo.length) return;
 
+    // Total = soma das 4 voltas (Mini V1+V2 + Peter V1+V2) — sem bónus nos torneios
     const ranking = atletasGrupo.map(atleta => {
       const res = jRes[atleta.id];
-      const mini = melhorDas(res.mV1, res.mV2);
-      const peter = melhorDas(res.pV1, res.pV2);
-      const total = (mini||0) + (peter||0);
-      return {atleta, nome: atleta.nome, mini, peter, total, res};
-    }).filter(r => r.total > 0).sort((a,b) => a.total - b.total);
+      const mV1 = parseInt(res.mV1)||0, mV2 = parseInt(res.mV2)||0;
+      const pV1 = parseInt(res.pV1)||0, pV2 = parseInt(res.pV2)||0;
+      const total = mV1 + mV2 + pV1 + pV2;
+      return {atleta, nome: atleta.nome, mV1, mV2, pV1, pV2, total, res};
+    }).filter(r => r.total > 0);
+
+    // Ordenar por total asc, desempate manual
+    ranking.sort((a, b) => {
+      if (a.total !== b.total) return a.total - b.total;
+      const ch = chaveEmpateJ(prova.id, 1, a.atleta.id, b.atleta.id);
+      const v = empates[ch];
+      if (v) return v === a.atleta.id ? -1 : 1;
+      return 0;
+    });
 
     if (!ranking.length) return;
 
-    // Bónus
-    const melhorMiniVal = Math.min(...ranking.map(r => r.mini||999));
-    const melhorPeterVal = Math.min(...ranking.map(r => r.peter||999));
-
-    // Empates
-    let empateDivs = [];
-    for (let i=0;i<ranking.length-1;i++) {
-      if (ranking[i].total === ranking[i+1].total) {
-        const chave = `${prova.id}_${ranking[i].atleta.id}_${ranking[i+1].atleta.id}`;
-        const chaveInv = `${prova.id}_${ranking[i+1].atleta.id}_${ranking[i].atleta.id}`;
-        if (!empates[chave] && !empates[chaveInv]) {
-          empateDivs.push(`<div class="empate-aviso">⚠️ Empate entre <strong>${ranking[i].nome}</strong> e <strong>${ranking[i+1].nome}</strong>
-            ${modoAdmin ? `<button class="btn btn-secundario" style="padding:2px 8px;font-size:0.72rem;margin-left:auto" onclick="abrirEmpate(${prova.id},${ranking[i].atleta.id},${ranking[i+1].atleta.id})">Resolver</button>` : ''}</div>`);
+    // Empates — só se têm impacto (dentro do número de classificados)
+    const empateDivs = [];
+    const vistos = new Set();
+    for (let i = 0; i < ranking.length-1; i++) {
+      for (let k = i+1; k < ranking.length; k++) {
+        if (ranking[i].total !== ranking[k].total) continue;
+        const par = `${Math.min(ranking[i].atleta.id,ranking[k].atleta.id)}_${Math.max(ranking[i].atleta.id,ranking[k].atleta.id)}`;
+        if (vistos.has(par)) continue;
+        vistos.add(par);
+        const ch = chaveEmpateJ(prova.id, 1, ranking[i].atleta.id, ranking[k].atleta.id);
+        if (!empates[ch]) {
+          empateDivs.push(`<div class="empate-aviso">⚠️ Empate — <strong>${ranking[i].nome}</strong> e <strong>${ranking[k].nome}</strong> com <strong>${ranking[i].total} tacadas</strong>
+            ${modoAdmin ? `<button class="btn btn-primario" style="padding:3px 10px;font-size:0.75rem;margin-left:auto"
+              onclick="abrirEmpateJornada(${prova.id},1,${ranking[i].atleta.id},${ranking[k].atleta.id})">⚡ Resolver Empate</button>` : ''}</div>`);
         } else {
-          const venc = empates[chave] || empates[chaveInv];
-          empateDivs.push(`<div class="empate-resolvido">✅ Empate resolvido — <strong>${atletas.find(a=>a.id===venc)?.nome}</strong> venceu em pista</div>`);
+          const nv = atletas.find(a=>a.id===empates[ch])?.nome;
+          empateDivs.push(`<div class="empate-resolvido">✅ Empate resolvido — <strong>${nv}</strong> fica à frente</div>`);
         }
       }
     }
 
-    const sigla = grupo.cats.includes('Juniores') && grupo.cats.includes('Homens') ? 'H' : CAT_SIGLA[grupo.cats[0]];
     html += `<div class="cat-secao">
       <div class="cat-header">
-        <span class="cat-badge cat-${sigla}">${grupo.label}</span>
+        <span class="cat-badge cat-${grupo.sigla}">${grupo.label}</span>
         <span class="cat-count">${ranking.length} atleta(s)</span>
       </div>
       ${empateDivs.join('')}
       <div class="tabela-wrap"><table>
-        <thead><tr><th>Pos</th><th>Atleta</th><th>Mini V1</th><th>Mini V2</th><th>Melhor Mini</th><th>Peter V1</th><th>Peter V2</th><th>Melhor Peter</th><th>Total</th></tr></thead>
+        <thead><tr>
+          <th>Pos</th><th>Atleta</th>
+          <th>Mini V1</th><th>Mini V2</th>
+          <th>Peter V1</th><th>Peter V2</th>
+          <th>Total tacadas</th>
+        </tr></thead>
         <tbody>
         ${ranking.map((r,i) => {
           const pos = i+1;
           const medal = pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
-          const temBonusMini = r.mini === melhorMiniVal && melhorMiniVal < 999;
-          const temBonusPeter = r.peter === melhorPeterVal && melhorPeterVal < 999;
           return `<tr>
             <td class="pos pos-${pos}">${medal}${pos}º</td>
             <td class="nome-atleta">${r.nome}${r.atleta.categoria==='Juniores'?' <small style="color:#34d399">(J)</small>':''}</td>
-            <td>${spanT(r.res.mV1,'mini')}</td><td>${spanT(r.res.mV2,'mini')}</td>
-            <td><strong>${spanT(r.mini,'mini')}</strong>${temBonusMini?' <small style="color:var(--dourado-claro)">+bónus</small>':''}</td>
-            <td>${spanT(r.res.pV1,'peter')}</td><td>${spanT(r.res.pV2,'peter')}</td>
-            <td><strong>${spanT(r.peter,'peter')}</strong>${temBonusPeter?' <small style="color:var(--dourado-claro)">+bónus</small>':''}</td>
+            <td>${spanT(r.mV1,'mini')}</td>
+            <td>${spanT(r.mV2,'mini')}</td>
+            <td>${spanT(r.pV1,'peter')}</td>
+            <td>${spanT(r.pV2,'peter')}</td>
             <td class="pontos-total">${r.total}</td>
           </tr>`;
         }).join('')}
@@ -1701,8 +1713,10 @@ function guardarResultados(provaId, jornada) {
     }
   });
 
-  // Calcular bónus
-  calcularBonus(prova, jornada, jRes);
+  // Calcular bónus — APENAS no Campeonato (não em torneios)
+  if (prova.tipo === 'campeonato') {
+    calcularBonus(prova, jornada, jRes);
+  }
 
   prova.resultados[jornada] = jRes;
   salvarDados();
