@@ -753,6 +753,10 @@ async function iniciarApp(modo) {
     });
   } else {
     document.getElementById('modoLabel').textContent = '🏌️ Atleta — Consulta';
+    // Garantir que todos os elementos admin ficam escondidos
+    document.querySelectorAll('.admin-only').forEach(e => {
+      e.style.cssText = 'display:none !important';
+    });
   }
   renderTudo();
   mostrarSecao('dashboard', document.querySelector('.nav-tab'));
@@ -765,6 +769,12 @@ function renderTudo() {
   renderClassificacoes();
   popularSelProva();
   renderGerirProvas();
+  // Re-aplicar visibilidade admin após render (alguns elementos são gerados dinamicamente)
+  if (!modoAdmin) {
+    document.querySelectorAll('.admin-only').forEach(e => {
+      e.style.cssText = 'display:none !important';
+    });
+  }
 }
 
 // ============================================================
@@ -842,9 +852,6 @@ function irParaClassificacao(provaId) {
 // ============================================================
 let atletaEditId = null;
 function renderAtletas() {
-  // Botão "+ Novo Atleta" só visível para admin
-  const btnNovoAtleta = document.querySelector('#secao-atletas .btn.btn-primario');
-  if (btnNovoAtleta) btnNovoAtleta.style.display = modoAdmin ? 'inline-flex' : 'none';
   let html = '';
   CATEGORIAS.forEach(cat => {
     const lista = atletas.filter(a => a.categoria === cat);
