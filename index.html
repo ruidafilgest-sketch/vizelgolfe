@@ -1186,13 +1186,17 @@ function renderClassCampeonato(prova) {
       }
     });
 
-    // Ordenar ranking geral: pontos desc, depois vitórias, depois pódios, depois desempate manual
+    // Ordenar ranking geral: pontos desc, vitórias, pódios, tacadas totais asc, desempate manual
     const ranking = Object.values(rankingMap).sort((a, b) => {
       if (b.pontos !== a.pontos) return b.pontos - a.pontos;
       if (b.vitorias !== a.vitorias) return b.vitorias - a.vitorias;
       for (let i = 0; i < 10; i++) {
         if (b.podiums[i] !== a.podiums[i]) return b.podiums[i] - a.podiums[i];
       }
+      // Mesmo pontos e mesma estrutura de pódios → ordenar por total de tacadas (menos é melhor)
+      const tacadasA = Object.values(a.pontosPorJornada).reduce((s, j) => s + (j.tLiq || 0), 0);
+      const tacadasB = Object.values(b.pontosPorJornada).reduce((s, j) => s + (j.tLiq || 0), 0);
+      if (tacadasA !== tacadasB) return tacadasA - tacadasB;
       // Empate total → desempate manual
       const ch = chaveEmpateClass(prova.id, a.atleta.id, b.atleta.id);
       const v = empates[ch];
