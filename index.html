@@ -329,6 +329,11 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 </head>
 <body>
 
+<!-- COPYRIGHT BAR -->
+<div style="background:#0d1f3c;border-bottom:1px solid rgba(201,168,76,0.2);padding:5px 16px;text-align:center;font-size:0.68rem;color:rgba(201,168,76,0.5);letter-spacing:0.3px;position:relative;z-index:200">
+  © 2026 Rui Manuel Martins Gonçalves — Todos os direitos reservados. Uso não autorizado é proibido por lei.
+</div>
+
 <!-- LOGIN -->
 <div class="login-overlay aberto" id="loginOverlay">
   <div class="login-box">
@@ -366,6 +371,9 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   <button class="nav-tab" onclick="mostrarSecao('atletas',this)">👥 Atletas</button>
   <button class="nav-tab admin-only" id="tabInserir" onclick="mostrarSecao('inserir',this)">✏️ Inserir Resultados</button>
   <button class="nav-tab admin-only" onclick="mostrarSecao('gerir',this)">⚙️ Gerir</button>
+  <button class="nav-tab admin-only" onclick="mostrarSecao('aovivo',this)">🔴 Ao Vivo</button>
+  <button class="nav-tab" onclick="mostrarSecao('nacional',this)">🇵🇹 Nacional</button>
+  <button class="nav-tab" onclick="mostrarSecao('regras',this)">📖 Regras</button>
 </nav>
 
 <!-- DASHBOARD -->
@@ -473,6 +481,166 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   </div>
 </div>
 
+<!-- NACIONAL -->
+<div class="secao" id="secao-nacional">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <div class="card-titulo" style="margin-bottom:0">🇵🇹 Campeonato Nacional</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div id="selectorAno" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      <button class="btn btn-primario admin-only" onclick="abrirNovoAno()" style="font-size:0.78rem;padding:5px 12px">➕ Nova Época</button>
+    </div>
+  </div>
+  <div id="nacionalConteudo"></div>
+</div>
+
+<!-- REGRAS -->
+<div class="secao" id="secao-regras">
+  <div class="card-titulo" style="margin-bottom:20px">📖 Regulamento Técnico de Minigolfe</div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-titulo">1. Equipamento Técnico e do Atleta</div>
+    <div style="font-size:0.85rem;line-height:1.7;color:var(--texto)">
+      <p style="margin-bottom:10px"><strong>O Taco (Putter):</strong> São permitidos tacos de minigolfe e golfe. O taco não pode ter dispositivos de mira, mas pode ter entalhes ou linhas no topo. A face da patilha não deve exceder os <strong>40 cm²</strong>. Se usado um taco ilegal, a pista deve ser repetida e as tacadas anteriores contam.</p>
+      <p style="margin-bottom:10px"><strong>A Bola:</strong> O diâmetro deve estar entre <strong>37 e 43 mm</strong>. O ressalto não pode exceder <strong>85 cm</strong> quando largada de 1 metro de altura (a 25°C sobre cimento). Só são permitidas bolas licenciadas em torneios oficiais.</p>
+      <p style="margin-bottom:10px"><strong>Vestuário do Atleta:</strong> É obrigatório o uso de uniforme do clube da cintura para cima, com a filiação visível. Da cintura para baixo, exige-se vestuário e calçado desportivo (sapatilhas). O uniforme deve ser usado também nas cerimónias oficiais.</p>
+      <p><strong>Publicidade:</strong> Permitida no equipamento (frente, costas ou braços), exceto se for de tabaco, álcool ou ofensiva. Uma equipa deve usar publicidade de forma uniforme.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-titulo">2. Regras de Distância e Espaço</div>
+    <div style="font-size:0.85rem;line-height:1.7;color:var(--texto)">
+      <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
+      <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos (como sacos de bolas) e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
+      <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-titulo">3. Procedimentos Técnicos de Jogo</div>
+    <div style="font-size:0.85rem;line-height:1.7;color:var(--texto)">
+      <p style="margin-bottom:10px"><strong>Definição de Tacada:</strong> Conta como tacada quando o jogador, em estado de preparação (balanço em direção à bola), coloca a bola em movimento. Toques acidentais fora da preparação não contam.</p>
+      <p style="margin-bottom:10px"><strong>Uso das Mãos:</strong> Antes da tacada, o taco deve ser seguro com ambas as mãos. A bola pode ser colocada na marca de saída com a mão ou o taco, mas dentro da área de jogo só pode ser reposicionada com a mão.</p>
+      <p style="margin-bottom:10px"><strong>Substituição de Bola:</strong> O jogador deve terminar a pista com a bola que iniciou. Se a bola se danificar ou for perdida (não encontrada em <strong>5 minutos</strong>), pode ser substituída após decisão do júri.</p>
+      <p><strong>Interferências:</strong> Não é permitido influenciar intencionalmente o curso da bola após a tacada. Se houver interferência externa (ex: vento movendo a bola parada), ela deve ser recolocada no ponto original.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-titulo">4. Regras de Reposicionamento</div>
+    <div style="font-size:0.85rem;line-height:1.7;color:var(--texto)">
+      <p style="margin-bottom:10px"><strong>Junto à Tabela:</strong> Se a bola parar junto à tabela, pode ser colocada a 90 graus da mesma, até <strong>20 cm</strong> de distância.</p>
+      <div style="margin-bottom:10px">
+        <strong>Junto ao Obstáculo:</strong>
+        <ul style="margin-top:6px;padding-left:20px;line-height:1.9">
+          <li><strong>Petergolfe / Miniaturgolfe:</strong> Se já passou o obstáculo, até <strong>30 cm</strong> na direção do buraco.</li>
+          <li><strong>Miniaturgolfe</strong> (não passou): até <strong>20 cm</strong> na direção da marca de saída.</li>
+          <li><strong>Feltgolf:</strong> Até <strong>50 cm</strong> do obstáculo.</li>
+          <li><strong>MOS (Adventure Golf):</strong> Até <strong>30 cm</strong> do obstáculo em qualquer direção.</li>
+        </ul>
+      </div>
+      <p><strong>Nota:</strong> Uma bola já reposicionada não pode ter a sua posição alterada novamente antes da tacada.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-titulo">5. Comportamento e Ética Desportiva</div>
+    <div style="font-size:0.85rem;line-height:1.7;color:var(--texto)">
+      <p style="margin-bottom:10px"><strong>Proibições Absolutas:</strong> É estritamente proibido o doping, transporte ou consumo de drogas e bebidas alcoólicas, bem como fumar dentro da área das 18 pistas durante o torneio.</p>
+      <p style="margin-bottom:10px"><strong>Instrumentos de Ajuda:</strong> É proibido o uso ou transporte de aparelhos de mira, rádio ou níveis no circuito. É permitido usar planos de pistas ou notas escritas.</p>
+      <p style="margin-bottom:10px"><strong>Abandono de Grupo:</strong> Um jogador não pode abandonar o seu grupo de saída sem autorização do árbitro. Se precisar de ir à casa de banho, deve primeiro terminar a pista em jogo.</p>
+      <p><strong>Treino:</strong> Durante um torneio, é proibido dar tacadas de treino ou rolar bolas nas pistas.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-titulo">6. Pontuação, Protocolos e Penalizações</div>
+    <div style="font-size:0.85rem;line-height:1.7;color:var(--texto)">
+      <p style="margin-bottom:10px"><strong>Contagem:</strong> Cada tacada vale 1 ponto. Se a bola não entrar após 6 tacadas, soma-se 1 ponto extra, totalizando o máximo de <strong>7 pontos por pista</strong>.</p>
+      <p style="margin-bottom:10px"><strong>Registo (Protocolo):</strong> O jogador <strong>não pode</strong> marcar a sua própria pontuação. Esta deve ser registada por um parceiro ou apontador designado. O registo deve ser feito com <strong>caneta à prova de água</strong> (nunca lápis).</p>
+      <div style="margin-bottom:10px">
+        <strong>Sanções por Conduta:</strong>
+        <ul style="margin-top:6px;padding-left:20px;line-height:1.9">
+          <li><strong>Linguagem Ofensiva:</strong> Suspensão até 8 semanas.</li>
+          <li><strong>Falsificação de Protocolo:</strong> Suspensão até 3 meses.</li>
+          <li><strong>Álcool, Drogas ou Tabaco:</strong> Suspensão até 6 meses.</li>
+          <li><strong>Violência:</strong> Suspensão até 1 ano.</li>
+        </ul>
+      </div>
+      <p><strong>Faltas:</strong> Jogadores ausentes quando chamados são penalizados com <strong>7 tacadas</strong> por cada pista em falta.</p>
+    </div>
+  </div>
+
+  <div style="text-align:center;font-size:0.72rem;color:var(--texto-suave);padding:10px 0 30px">
+    Regulamento baseado nas normas técnicas oficiais da Federação Portuguesa de Minigolfe.
+  </div>
+</div>
+
+<!-- AO VIVO -->
+<div class="secao" id="secao-aovivo">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <div class="card-titulo" style="margin-bottom:0">📋 Inserção de Resultados</div>
+    <div id="avStatusBadge"></div>
+  </div>
+
+  <!-- Configuração -->
+  <div id="avConfig" class="card">
+    <div style="font-size:0.85rem;color:var(--texto-suave);margin-bottom:16px">
+      Selecciona a prova, jornada e a volta. No final de cada volta insere os resultados de todos os atletas.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+      <div class="form-group">
+        <label>Prova</label>
+        <select id="avProva" onchange="avOnProvaChange()"></select>
+      </div>
+      <div class="form-group" id="avGrpJornada">
+        <label>Jornada</label>
+        <select id="avJornada" onchange="avOnJornadaChange()"></select>
+      </div>
+      <div class="form-group">
+        <label>Volta</label>
+        <select id="avVolta"></select>
+      </div>
+      <div class="form-group">
+        <label>Nº de pistas</label>
+        <input type="number" id="avNPistas" value="18" min="1" max="36" style="text-align:center">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.85rem">
+        <input type="checkbox" id="avModoDetalhado" checked onchange="avModoChange()">
+        Inserir pista a pista (detalhe estatístico)
+      </label>
+      <span style="font-size:0.75rem;color:var(--texto-suave)">Desactiva para inserir apenas o total da volta</span>
+    </div>
+    <button class="btn btn-primario" onclick="avIniciarSessao()" style="font-size:0.9rem;padding:10px 24px">
+      ✅ Iniciar Inserção
+    </button>
+  </div>
+
+  <!-- Sessão activa -->
+  <div id="avSessao" style="display:none">
+    <div class="card" style="padding:14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+      <div>
+        <strong id="avTituloSessao" style="color:var(--dourado-claro)"></strong>
+        <span id="avVoltaLabel" style="font-size:0.78rem;color:var(--texto-suave);margin-left:10px"></span>
+        <span id="avModoLabel" style="font-size:0.72rem;color:var(--texto-suave);margin-left:8px"></span>
+      </div>
+      <button class="btn btn-perigo" style="font-size:0.78rem;padding:6px 14px" onclick="avTerminarSessao()">✕ Cancelar</button>
+    </div>
+
+    <!-- Tabela de inserção -->
+    <div class="card" style="margin-bottom:14px;overflow-x:auto">
+      <div id="avTabelaInsercao"></div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+      <button class="btn btn-secundario" onclick="avTerminarSessao()">Cancelar</button>
+      <button class="btn btn-primario" style="padding:10px 28px" onclick="avGuardarVolta()">💾 Guardar Volta</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL ATLETA -->
 <div class="modal-overlay" id="modalAtleta">
   <div class="modal">
@@ -518,6 +686,25 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   </div>
 </div>
 
+<!-- MODAL PERFIL ATLETA -->
+<div class="modal-overlay" id="modalPerfil">
+  <div class="modal" style="max-width:860px;width:95vw;max-height:92vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <h3 id="perfilNome" style="font-size:1.2rem;font-weight:800;color:var(--dourado-claro)"></h3>
+        <div id="perfilCategoria" style="font-size:0.78rem;color:var(--texto-suave);margin-top:2px"></div>
+      </div>
+      <button class="modal-fechar" onclick="fecharModal('modalPerfil')">✕</button>
+    </div>
+
+    <!-- Stats resumo -->
+    <div id="perfilStats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-bottom:20px"></div>
+
+    <!-- Resultados por prova -->
+    <div id="perfilResultados"></div>
+  </div>
+</div>
+
 <!-- NOTIFICAÇÃO -->
 <div class="notif" id="notif"></div>
 
@@ -545,6 +732,7 @@ async function salvarDados() {
     atletas: JSON.parse(JSON.stringify(atletas)),
     provas: JSON.parse(JSON.stringify(provas)),
     empates: JSON.parse(JSON.stringify(empates)),
+    campeonatoNacional: JSON.parse(JSON.stringify(campeonatoNacional)),
     proximoId, proximoProvaId
   };
   // Guardar localmente como backup
@@ -588,6 +776,7 @@ function aplicarDados(dados) {
   if (dados.atletas) atletas = dados.atletas;
   if (dados.provas) provas = dados.provas;
   if (dados.empates) empates = dados.empates;
+  if (dados.campeonatoNacional) campeonatoNacional = dados.campeonatoNacional;
   if (dados.proximoId) proximoId = dados.proximoId;
   if (dados.proximoProvaId) proximoProvaId = dados.proximoProvaId;
 }
@@ -677,6 +866,28 @@ let provas = [
 ];
 
 let empates = {}; // chave -> id do atleta vencedor
+
+// Campeonato Nacional — dados multi-ano
+let campeonatoNacional = {
+  "2026": {
+    ano: 2026,
+    jornadas: [
+      { id:1, clube:'', local:'', dataSab:'', dataDom:'',
+        grupoA:{ vertente:'minigolfe', nVoltas:4 },
+        grupoB:{ vertente:'petergolfe', nVoltas:4 },
+        resultados:{} },
+      { id:2, clube:'', local:'', dataSab:'', dataDom:'',
+        grupoA:{ vertente:'minigolfe', nVoltas:4 },
+        grupoB:{ vertente:'petergolfe', nVoltas:4 },
+        resultados:{} },
+      { id:3, clube:'', local:'', dataSab:'', dataDom:'',
+        grupoA:{ vertente:'minigolfe', nVoltas:4 },
+        grupoB:{ vertente:'petergolfe', nVoltas:4 },
+        resultados:{} }
+    ]
+  }
+};
+let anoNacionalActivo = '2026';
 let proximoId = 36;
 let proximoProvaId = 8;
 
@@ -769,6 +980,8 @@ function renderTudo() {
   renderClassificacoes();
   popularSelProva();
   renderGerirProvas();
+  avPopularProvas();
+  if (document.getElementById('secao-nacional')?.classList.contains('ativa')) renderNacional();
   // Re-aplicar visibilidade admin após render (alguns elementos são gerados dinamicamente)
   if (!modoAdmin) {
     document.querySelectorAll('.admin-only').forEach(e => {
@@ -865,10 +1078,10 @@ function renderAtletas() {
       <div class="tabela-wrap"><table>
         <thead><tr><th>#</th><th>Nome</th>${modoAdmin ? '<th>Ações</th>' : ''}</tr></thead>
         <tbody>
-          ${lista.map((a,i) => `<tr>
+          ${lista.map((a,i) => `<tr style="cursor:pointer" onclick="abrirPerfilAtleta(${a.id})">
             <td>${i+1}</td>
-            <td class="nome-atleta">${a.nome}</td>
-            ${modoAdmin ? `<td><button class="btn btn-perigo" style="padding:3px 8px;font-size:0.72rem" onclick="removerAtleta(${a.id})">🗑️</button></td>` : ''}
+            <td class="nome-atleta" style="color:var(--dourado-claro)">${a.nome} <small style="color:#6b7280;font-weight:400">↗</small></td>
+            ${modoAdmin ? `<td onclick="event.stopPropagation()"><button class="btn btn-perigo" style="padding:3px 8px;font-size:0.72rem" onclick="removerAtleta(${a.id})">🗑️</button></td>` : ''}
           </tr>`).join('')}
         </tbody>
       </table></div>
@@ -1905,6 +2118,358 @@ function alterarEstado(id, val) {
 // ============================================================
 // UTILITÁRIOS
 // ============================================================
+// ============================================================
+// AO VIVO — REGISTO PISTA A PISTA
+// ============================================================
+let avEstado = {
+  ativo: false,
+  provaId: null,
+  jornada: null,
+  volta: null,
+  nPistas: 18,
+  modoDetalhado: true
+};
+
+function avPopularProvas() {
+  const sel = document.getElementById('avProva');
+  if (!sel) return;
+  sel.innerHTML = provas.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  avOnProvaChange();
+}
+
+function avOnProvaChange() {
+  const provaId = parseInt(document.getElementById('avProva').value);
+  const prova = provas.find(p => p.id === provaId);
+  if (!prova) return;
+  const grp = document.getElementById('avGrpJornada');
+  const selJ = document.getElementById('avJornada');
+  if (prova.tipo === 'campeonato') {
+    grp.style.display = '';
+    selJ.innerHTML = Array.from({length: prova.jornadas}, (_, i) => i + 1)
+      .map(j => `<option value="${j}">Jornada ${j}</option>`).join('');
+  } else {
+    grp.style.display = 'none';
+  }
+  avOnJornadaChange();
+}
+
+function avOnJornadaChange() {
+  const provaId = parseInt(document.getElementById('avProva').value);
+  const prova = provas.find(p => p.id === provaId);
+  if (!prova) return;
+  const sel = document.getElementById('avVolta');
+  let opts = '';
+  // Jornada 1 do campeonato tem 4 voltas Peter
+  const isJ1Camp = prova.tipo === 'campeonato' &&
+    parseInt(document.getElementById('avJornada')?.value) === 1;
+  if (isJ1Camp) {
+    opts += '<option value="pV1">Petergolfe — Volta 1</option>';
+    opts += '<option value="pV2">Petergolfe — Volta 2</option>';
+    opts += '<option value="pV3">Petergolfe — Volta 3</option>';
+    opts += '<option value="pV4">Petergolfe — Volta 4</option>';
+  } else {
+    opts += '<option value="mV1">Minigolfe — Volta 1</option>';
+    opts += '<option value="mV2">Minigolfe — Volta 2</option>';
+    opts += '<option value="pV1">Petergolfe — Volta 1</option>';
+    opts += '<option value="pV2">Petergolfe — Volta 2</option>';
+  }
+  sel.innerHTML = opts;
+  if (prova.nPistas) document.getElementById('avNPistas').value = prova.nPistas;
+}
+
+function avModoChange() {
+  // apenas actualiza label — a tabela é gerada no início da sessão
+}
+
+function avIniciarSessao() {
+  const provaId = parseInt(document.getElementById('avProva').value);
+  const prova = provas.find(p => p.id === provaId);
+  if (!prova) return;
+  const jornada = prova.tipo === 'campeonato'
+    ? parseInt(document.getElementById('avJornada').value) : 1;
+  const volta = document.getElementById('avVolta').value;
+  const nPistas = parseInt(document.getElementById('avNPistas').value) || 18;
+  const modoDetalhado = document.getElementById('avModoDetalhado').checked;
+
+  avEstado = { ativo: true, provaId, jornada, volta, nPistas, modoDetalhado };
+
+  // Título
+  const vertLabel = volta.startsWith('m') ? 'Minigolfe' : 'Petergolfe';
+  const vNum = volta.slice(-1);
+  document.getElementById('avTituloSessao').textContent = prova.nome;
+  document.getElementById('avVoltaLabel').textContent =
+    `${vertLabel} — Volta ${vNum}` +
+    (prova.tipo === 'campeonato' ? ` | Jornada ${jornada}` : '');
+  document.getElementById('avModoLabel').textContent =
+    modoDetalhado ? '(pista a pista)' : '(total da volta)';
+
+  avRenderTabela();
+
+  document.getElementById('avConfig').style.display = 'none';
+  document.getElementById('avSessao').style.display = 'block';
+}
+
+function avRenderTabela() {
+  const { provaId, jornada, volta, nPistas, modoDetalhado } = avEstado;
+  const prova = provas.find(p => p.id === provaId);
+  const isMini = volta.startsWith('m');
+  const vNum = parseInt(volta.slice(-1));
+
+  // Atletas por categoria
+  const cats = ['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos','Juniores'];
+  let html = '';
+
+  cats.forEach(cat => {
+    const lista = atletas.filter(a => a.categoria === cat);
+    if (!lista.length) return;
+
+    html += `<div style="margin-bottom:20px">
+      <div style="font-weight:700;font-size:0.85rem;color:var(--dourado-claro);
+        border-bottom:1px solid var(--cinza-claro);padding-bottom:6px;margin-bottom:10px">
+        ${cat}
+      </div>`;
+
+    lista.forEach(a => {
+      // Pré-carregar valores existentes
+      const jRes = prova.resultados?.[jornada] || {};
+      const res = jRes[a.id];
+      const pistasExist = res?.pistasDetalhadas?.[volta] || {};
+      const totalExist = res?.[volta] || '';
+
+      if (modoDetalhado) {
+        html += `<div style="margin-bottom:12px;padding:10px;background:rgba(255,255,255,0.02);
+          border-radius:8px;border:1px solid var(--cinza-claro)">
+          <div style="font-weight:600;font-size:0.85rem;margin-bottom:8px">${a.nome}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">`;
+
+        for (let p = 1; p <= nPistas; p++) {
+          const val = pistasExist[p] || '';
+          html += `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+            <span style="font-size:0.62rem;color:var(--texto-suave)">${p}</span>
+            <input type="number" min="1" max="20"
+              id="av_${a.id}_p${p}"
+              value="${val}"
+              style="width:38px;height:34px;text-align:center;font-size:0.85rem;font-weight:600;
+                background:var(--cinza-escuro);border:1px solid var(--cinza-claro);
+                border-radius:6px;color:var(--texto);padding:0"
+              oninput="avAtualizarTotal(${a.id})">
+          </div>`;
+        }
+
+        html += `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;margin-left:8px">
+            <span style="font-size:0.62rem;color:var(--dourado-claro);font-weight:700">TOT</span>
+            <div id="avTot_${a.id}"
+              style="width:44px;height:34px;display:flex;align-items:center;justify-content:center;
+                font-size:0.9rem;font-weight:800;color:var(--dourado-claro);
+                background:rgba(201,168,76,0.1);border:1px solid var(--dourado);border-radius:6px">
+              ${Object.values(pistasExist).reduce((s,v)=>s+(parseInt(v)||0),0)||''}
+            </div>
+          </div>
+        </div></div>`;
+      } else {
+        // Modo rápido — só total
+        html += `<div style="display:flex;align-items:center;gap:12px;padding:8px 10px;
+          margin-bottom:6px;background:rgba(255,255,255,0.02);border-radius:8px;
+          border:1px solid var(--cinza-claro)">
+          <span style="flex:1;font-size:0.85rem;font-weight:600">${a.nome}</span>
+          <span style="font-size:0.75rem;color:var(--texto-suave)">Total tacadas:</span>
+          <input type="number" min="1" max="200"
+            id="av_${a.id}_total"
+            value="${totalExist}"
+            style="width:64px;height:34px;text-align:center;font-size:1rem;font-weight:700;
+              background:var(--cinza-escuro);border:1px solid var(--cinza-claro);
+              border-radius:6px;color:var(--texto);padding:0">
+        </div>`;
+      }
+    });
+
+    html += '</div>';
+  });
+
+  document.getElementById('avTabelaInsercao').innerHTML = html;
+}
+
+function avAtualizarTotal(atletaId) {
+  const { nPistas, volta } = avEstado;
+  let soma = 0;
+  for (let p = 1; p <= nPistas; p++) {
+    const el = document.getElementById(`av_${atletaId}_p${p}`);
+    if (el) soma += parseInt(el.value) || 0;
+  }
+  const totEl = document.getElementById(`avTot_${atletaId}`);
+  if (totEl) totEl.textContent = soma || '';
+}
+
+function avGuardarVolta() {
+  const { provaId, jornada, volta, nPistas, modoDetalhado } = avEstado;
+  const prova = provas.find(p => p.id === provaId);
+  if (!prova) return;
+
+  if (!prova.resultados[jornada]) prova.resultados[jornada] = {};
+  const isMini = volta.startsWith('m');
+  let guardados = 0;
+
+  atletas.forEach(a => {
+    let total = 0;
+    let pistasDetalhadas = {};
+
+    if (modoDetalhado) {
+      for (let p = 1; p <= nPistas; p++) {
+        const el = document.getElementById(`av_${a.id}_p${p}`);
+        const val = parseInt(el?.value) || 0;
+        if (val > 0) { pistasDetalhadas[p] = val; total += val; }
+      }
+    } else {
+      const el = document.getElementById(`av_${a.id}_total`);
+      total = parseInt(el?.value) || 0;
+    }
+
+    if (total > 0) {
+      if (!prova.resultados[jornada][a.id]) prova.resultados[jornada][a.id] = {};
+      prova.resultados[jornada][a.id][volta] = total;
+      if (modoDetalhado && Object.keys(pistasDetalhadas).length) {
+        if (!prova.resultados[jornada][a.id].pistasDetalhadas)
+          prova.resultados[jornada][a.id].pistasDetalhadas = {};
+        prova.resultados[jornada][a.id].pistasDetalhadas[volta] = pistasDetalhadas;
+      }
+      guardados++;
+    }
+  });
+
+  salvarDados();
+  mostrarNotif(`✅ Volta guardada — ${guardados} atleta(s) registados`);
+  avTerminarSessao();
+  if (document.querySelector('.nav-tab.active')?.textContent?.includes('Classificações')) {
+    renderClassificacoes();
+  }
+}
+
+function avTerminarSessao() {
+  avEstado.ativo = false;
+  document.getElementById('avConfig').style.display = 'block';
+  document.getElementById('avSessao').style.display = 'none';
+  avPopularProvas();
+}
+
+
+function abrirPerfilAtleta(atletaId) {
+  const atleta = atletas.find(a => a.id === atletaId);
+  if (!atleta) return;
+
+  document.getElementById('perfilNome').textContent = atleta.nome;
+  document.getElementById('perfilCategoria').innerHTML =
+    `<span class="cat-badge cat-${CAT_SIGLA[atleta.categoria]}">${atleta.categoria}</span>`;
+
+  // Stats globais
+  let totalProvas = 0, totalJornadas = 0, totalTacadas = 0, melhoresTacadas = [];
+  let melhorVoltaMini = null, melhorVoltaPeter = null;
+
+  provas.forEach(prova => {
+    let participouProva = false;
+    for (let j = 1; j <= prova.jornadas; j++) {
+      const res = prova.resultados[j]?.[atletaId];
+      if (!res) continue;
+      participouProva = true;
+      totalJornadas++;
+      const esp = prova.jornadaEspecial?.[j];
+      const campos = esp?.tipo === 'peter4voltas' ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
+      campos.forEach(c => {
+        const v = parseInt(res[c]);
+        if (!isNaN(v) && v > 0) {
+          totalTacadas += v;
+          if (c.startsWith('m') && (melhorVoltaMini === null || v < melhorVoltaMini)) melhorVoltaMini = v;
+          if (c.startsWith('p') && (melhorVoltaPeter === null || v < melhorVoltaPeter)) melhorVoltaPeter = v;
+        }
+      });
+    }
+    if (participouProva) totalProvas++;
+  });
+
+  document.getElementById('perfilStats').innerHTML = `
+    <div class="stat-box"><div class="stat-num">${totalProvas}</div><div class="stat-label">Provas</div></div>
+    <div class="stat-box"><div class="stat-num">${totalJornadas}</div><div class="stat-label">Jornadas</div></div>
+    <div class="stat-box"><div class="stat-num">${melhorVoltaMini ?? '—'}</div><div class="stat-label">↓ Mini</div></div>
+    <div class="stat-box"><div class="stat-num">${melhorVoltaPeter ?? '—'}</div><div class="stat-label">↓ Peter</div></div>
+  `;
+
+  // Resultados detalhados por prova
+  let html = '';
+  provas.forEach(prova => {
+    // Verificar se participou em alguma jornada
+    let participou = false;
+    for (let j = 1; j <= prova.jornadas; j++) {
+      if (prova.resultados[j]?.[atletaId]) { participou = true; break; }
+    }
+    if (!participou) return;
+
+    html += `<div class="card" style="margin-bottom:14px;padding:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <strong style="font-size:0.95rem">${prova.nome}</strong>
+          <span class="badge badge-${prova.estado}" style="margin-left:8px">${estadoLabel(prova.estado)}</span>
+        </div>
+        <span style="font-size:0.78rem;color:var(--texto-suave)">${formatData(prova.data)}</span>
+      </div>`;
+
+    // Por jornada
+    for (let j = 1; j <= prova.jornadas; j++) {
+      const res = prova.resultados[j]?.[atletaId];
+      if (!res) continue;
+      const esp = prova.jornadaEspecial?.[j];
+      const total = calcularTotalJornada(prova, j, res);
+      const atletaObj = atletas.find(a => a.id === atletaId);
+      const grupo = CAT_GRUPO[atletaObj?.categoria];
+      const pos = calcularPosicaoCampeonato(prova, j, atletaId, grupo);
+      const medal = pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
+
+      html += `<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:0.82rem;font-weight:600;color:var(--dourado-claro)">
+            ${prova.tipo === 'campeonato' ? `Jornada ${j}` : 'Resultado'}
+            ${prova.dataJornadas?.[j] ? `<span style="font-weight:400;color:var(--texto-suave);margin-left:6px">${formatData(prova.dataJornadas[j])}</span>` : ''}
+          </span>
+          <span style="font-size:0.82rem">
+            ${medal} <strong style="color:var(--dourado-claro)">${total ?? '—'} tacadas</strong>
+            <span style="color:var(--texto-suave);margin-left:6px">${pos <= 30 ? pos+'º lugar' : ''}</span>
+          </span>
+        </div>`;
+
+      // Voltas individuais
+      if (esp?.tipo === 'peter4voltas') {
+        html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+          ${[['pV1','Peter Manhã V1'],['pV2','Peter Manhã V2'],['pV3','Peter Tarde V1'],['pV4','Peter Tarde V2']].map(([c,l]) => {
+            const v = res[c];
+            return v ? `<div style="text-align:center;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 4px">
+              <div style="font-size:0.65rem;color:var(--texto-suave);margin-bottom:3px">${l}</div>
+              <div class="${corPeter(v)}" style="font-size:1.1rem;font-weight:800">${v}</div>
+            </div>` : '';
+          }).join('')}
+        </div>`;
+        if (res.bonusPeterManha) html += `<div style="font-size:0.72rem;color:var(--dourado-claro);margin-top:6px">⭐ Bónus melhor volta manhã</div>`;
+        if (res.bonusPeterTarde) html += `<div style="font-size:0.72rem;color:var(--dourado-claro);margin-top:4px">⭐ Bónus melhor volta tarde</div>`;
+      } else {
+        html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+          ${[['mV1','Mini V1'],['mV2','Mini V2'],['pV1','Peter V1'],['pV2','Peter V2']].map(([c,l]) => {
+            const v = res[c];
+            return v ? `<div style="text-align:center;background:rgba(0,0,0,0.2);border-radius:6px;padding:6px 4px">
+              <div style="font-size:0.65rem;color:var(--texto-suave);margin-bottom:3px">${l}</div>
+              <div class="${c.startsWith('m') ? corMini(v) : corPeter(v)}" style="font-size:1.1rem;font-weight:800">${v}</div>
+            </div>` : '';
+          }).join('')}
+        </div>`;
+        if (res.bonusMini) html += `<div style="font-size:0.72rem;color:var(--dourado-claro);margin-top:6px">⭐ Bónus melhor volta Mini</div>`;
+        if (res.bonusPeter) html += `<div style="font-size:0.72rem;color:var(--dourado-claro);margin-top:4px">⭐ Bónus melhor volta Peter</div>`;
+      }
+      html += `</div>`; // fim jornada
+    }
+    html += `</div>`; // fim prova
+  });
+
+  if (!html) html = '<div class="empty-state"><div class="icone">📋</div><p>Sem resultados registados</p></div>';
+  document.getElementById('perfilResultados').innerHTML = html;
+  document.getElementById('modalPerfil').classList.add('aberto');
+}
+
 function fecharModal(id) { document.getElementById(id).classList.remove('aberto'); }
 function formatData(d) {
   if (!d) return '—';
@@ -1928,8 +2493,608 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
 
 // Mostrar login (Firebase carrega em paralelo)
 document.getElementById('loginOverlay').classList.add('aberto');
+
+
+// ============================================================
+// CAMPEONATO NACIONAL — CONSTANTES
+// ============================================================
+const CNI_GRUPO_A = ['Homens', 'Senhoras', 'Juniores'];
+const CNI_GRUPO_B = ['Seniores Masculinos', 'Veteranos Masculinos'];
+const CNI_VERTENTES = ['minigolfe', 'petergolfe', 'feltgolf', 'beton'];
+const CNI_VERTENTE_LABEL = {
+  minigolfe: 'Minigolfe', petergolfe: 'Petergolfe',
+  feltgolf: 'Feltgolf', beton: 'Betão'
+};
+
+function grupoNacional(atleta) {
+  if (CNI_GRUPO_A.includes(atleta.categoria)) return 'A';
+  if (CNI_GRUPO_B.includes(atleta.categoria)) return 'B';
+  return null;
+}
+
+function vertentePorGrupo(jornada, grupo) {
+  return grupo === 'A' ? jornada.grupoA.vertente : jornada.grupoB.vertente;
+}
+
+function nVoltasPorGrupo(jornada, grupo) {
+  return grupo === 'A' ? (jornada.grupoA.nVoltas || 4) : (jornada.grupoB.nVoltas || 4);
+}
+
+// ============================================================
+// RENDERIZAR NACIONAL
+// ============================================================
+function renderNacional() {
+  // Selector de anos
+  const anos = Object.keys(campeonatoNacional).sort((a,b) => b-a);
+  if (!campeonatoNacional[anoNacionalActivo]) {
+    anoNacionalActivo = anos[0] || '2026';
+  }
+
+  const selectorEl = document.getElementById('selectorAno');
+  selectorEl.innerHTML = anos.map(ano =>
+    `<button class="btn ${ano === anoNacionalActivo ? 'btn-primario' : 'btn-secundario'}"
+      style="padding:4px 14px;font-size:0.82rem" onclick="mudarAnoNacional('${ano}')">${ano}</button>`
+  ).join('');
+
+  const dados = campeonatoNacional[anoNacionalActivo];
+  if (!dados) return;
+
+  let html = '';
+
+  // Painel de jornadas
+  html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:24px">`;
+  dados.jornadas.forEach((j, idx) => {
+    const temDados = Object.keys(j.resultados).length > 0;
+    html += `<div class="card" style="padding:16px;border:1px solid rgba(201,168,76,0.2)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <strong style="color:var(--dourado-claro)">Jornada ${j.id}</strong>
+        ${temDados ? '<span style="color:#34d399;font-size:0.78rem">✅ Com dados</span>' : '<span style="color:#6b7280;font-size:0.78rem">⏳ Sem dados</span>'}
+      </div>
+      <div style="font-size:0.82rem;color:var(--texto-suave);line-height:1.8">
+        ${j.clube ? `🏟️ <strong>${j.clube}</strong> — ${j.local}` : '<span style="color:#6b7280">Local não definido</span>'}<br>
+        ${j.dataSab ? `📅 ${formatData(j.dataSab)} / ${formatData(j.dataDom)}` : '<span style="color:#6b7280">Datas não definidas</span>'}<br>
+        🅐 ${CNI_VERTENTE_LABEL[j.grupoA.vertente]} (${j.grupoA.nVoltas} voltas) &nbsp;|&nbsp;
+        🅑 ${CNI_VERTENTE_LABEL[j.grupoB.vertente]} (${j.grupoB.nVoltas} voltas)
+      </div>
+      ${modoAdmin ? `<div style="display:flex;gap:6px;margin-top:12px">
+        <button class="btn btn-secundario" style="flex:1;font-size:0.75rem;padding:4px 8px"
+          onclick="abrirConfigJornadaNacional(${idx})">⚙️ Configurar</button>
+        <button class="btn btn-primario" style="flex:1;font-size:0.75rem;padding:4px 8px"
+          onclick="abrirInserirNacional(${idx})">✏️ Resultados</button>
+      </div>` : `<button class="btn btn-secundario" style="width:100%;margin-top:10px;font-size:0.75rem"
+        onclick="abrirVerResultadosNacional(${idx})">👁️ Ver Resultados J${j.id}</button>`}
+    </div>`;
+  });
+  html += `</div>`;
+
+  // Classificação acumulada
+  html += renderClassNacional(dados);
+
+  document.getElementById('nacionalConteudo').innerHTML = html;
+}
+
+function mudarAnoNacional(ano) {
+  anoNacionalActivo = ano;
+  renderNacional();
+}
+
+function abrirNovoAno() {
+  const anos = Object.keys(campeonatoNacional).map(Number).sort((a,b) => b-a);
+  const sugerido = (anos[0] || new Date().getFullYear()) + 1;
+  document.getElementById('novoAnoInput').value = sugerido;
+  document.getElementById('modalNovoAno').classList.add('aberto');
+}
+
+function confirmarNovoAno() {
+  const ano = parseInt(document.getElementById('novoAnoInput').value);
+  if (!ano || ano < 2020 || ano > 2050) { mostrarNotif('Ano inválido', true); return; }
+  if (campeonatoNacional[String(ano)]) { mostrarNotif(`Época ${ano} já existe`, true); return; }
+  campeonatoNacional[String(ano)] = {
+    ano,
+    jornadas: [1,2,3].map(id => ({
+      id, clube:'', local:'', dataSab:'', dataDom:'',
+      grupoA:{ vertente:'minigolfe', nVoltas:4, atletasEspecificos:[] },
+      grupoB:{ vertente:'petergolfe', nVoltas:4, atletasEspecificos:[] },
+      resultados:{}
+    }))
+  };
+  anoNacionalActivo = String(ano);
+  document.getElementById('modalNovoAno').classList.remove('aberto');
+  salvarDados();
+  renderNacional();
+  mostrarNotif(`✅ Época ${ano} criada — configure agora as jornadas`);
+}
+
+// ============================================================
+// CLASSIFICAÇÃO ACUMULADA NACIONAL
+// ============================================================
+function renderClassNacional(dados) {
+  // Verificar se há algum dado
+  const temQualquerDado = dados.jornadas.some(j => Object.keys(j.resultados).length > 0);
+  if (!temQualquerDado) {
+    return `<div class="empty-state"><div class="icone">🇵🇹</div><p>Sem resultados registados ainda para ${dados.ano}</p></div>`;
+  }
+
+  const jornadasComDados = dados.jornadas.filter(j => Object.keys(j.resultados).length > 0).length;
+  let html = `<div style="margin-bottom:16px">
+    <span class="${jornadasComDados === 3 ? 'badge-final' : 'badge-provisorio'}">
+      ${jornadasComDados === 3 ? '✅ Classificação Final' : `⏳ Provisório — ${jornadasComDados}/3 jornadas`}
+    </span>
+    <span style="font-size:0.82rem;color:var(--texto-suave);margin-left:12px">Campeonato Nacional ${dados.ano}</span>
+  </div>`;
+
+  // Grupos A e B separados
+  [
+    { grupo:'A', cats: CNI_GRUPO_A, label:'Grupo A', siglas:['H','S','J'] },
+    { grupo:'B', cats: CNI_GRUPO_B, label:'Grupo B', siglas:['SM','VM'] }
+  ].forEach(({ grupo, cats, label }) => {
+    const atletasGrupo = atletas.filter(a => cats.includes(a.categoria));
+    if (!atletasGrupo.length) return;
+
+    // Por categoria dentro do grupo
+    cats.forEach(cat => {
+      const atletasCat = atletasGrupo.filter(a => a.categoria === cat);
+      if (!atletasCat.length) return;
+
+      // Calcular totais por atleta
+      const ranking = atletasCat.map(atleta => {
+        let totalGeral = 0, jornadasFeitas = 0, naoTerminou = false;
+        const porJornada = {};
+
+        dados.jornadas.forEach((j, idx) => {
+          const res = j.resultados[atleta.id];
+          if (!res) return;
+          const totalJ = res.total || 0;
+          if (res.naoTerminou) { naoTerminou = true; }
+          if (totalJ > 0) {
+            totalGeral += totalJ;
+            jornadasFeitas++;
+          }
+          porJornada[idx+1] = { total: totalJ, naoTerminou: res.naoTerminou, voltas: res.voltas || [] };
+        });
+
+        return { atleta, nome: atleta.nome, totalGeral, jornadasFeitas, naoTerminou, porJornada };
+      }).filter(r => r.jornadasFeitas > 0);
+
+      // Ordenar: completou todas primeiro (menos tacadas), depois não terminou
+      ranking.sort((a, b) => {
+        const aCompleto = a.jornadasFeitas === jornadasComDados && !a.naoTerminou;
+        const bCompleto = b.jornadasFeitas === jornadasComDados && !b.naoTerminou;
+        if (aCompleto && !bCompleto) return -1;
+        if (!aCompleto && bCompleto) return 1;
+        // Ambos completos ou ambos incompletos — ordenar por total
+        if (a.totalGeral !== b.totalGeral) return a.totalGeral - b.totalGeral;
+        // Desempate: menor total na J3, depois J2, depois J1
+        for (let j = 3; j >= 1; j--) {
+          const tA = a.porJornada[j]?.total || 9999;
+          const tB = b.porJornada[j]?.total || 9999;
+          if (tA !== tB) return tA - tB;
+        }
+        return 0;
+      });
+
+      if (!ranking.length) return;
+
+      const sigla = CAT_SIGLA[cat] || 'H';
+      html += `<div class="cat-secao">
+        <div class="cat-header">
+          <span class="cat-badge cat-${sigla}">${cat}</span>
+          <span style="font-size:0.75rem;color:var(--texto-suave);margin-left:8px">${label}</span>
+          <span class="cat-count">${ranking.length} atleta(s)</span>
+        </div>
+        <div class="tabela-wrap"><table>
+          <thead><tr>
+            <th>Pos</th><th>Atleta</th>
+            ${dados.jornadas.map((j,i) => `<th>J${j.id}<br><small style="color:#666;font-weight:400">${j.local || '?'}</small></th>`).join('')}
+            <th>Total tacadas</th>
+          </tr></thead>
+          <tbody>
+          ${ranking.map((r, i) => {
+            const completo = r.jornadasFeitas === jornadasComDados && !r.naoTerminou;
+            const pos = completo ? i+1 : null;
+            const medal = pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
+            const jCells = dados.jornadas.map((j, ji) => {
+              const jd = r.porJornada[ji+1];
+              if (!jd) return `<td><span style="color:#555">—</span></td>`;
+              if (jd.naoTerminou) return `<td><span style="color:#ef4444;font-size:0.75rem">DNF</span></td>`;
+              const vert = vertentePorGrupo(j, grupo);
+              const melhorVolta = jd.voltas.length ? Math.min(...jd.voltas.filter(v=>v>0)) : null;
+              return `<td>
+                <span title="${jd.voltas.join(' + ')}">${jd.total}</span>
+                ${melhorVolta ? `<br><small style="color:#9ca3af">↓${melhorVolta}</small>` : ''}
+              </td>`;
+            }).join('');
+            return `<tr ${!completo ? 'style="opacity:0.6"' : ''}>
+              <td class="pos ${pos ? 'pos-'+pos : ''}">${medal}${pos ? pos+'º' : '<small style="color:#ef4444">DNF</small>'}</td>
+              <td class="nome-atleta">${r.nome}</td>
+              ${jCells}
+              <td class="pontos-total">${r.totalGeral || '—'}</td>
+            </tr>`;
+          }).join('')}
+          </tbody>
+        </table></div>
+      </div>`;
+    });
+  });
+
+  return html;
+}
+
+// ============================================================
+// MODAL — CONFIGURAR JORNADA NACIONAL
+// ============================================================
+function abrirConfigJornadaNacional(idx) {
+  const dados = campeonatoNacional[anoNacionalActivo];
+  const j = dados.jornadas[idx];
+
+  // Preencher modal
+  document.getElementById('cniJornadaIdx').value = idx;
+  document.getElementById('cniTituloJornada').textContent = `Jornada ${j.id} — ${anoNacionalActivo}`;
+  document.getElementById('cniClube').value = j.clube || '';
+  document.getElementById('cniLocal').value = j.local || '';
+  document.getElementById('cniDataSab').value = j.dataSab || '';
+  document.getElementById('cniDataDom').value = j.dataDom || '';
+  document.getElementById('cniVertA').value = j.grupoA.vertente || 'minigolfe';
+  document.getElementById('cniNVoltasA').value = j.grupoA.nVoltas || 4;
+  document.getElementById('cniVertB').value = j.grupoB.vertente || 'petergolfe';
+  document.getElementById('cniNVoltasB').value = j.grupoB.nVoltas || 4;
+
+  // Checkboxes de quem joga (por categoria)
+  renderCheckboxesParticipantes(j, 'A', 'cniParticipantesA');
+  renderCheckboxesParticipantes(j, 'B', 'cniParticipantesB');
+
+  document.getElementById('cniPainelConfig').style.display = 'block';
+  document.getElementById('cniPainelResultados').style.display = 'none';
+  document.getElementById('cniBtnConfig').style.display = 'inline-flex';
+  document.getElementById('cniBtnResultados').style.display = 'none';
+  document.getElementById('cniBtnConfig').setAttribute('data-idx', idx);
+  document.getElementById('modalNacionalTitulo').textContent = `⚙️ Configurar Jornada ${j.id} — ${anoNacionalActivo}`;
+  document.getElementById('modalNacional').classList.add('aberto');
+}
+
+function renderCheckboxesParticipantes(j, grupo, containerId) {
+  const cats = grupo === 'A' ? CNI_GRUPO_A : CNI_GRUPO_B;
+  const especificos = grupo === 'A' ? (j.grupoA.atletasEspecificos || []) : (j.grupoB.atletasEspecificos || []);
+  // Se lista vazia = todos participam
+  const todosAtletas = atletas.filter(a => cats.includes(a.categoria));
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  let html = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">';
+  // Botões rápidos
+  html += `<div style="width:100%;margin-bottom:4px;display:flex;gap:6px">
+    <button class="btn btn-secundario" style="font-size:0.72rem;padding:2px 8px"
+      onclick="selecionarTodosGrupo('${containerId}', true)">✅ Todos</button>
+    <button class="btn btn-secundario" style="font-size:0.72rem;padding:2px 8px"
+      onclick="selecionarTodosGrupo('${containerId}', false)">❌ Nenhum</button>
+  </div>`;
+  todosAtletas.forEach(a => {
+    const checked = especificos.length === 0 || especificos.includes(a.id) ? 'checked' : '';
+    html += `<label style="display:flex;align-items:center;gap:4px;font-size:0.78rem;background:rgba(255,255,255,0.05);padding:3px 8px;border-radius:4px;cursor:pointer">
+      <input type="checkbox" value="${a.id}" ${checked} style="accent-color:var(--dourado)">
+      ${a.nome} <small style="color:#6b7280">${a.categoria}</small>
+    </label>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function selecionarTodosGrupo(containerId, sel) {
+  document.querySelectorAll(`#${containerId} input[type=checkbox]`).forEach(cb => cb.checked = sel);
+}
+
+
+function guardarConfigJornada() {
+  const idx = parseInt(document.getElementById('cniBtnConfig').getAttribute('data-idx'));
+  const j = campeonatoNacional[anoNacionalActivo].jornadas[idx];
+
+  j.clube = document.getElementById('cniClube').value.trim();
+  j.local = document.getElementById('cniLocal').value.trim();
+  j.dataSab = document.getElementById('cniDataSab').value;
+  j.dataDom = document.getElementById('cniDataDom').value;
+  j.grupoA.vertente = document.getElementById('cniVertA').value;
+  j.grupoA.nVoltas = parseInt(document.getElementById('cniNVoltasA').value) || 4;
+  j.grupoB.vertente = document.getElementById('cniVertB').value;
+  j.grupoB.nVoltas = parseInt(document.getElementById('cniNVoltasB').value) || 4;
+
+  // Guardar participantes seleccionados
+  const checkA = [...document.querySelectorAll('#cniParticipantesA input:checked')].map(c => parseInt(c.value));
+  const checkB = [...document.querySelectorAll('#cniParticipantesB input:checked')].map(c => parseInt(c.value));
+  const todosA = atletas.filter(a => CNI_GRUPO_A.includes(a.categoria));
+  const todosB = atletas.filter(a => CNI_GRUPO_B.includes(a.categoria));
+  // Se todos seleccionados → lista vazia (significa "todos")
+  j.grupoA.atletasEspecificos = checkA.length === todosA.length ? [] : checkA;
+  j.grupoB.atletasEspecificos = checkB.length === todosB.length ? [] : checkB;
+
+  salvarDados();
+  fecharModalNacional();
+  renderNacional();
+  mostrarNotif('✅ Jornada configurada');
+}
+
+// ============================================================
+// FUNÇÕES EM FALTA — NACIONAL
+// ============================================================
+
+function fecharModalNacional() {
+  document.getElementById('modalNacional').classList.remove('aberto');
+}
+
+function abrirInserirNacional(idx) {
+  const dados = campeonatoNacional[anoNacionalActivo];
+  const j = dados.jornadas[idx];
+  document.getElementById('modalNacionalTitulo').textContent = `✏️ Jornada ${j.id} — ${anoNacionalActivo}${j.clube ? ' · '+j.clube : ''}`;
+  document.getElementById('cniJornadaIdx').value = idx;
+  document.getElementById('cniBtnConfig').setAttribute('data-idx', idx);
+
+  // Construir grid de inserção de resultados
+  const grupos = [
+    { grupo:'A', vertente: j.grupoA.vertente, nVoltas: j.grupoA.nVoltas },
+    { grupo:'B', vertente: j.grupoB.vertente, nVoltas: j.grupoB.nVoltas }
+  ];
+  const cats_A = CNI_GRUPO_A, cats_B = CNI_GRUPO_B;
+
+  let gridHtml = '';
+  grupos.forEach(({ grupo, vertente, nVoltas }) => {
+    const cats = grupo === 'A' ? cats_A : cats_B;
+    const especificos = grupo === 'A' ? (j.grupoA.atletasEspecificos||[]) : (j.grupoB.atletasEspecificos||[]);
+    const todos = atletas.filter(a => cats.includes(a.categoria));
+    const participantes = especificos.length ? todos.filter(a => especificos.includes(a.id)) : todos;
+    if (!participantes.length) return;
+    const tipoV = (vertente === 'minigolfe' || vertente === 'feltgolf') ? 'mini' : 'peter';
+    const voltasCols = Array.from({length:nVoltas},(_,i)=>`<th>V${i+1}</th>`).join('');
+
+    gridHtml += `<div style="margin-bottom:20px">
+      <div style="font-size:0.82rem;color:var(--dourado-claro);font-weight:600;margin-bottom:8px;padding:6px 10px;background:rgba(201,168,76,0.08);border-radius:6px">
+        Grupo ${grupo} — ${CNI_VERTENTE_LABEL[vertente]} · ${nVoltas} volta(s)
+      </div>
+      <div class="tabela-wrap"><table>
+        <thead><tr><th>Atleta</th><th>Cat.</th>${voltasCols}<th>Total</th><th>DNF</th></tr></thead>
+        <tbody>
+        ${participantes.map(atleta => {
+          const res = j.resultados[atleta.id] || {};
+          const voltas = res.voltas || [];
+          const voltaInputs = Array.from({length:nVoltas},(_,vi) => {
+            const val = voltas[vi] || '';
+            const cls = tipoV==='mini' ? corMini(val) : corPeter(val);
+            return `<td><input type="number" min="1" max="99"
+              class="input-tacada ${cls}" style="width:52px;text-align:center"
+              data-atleta="${atleta.id}" data-volta="${vi}" data-jidx="${idx}" data-vert="${vertente}"
+              value="${val}" oninput="atualizarVoltaNacional(this)"
+              id="cni_${idx}_${atleta.id}_${vi}"></td>`;
+          }).join('');
+          const total = res.total || '';
+          const dnf = res.naoTerminou ? 'checked' : '';
+          return `<tr>
+            <td class="nome-atleta">${atleta.nome}</td>
+            <td><small style="color:#9ca3af">${atleta.categoria}</small></td>
+            ${voltaInputs}
+            <td id="cni_total_${idx}_${atleta.id}" style="font-weight:600;color:var(--dourado-claro)">${total||'—'}</td>
+            <td><input type="checkbox" ${dnf} onchange="toggleDNF(${idx},${atleta.id},this.checked)" title="Não terminou (DNF)"></td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+  });
+
+  document.getElementById('cniPainelConfig').style.display = 'none';
+  document.getElementById('cniPainelResultados').innerHTML = gridHtml || '<div class="empty-state"><p>Configure primeiro a jornada (participantes e vertentes)</p></div>';
+  document.getElementById('cniPainelResultados').style.display = 'block';
+  document.getElementById('cniBtnConfig').style.display = 'none';
+  document.getElementById('cniBtnResultados').style.display = 'inline-flex';
+  document.getElementById('cniBtnResultados').setAttribute('data-idx', idx);
+  document.getElementById('modalNacional').classList.add('aberto');
+}
+
+function guardarResultadosNacional() {
+  salvarDados();
+  fecharModalNacional();
+  renderNacional();
+  mostrarNotif('✅ Resultados nacionais guardados');
+}
+
+function abrirVerResultadosNacional(idx) {
+  const dados = campeonatoNacional[anoNacionalActivo];
+  const j = dados.jornadas[idx];
+  document.getElementById('modalNacionalTitulo').textContent = `👁️ J${j.id}${j.clube ? ' · '+j.clube+', '+j.local : ''} — ${anoNacionalActivo}`;
+  document.getElementById('cniJornadaIdx').value = idx;
+
+  const temDados = Object.keys(j.resultados).length > 0;
+  let html = '';
+  if (!temDados) {
+    html = '<div class="empty-state"><p>Sem resultados inseridos ainda</p></div>';
+  } else {
+    [
+      { grupo:'A', cats: CNI_GRUPO_A, nVoltas: j.grupoA.nVoltas, vert: j.grupoA.vertente },
+      { grupo:'B', cats: CNI_GRUPO_B, nVoltas: j.grupoB.nVoltas, vert: j.grupoB.vertente }
+    ].forEach(({ grupo, cats, nVoltas, vert }) => {
+      const especificos = grupo==='A' ? (j.grupoA.atletasEspecificos||[]) : (j.grupoB.atletasEspecificos||[]);
+      const todos = atletas.filter(a => cats.includes(a.categoria));
+      const participantes = especificos.length ? todos.filter(a => especificos.includes(a.id)) : todos;
+      const comResultados = participantes.filter(a => j.resultados[a.id]);
+      if (!comResultados.length) return;
+      const ranking = comResultados.map(a => ({...j.resultados[a.id], nome:a.nome, cat:a.categoria}))
+        .sort((a,b) => {
+          if (a.naoTerminou && !b.naoTerminou) return 1;
+          if (!a.naoTerminou && b.naoTerminou) return -1;
+          return (a.total||9999) - (b.total||9999);
+        });
+      html += `<div style="margin-bottom:18px">
+        <div style="font-size:0.82rem;font-weight:600;color:var(--dourado-claro);margin-bottom:8px">
+          Grupo ${grupo} — ${CNI_VERTENTE_LABEL[vert]} (${nVoltas} voltas)
+        </div>
+        <div class="tabela-wrap"><table>
+          <thead><tr><th>Pos</th><th>Atleta</th><th>Cat.</th>
+            ${Array.from({length:nVoltas},(_,i)=>`<th>V${i+1}</th>`).join('')}
+            <th>Total</th></tr></thead>
+          <tbody>
+          ${ranking.map((r,i) => {
+            const pos = r.naoTerminou ? null : i+1;
+            const medal = pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
+            const vCells = Array.from({length:nVoltas},(_,vi) => {
+              const v = r.voltas?.[vi] || 0;
+              const cls = vert==='minigolfe'||vert==='feltgolf' ? corMini(v) : corPeter(v);
+              return `<td><span class="${cls}">${v||'—'}</span></td>`;
+            }).join('');
+            return `<tr ${r.naoTerminou?'style="opacity:0.5"':''}>
+              <td class="pos ${pos?'pos-'+pos:''}">${medal}${pos?pos+'º':'<small style="color:#ef4444">DNF</small>'}</td>
+              <td class="nome-atleta">${r.nome}</td>
+              <td><small style="color:#9ca3af">${r.cat}</small></td>
+              ${vCells}
+              <td class="pontos-total">${r.naoTerminou?'DNF':r.total||'—'}</td>
+            </tr>`;
+          }).join('')}
+          </tbody>
+        </table></div>
+      </div>`;
+    });
+  }
+
+  document.getElementById('cniPainelConfig').style.display = 'none';
+  document.getElementById('cniPainelResultados').innerHTML = html;
+  document.getElementById('cniPainelResultados').style.display = 'block';
+  document.getElementById('cniBtnConfig').style.display = 'none';
+  document.getElementById('cniBtnResultados').style.display = 'none';
+  document.getElementById('modalNacional').classList.add('aberto');
+}
+
+// ============================================================
+// FIM DO MÓDULO NACIONAL
+// ============================================================
+
 </script>
 
+<!-- MODAL NOVO ANO -->
+<div class="modal-overlay" id="modalNovoAno">
+  <div class="modal" style="max-width:400px;width:90vw">
+    <div class="modal-header">
+      <h3>➕ Nova Época Nacional</h3>
+      <button class="btn-fechar" onclick="document.getElementById('modalNovoAno').classList.remove('aberto')">✕</button>
+    </div>
+    <div class="modal-body">
+      <label style="font-size:0.85rem;color:var(--texto-suave)">Ano da nova época</label>
+      <input id="novoAnoInput" type="number" class="input-field" min="2020" max="2050" style="margin-top:8px;font-size:1.1rem;text-align:center">
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secundario" onclick="document.getElementById('modalNovoAno').classList.remove('aberto')">Cancelar</button>
+      <button class="btn btn-primario" onclick="confirmarNovoAno()">✅ Criar Época</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NACIONAL -->
+<div class="modal-overlay" id="modalNacional">
+  <div class="modal" style="max-width:860px;width:96vw;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <h3 id="modalNacionalTitulo">Nacional</h3>
+      <button class="btn-fechar" onclick="fecharModalNacional()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- TABS internas -->
+      <div id="cniTabsWrap" style="display:flex;gap:6px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:10px">
+        <button id="cniTabConfig" class="btn btn-primario" style="font-size:0.78rem;padding:4px 12px"
+          onclick="cniMostrarTab('config')">⚙️ Configurar</button>
+        <button id="cniTabResultados" class="btn btn-secundario" style="font-size:0.78rem;padding:4px 12px"
+          onclick="cniMostrarTab('resultados')">✏️ Inserir Resultados</button>
+        <button id="cniTabVer" class="btn btn-secundario" style="font-size:0.78rem;padding:4px 12px"
+          onclick="cniMostrarTab('ver')">👁️ Ver Resultados</button>
+      </div>
+
+      <!-- PAINEL CONFIG -->
+      <div id="cniPainelConfig" style="display:block">
+        <div style="margin-bottom:12px;padding:8px 12px;background:rgba(201,168,76,0.06);border-radius:6px;border-left:3px solid var(--dourado)">
+          <span id="cniTituloJornada" style="font-weight:600;color:var(--dourado-claro)">Jornada</span>
+          <span style="font-size:0.78rem;color:var(--texto-suave);margin-left:8px">— Configure o local, vertentes e participantes</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div>
+            <label style="font-size:0.8rem;color:var(--texto-suave)">Clube anfitrião</label>
+            <input id="cniClube" class="input-field" placeholder="Ex: Vizelgolfe" style="margin-top:4px">
+          </div>
+          <div>
+            <label style="font-size:0.8rem;color:var(--texto-suave)">Local / Cidade</label>
+            <input id="cniLocal" class="input-field" placeholder="Ex: Vizela" style="margin-top:4px">
+          </div>
+          <div>
+            <label style="font-size:0.8rem;color:var(--texto-suave)">Data Sábado</label>
+            <input id="cniDataSab" type="date" class="input-field" style="margin-top:4px">
+          </div>
+          <div>
+            <label style="font-size:0.8rem;color:var(--texto-suave)">Data Domingo</label>
+            <input id="cniDataDom" type="date" class="input-field" style="margin-top:4px">
+          </div>
+        </div>
+
+        <!-- Grupo A -->
+        <div style="padding:14px;background:rgba(201,168,76,0.06);border-radius:8px;border:1px solid rgba(201,168,76,0.15);margin-bottom:12px">
+          <div style="font-weight:600;color:var(--dourado-claro);margin-bottom:12px">🅐 Grupo A — Homens / Senhoras / Juniores</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div>
+              <label style="font-size:0.8rem;color:var(--texto-suave)">Vertente</label>
+              <select id="cniVertA" class="input-field" style="margin-top:4px">
+                <option value="minigolfe">Minigolfe</option>
+                <option value="petergolfe">Petergolfe</option>
+                <option value="feltgolf">Feltgolf</option>
+                <option value="beton">Betão</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.8rem;color:var(--texto-suave)">Nº de voltas</label>
+              <input id="cniNVoltasA" type="number" min="1" max="6" value="4" class="input-field" style="margin-top:4px">
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.8rem;color:var(--texto-suave);display:block;margin-bottom:6px">Participantes Grupo A (selecciona quem participa):</label>
+            <div id="cniParticipantesA" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+          </div>
+        </div>
+
+        <!-- Grupo B -->
+        <div style="padding:14px;background:rgba(30,77,140,0.12);border-radius:8px;border:1px solid rgba(30,77,140,0.3)">
+          <div style="font-weight:600;color:#93c5fd;margin-bottom:12px">🅑 Grupo B — Seniores / Veteranos</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+            <div>
+              <label style="font-size:0.8rem;color:var(--texto-suave)">Vertente</label>
+              <select id="cniVertB" class="input-field" style="margin-top:4px">
+                <option value="petergolfe">Petergolfe</option>
+                <option value="minigolfe">Minigolfe</option>
+                <option value="feltgolf">Feltgolf</option>
+                <option value="beton">Betão</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:0.8rem;color:var(--texto-suave)">Nº de voltas</label>
+              <input id="cniNVoltasB" type="number" min="1" max="6" value="4" class="input-field" style="margin-top:4px">
+            </div>
+          </div>
+          <div>
+            <label style="font-size:0.8rem;color:var(--texto-suave);display:block;margin-bottom:6px">Participantes Grupo B (selecciona quem participa):</label>
+            <div id="cniParticipantesB" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAINEL INSERIR RESULTADOS -->
+      <div id="cniPainelResultados" style="display:none"></div>
+
+      <!-- PAINEL VER RESULTADOS -->
+      <div id="cniPainelVer" style="display:none"></div>
+
+      <input type="hidden" id="cniJornadaIdx">
+    </div>
+    <div class="modal-footer" style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-secundario" onclick="fecharModalNacional()">Fechar</button>
+      <button id="cniBtnConfig" class="btn btn-primario" style="display:inline-flex"
+        onclick="guardarConfigJornada()">💾 Guardar Configuração</button>
+      <button id="cniBtnResultados" class="btn btn-primario" style="display:none"
+        onclick="guardarResultadosNacional()">💾 Guardar Resultados</button>
+    </div>
+  </div>
+</div>
+
+<!-- Copyright -->
 <div style="
   position:fixed; bottom:0; left:0; right:0;
   background:rgba(13,31,60,0.95);
