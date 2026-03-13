@@ -484,13 +484,12 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 <!-- NACIONAL -->
 <div class="secao" id="secao-nacional">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-    <div class="card-titulo" style="margin-bottom:0">🇵🇹 Campeonato Nacional</div>
-    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-      <div id="selectorAno" style="display:flex;gap:6px;flex-wrap:wrap"></div>
-      <button class="btn btn-primario admin-only" onclick="abrirNovoAno()" style="font-size:0.78rem;padding:5px 12px">➕ Nova Época</button>
-    </div>
+    <div class="card-titulo" style="margin-bottom:0">🇵🇹 Provas Nacionais — Atletas Vizelgolfe</div>
+    <button class="btn btn-secundario" style="font-size:0.78rem;padding:5px 12px" onclick="carregarNacionalExterno()">🔄 Actualizar</button>
   </div>
-  <div id="nacionalConteudo"></div>
+  <div id="nacionalExternoConteudo">
+    <div class="empty-state"><div class="icone">🔄</div><p>A carregar dados...</p></div>
+  </div>
 </div>
 
 <!-- REGRAS -->
@@ -999,6 +998,7 @@ function mostrarSecao(id, el) {
   document.getElementById('secao-' + id).classList.add('ativa');
   if (el) el.classList.add('active');
   if (id === 'classificacoes') renderClassificacoes();
+  if (id === 'nacional') carregarNacionalExterno();
 }
 
 // ============================================================
@@ -2962,6 +2962,220 @@ function abrirVerResultadosNacional(idx) {
 // ============================================================
 // FIM DO MÓDULO NACIONAL
 // ============================================================
+
+
+// ============================================================
+// SEPARADOR NACIONAL — TABS E PAINEL EXTERNO FIREBASE
+// ============================================================
+const FB_NACIONAL_URL = 'https://vizelgolfe-ec270-default-rtdb.europe-west1.firebasedatabase.app/vizelgolfe/nacional.json';
+
+function mudarTabNacional(tab) {
+  const interno = document.getElementById('painelNacionalInterno');
+  const externo = document.getElementById('painelNacionalExterno');
+  const btnInt = document.getElementById('tabNacInterno');
+  const btnExt = document.getElementById('tabNacExterno');
+  if (tab === 'interno') {
+    interno.style.display = '';
+    externo.style.display = 'none';
+    btnInt.className = 'btn btn-primario';
+    btnExt.className = 'btn btn-secundario';
+  } else {
+    interno.style.display = 'none';
+    externo.style.display = '';
+    btnInt.className = 'btn btn-secundario';
+    btnExt.className = 'btn btn-primario';
+    carregarNacionalExterno();
+  }
+}
+
+function carregarNacionalExterno() {
+  const cont = document.getElementById('nacionalExternoConteudo');
+  cont.innerHTML = '<div class="empty-state"><div class="icone">🔄</div><p>A carregar dados do sistema Nacional...</p></div>';
+  fetch(FB_NACIONAL_URL)
+    .then(r => r.json())
+    .then(d => renderNacionalExterno(d))
+    .catch(() => {
+      cont.innerHTML = '<div class="empty-state"><div class="icone">❌</div><p>Não foi possível ligar ao sistema Nacional. Verifica a ligação à internet.</p></div>';
+    });
+}
+
+function renderNacionalExterno(d) {
+  const cont = document.getElementById('nacionalExternoConteudo');
+  if (!d || !d.provas || !d.atletas) {
+    cont.innerHTML = '<div class="empty-state"><div class="icone">📭</div><p>Sem dados no sistema Nacional.</p></div>';
+    return;
+  }
+
+  const provas = Array.isArray(d.provas) ? d.provas : [];
+  const atletas = Array.isArray(d.atletas) ? d.atletas : [];
+  const atletasVizela = atletas.filter(a => a.clube && a.clube.toLowerCase().includes('vizelgolfe'));
+  const idsVizela = new Set(atletasVizela.map(a => a.id));
+
+  if (!atletasVizela.length) {
+    cont.innerHTML = '<div class="empty-state"><div class="icone">👥</div><p>Nenhum atleta com clube "Vizelgolfe" registado no sistema Nacional.</p></div>';
+    return;
+  }
+
+  // Estatísticas globais
+  let totalParticipacoes = 0, totalPodios = 0, totalVitorias = 0;
+  const participacoesPorAtleta = {};
+  atletasVizela.forEach(a => { participacoesPorAtleta[a.id] = []; });
+
+  provas.forEach(p => {
+    if (!p.resultados) return;
+    const res = p.resultados;
+    // Verificar quais atletas Vizelgolfe participaram
+    atletasVizela.forEach(a => {
+      if (res[a.id]) {
+        totalParticipacoes++;
+        participacoesPorAtleta[a.id].push({ prova: p, resultado: res[a.id] });
+      }
+    });
+    // Calcular classificações por categoria para pódios
+    const categorias = [...new Set(atletasVizela.map(a => a.categoria).filter(Boolean))];
+    categorias.forEach(cat => {
+      const atletasCat = atletas.filter(a => a.categoria === cat && res[a.id]);
+      if (!atletasCat.length) return;
+      const comTotal = atletasCat.map(a => {
+        let total = 0;
+        const r = res[a.id];
+        (p.vertentes || ['minigolfe']).forEach(v => {
+          for (let i = 1; i <= (p.nVoltas || 2); i++) {
+            const val = parseInt(r[v + '_v' + i]);
+            if (!isNaN(val)) total += val;
+          }
+        });
+        return { id: a.id, total, isVizela: idsVizela.has(a.id) };
+      }).filter(x => x.total > 0).sort((a, b) => a.total - b.total);
+      comTotal.forEach((x, idx) => {
+        if (x.isVizela && idx < 3) totalPodios++;
+        if (x.isVizela && idx === 0) totalVitorias++;
+      });
+    });
+  });
+
+  const provasComVizelgolfe = provas.filter(p => p.resultados && atletasVizela.some(a => p.resultados[a.id]));
+
+  let html = '';
+
+  // Cards de resumo
+  html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px">
+    <div class="card" style="text-align:center;padding:16px">
+      <div style="font-size:1.6rem;font-weight:800;color:var(--dourado-claro)">${atletasVizela.length}</div>
+      <div style="font-size:0.72rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.5px">Atletas registados</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px">
+      <div style="font-size:1.6rem;font-weight:800;color:var(--dourado-claro)">${provasComVizelgolfe.length}</div>
+      <div style="font-size:0.72rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.5px">Provas com participação</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px">
+      <div style="font-size:1.6rem;font-weight:800;color:var(--dourado-claro)">${totalParticipacoes}</div>
+      <div style="font-size:0.72rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.5px">Participações totais</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px">
+      <div style="font-size:1.6rem;font-weight:800;color:#fbbf24">${totalPodios}</div>
+      <div style="font-size:0.72rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.5px">Pódios 🏆</div>
+    </div>
+    <div class="card" style="text-align:center;padding:16px">
+      <div style="font-size:1.6rem;font-weight:800;color:#34d399">${totalVitorias}</div>
+      <div style="font-size:0.72rem;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.5px">Vitórias 🥇</div>
+    </div>
+  </div>`;
+
+  // Lista de provas com resultados Vizelgolfe
+  if (provasComVizelgolfe.length) {
+    html += `<div class="card-titulo" style="margin-bottom:12px">📅 Provas com atletas Vizelgolfe</div>`;
+    provasComVizelgolfe.forEach(p => {
+      const res = p.resultados;
+      const participantes = atletasVizela.filter(a => res[a.id]);
+      // Calcular posições por categoria
+      const resultadosPorCat = {};
+      participantes.forEach(a => {
+        if (!resultadosPorCat[a.categoria]) resultadosPorCat[a.categoria] = [];
+        let total = 0;
+        const r = res[a.id];
+        (p.vertentes || ['minigolfe']).forEach(v => {
+          for (let i = 1; i <= (p.nVoltas || 2); i++) {
+            const val = parseInt(r[v + '_v' + i]);
+            if (!isNaN(val)) total += val;
+          }
+        });
+        // Calcular posição no total da categoria (todos atletas)
+        const atletasCat = atletas.filter(x => x.categoria === a.categoria && res[x.id]);
+        const ranking = atletasCat.map(x => {
+          let t = 0;
+          const rx = res[x.id];
+          (p.vertentes || ['minigolfe']).forEach(v => {
+            for (let i = 1; i <= (p.nVoltas || 2); i++) {
+              const val = parseInt(rx[v + '_v' + i]);
+              if (!isNaN(val)) t += val;
+            }
+          });
+          return { id: x.id, total: t };
+        }).filter(x => x.total > 0).sort((a, b) => a.total - b.total);
+        const pos = ranking.findIndex(x => x.id === a.id) + 1;
+        const medal = pos === 1 ? '🥇' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : `${pos}º`;
+        resultadosPorCat[a.categoria].push({ atleta: a, total, pos, medal, totalCat: ranking.length });
+      });
+
+      html += `<div class="card" style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <strong style="font-size:0.95rem">${p.nome}</strong>
+          <span style="font-size:0.75rem;color:var(--texto-suave)">📅 ${p.dataInicio || '—'}</span>
+          ${p.campo ? `<span style="font-size:0.75rem;color:var(--texto-suave)">📍 ${p.campo}</span>` : ''}
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">`;
+      Object.entries(resultadosPorCat).forEach(([cat, lista]) => {
+        lista.forEach(({atleta, total, medal, totalCat}) => {
+          html += `<div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:8px 12px;font-size:0.82rem">
+            <div style="font-weight:700">${atleta.nome}</div>
+            <div style="color:var(--texto-suave);font-size:0.75rem">${cat}</div>
+            <div style="margin-top:4px">${medal} <span style="color:var(--dourado-claro);font-weight:700">${total} pts</span> <span style="color:var(--texto-suave);font-size:0.72rem">/ ${totalCat} atletas</span></div>
+          </div>`;
+        });
+      });
+      html += `</div></div>`;
+    });
+  } else {
+    html += '<div class="empty-state"><div class="icone">📋</div><p>Ainda sem resultados inseridos nas provas nacionais.</p></div>';
+  }
+
+  // Tabela de atletas Vizelgolfe
+  html += `<div class="card-titulo" style="margin-top:24px;margin-bottom:12px">👥 Atletas Vizelgolfe no sistema Nacional</div>
+  <div class="tabela-wrap"><table>
+    <thead><tr><th>Nome</th><th>Categoria</th><th>Provas</th><th>Participações</th><th>Pódios</th></tr></thead>
+    <tbody>`;
+  atletasVizela.forEach(a => {
+    const parts = participacoesPorAtleta[a.id] || [];
+    let podios = 0;
+    parts.forEach(({prova, resultado}) => {
+      const atletasCat = atletas.filter(x => x.categoria === a.categoria && prova.resultados[x.id]);
+      const ranking = atletasCat.map(x => {
+        let t = 0;
+        const rx = prova.resultados[x.id];
+        (prova.vertentes || ['minigolfe']).forEach(v => {
+          for (let i = 1; i <= (prova.nVoltas || 2); i++) {
+            const val = parseInt(rx[v + '_v' + i]);
+            if (!isNaN(val)) t += val;
+          }
+        });
+        return { id: x.id, total: t };
+      }).filter(x => x.total > 0).sort((a, b) => a.total - b.total);
+      const pos = ranking.findIndex(x => x.id === a.id);
+      if (pos >= 0 && pos < 3) podios++;
+    });
+    html += `<tr>
+      <td><strong>${a.nome}</strong></td>
+      <td><span style="font-size:0.78rem;color:var(--texto-suave)">${a.categoria || '—'}</span></td>
+      <td style="text-align:center">${[...new Set(parts.map(p => p.prova.id))].length}</td>
+      <td style="text-align:center;font-weight:700;color:var(--dourado-claro)">${parts.length}</td>
+      <td style="text-align:center">${podios > 0 ? `<span style="color:#fbbf24;font-weight:700">${podios} 🏆</span>` : '—'}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></div>`;
+
+  cont.innerHTML = html;
+}
 
 </script>
 
