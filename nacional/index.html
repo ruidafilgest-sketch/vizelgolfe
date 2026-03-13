@@ -59,7 +59,11 @@ body { background: var(--fundo); color: var(--texto); font-family: -apple-system
 .nav-tab:hover { color: var(--texto); }
 .nav-tab.active { color: var(--dourado-claro); border-bottom-color: var(--dourado); }
 .nav-tab.admin-only { display: none; }
+.btn-bloqueado { background: rgba(220,38,38,0.12) !important; border: 1px solid rgba(220,38,38,0.5) !important; color: #f87171 !important; cursor: not-allowed !important; opacity: 0.85; }
+.btn-bloqueado:hover { background: rgba(220,38,38,0.2) !important; }
 .admin-only { display: none; }
+.btn-bloqueado { background: rgba(220,38,38,0.12) !important; border: 1px solid rgba(220,38,38,0.5) !important; color: #f87171 !important; cursor: not-allowed !important; opacity: 0.85; }
+.btn-bloqueado:hover { background: rgba(220,38,38,0.2) !important; }
 
 /* LAYOUT */
 .main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
@@ -242,7 +246,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 <div class="secao" id="secao-provas">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     <div class="card-titulo" style="margin-bottom:0">🏆 Provas Nacionais</div>
-    <button class="btn btn-primario admin-only" onclick="abrirModalNovaProva()">➕ Nova Prova</button>
+    <button class="btn btn-primario" id="btnNovaProva" onclick="modoAdmin ? abrirModalNovaProva() : mostrarNotif('🔒 Só o administrador pode adicionar provas', true)">➕ Nova Prova</button>
   </div>
   <div id="provasConteudo"></div>
 </div>
@@ -287,10 +291,9 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <button class="btn btn-primario admin-only" onclick="avIniciarSessao()" style="padding:10px 24px">
+      <button class="btn btn-primario" id="btnIniciarAoVivo" onclick="avIniciarSessao()" style="padding:10px 24px">
         🔴 Iniciar Registo Ao Vivo
       </button>
-      <span class="admin-only" style="font-size:0.75rem;color:var(--texto-suave)">Apenas admin pode iniciar sessão ao vivo</span>
     </div>
   </div>
 
@@ -348,7 +351,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 <div class="secao" id="secao-atletas">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
     <div class="card-titulo" style="margin-bottom:0">👥 Atletas</div>
-    <button class="btn btn-primario admin-only" onclick="abrirModalNovoAtleta()">➕ Novo Atleta</button>
+    <button class="btn btn-primario" id="btnNovoAtleta" onclick="modoAdmin ? abrirModalNovoAtleta() : mostrarNotif('🔒 Só o administrador pode adicionar atletas', true)">➕ Novo Atleta</button>
   </div>
   <div id="atletasConteudo"></div>
 </div>
@@ -919,12 +922,20 @@ function fazerLogin() {
       else if (e.tagName === 'SPAN') e.style.display = 'inline-block';
       else e.style.display = '';
     });
+    ['btnNovaProva','btnIniciarAoVivo','btnNovoAtleta'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('btn-bloqueado');
+    });
     document.getElementById('loginOverlay').style.display = 'none';
     renderDashboard(); renderProvas();
   } else if (pass === PASS_ATLETA) {
     modoAdmin = false;
     document.getElementById('headerBadge').textContent = 'Atleta';
     document.getElementById('loginOverlay').style.display = 'none';
+    ['btnNovaProva','btnIniciarAoVivo','btnNovoAtleta'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('btn-bloqueado');
+    });
     renderDashboard(); renderProvas();
   } else {
     document.getElementById('loginErro').style.display = 'block';
@@ -1692,7 +1703,7 @@ function avOnCategoriaChange() {
 function avOnJornadaChange() { avOnCategoriaChange(); }
 
 function avIniciarSessao() {
-  if (!modoAdmin) { mostrarNotif('❌ Apenas o admin pode iniciar', true); return; }
+  if (!modoAdmin) { mostrarNotif('🔒 Só o administrador pode iniciar o registo ao vivo', true); return; }
   const provaId = parseInt(document.getElementById('avProva').value);
   const p = provas.find(x=>x.id===provaId);
   if (!p) return;
