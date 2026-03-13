@@ -1,0 +1,1942 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vizelgolfe — Provas Nacionais</title>
+<script>
+// ============================================================
+// FIREBASE REST API — sem dependências externas
+// ============================================================
+const FB_URL = 'https://vizelgolfe-ec270-default-rtdb.europe-west1.firebasedatabase.app/vizelgolfe/nacional';
+
+function fbLer() {
+  return fetch(FB_URL + '.json')
+    .then(r => r.json())
+    .catch(() => null);
+}
+function fbGuardar(dados) {
+  return fetch(FB_URL + '.json', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(dados)
+  }).catch(err => console.warn('Firebase PUT falhou:', err));
+}
+</script>
+
+<style>
+:root {
+  --fundo: #0a0f1e;
+  --fundo2: #0d1428;
+  --card: #111827;
+  --card2: #1a2236;
+  --cinza-claro: #1f2a3a;
+  --cinza-escuro: #0d1428;
+  --texto: #e2e8f0;
+  --texto-suave: #6b7280;
+  --dourado: #C9A84C;
+  --dourado-claro: #e8c96a;
+  --verde: #2d9e5f;
+  --vermelho: #dc2626;
+  --azul: #1e4d8c;
+  --radius: 10px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--fundo); color: var(--texto); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; min-height: 100vh; }
+
+/* HEADER */
+.header { background: linear-gradient(135deg, #0d1f3c 0%, #1a3a6b 100%); padding: 12px 20px; display: flex; align-items: center; gap: 14px; border-bottom: 2px solid var(--dourado); position: sticky; top: 0; z-index: 100; }
+.header img { height: 44px; width: 44px; object-fit: contain; border-radius: 50%; }
+.header-titulo { flex: 1; }
+.header-titulo h1 { font-size: 1rem; font-weight: 800; color: var(--dourado-claro); letter-spacing: 0.3px; }
+.header-titulo p { font-size: 0.72rem; color: rgba(255,255,255,0.5); margin-top: 1px; }
+.header-badge { background: rgba(201,168,76,0.15); border: 1px solid var(--dourado); color: var(--dourado-claro); padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; }
+
+/* NAV */
+.nav { background: var(--fundo2); border-bottom: 1px solid var(--cinza-claro); padding: 0 12px; display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav-tab { background: none; border: none; color: var(--texto-suave); padding: 12px 16px; font-size: 0.82rem; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.2s; }
+.nav-tab:hover { color: var(--texto); }
+.nav-tab.active { color: var(--dourado-claro); border-bottom-color: var(--dourado); }
+.nav-tab.admin-only { display: none; }
+
+/* LAYOUT */
+.main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+.secao { display: none; }
+.secao.ativa { display: block; }
+
+/* CARDS */
+.card { background: var(--card); border: 1px solid var(--cinza-claro); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+.card-titulo { font-size: 0.85rem; font-weight: 800; color: var(--dourado-claro); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; }
+
+/* FORMS */
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group label { font-size: 0.78rem; color: var(--texto-suave); font-weight: 600; }
+.input-field, select { background: var(--cinza-escuro); border: 1px solid var(--cinza-claro); border-radius: 7px; padding: 9px 12px; color: var(--texto); font-size: 0.88rem; width: 100%; }
+.input-field:focus, select:focus { outline: none; border-color: var(--dourado); }
+
+/* BOTÕES */
+.btn { border: none; border-radius: 7px; padding: 8px 18px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.btn-primario { background: var(--dourado); color: #000; }
+.btn-primario:hover { background: var(--dourado-claro); }
+.btn-secundario { background: var(--cinza-claro); color: var(--texto); }
+.btn-secundario:hover { background: #2a3a50; }
+.btn-perigo { background: rgba(220,38,38,0.15); color: #f87171; border: 1px solid rgba(220,38,38,0.3); }
+.btn-perigo:hover { background: rgba(220,38,38,0.3); }
+.btn-verde { background: rgba(45,158,95,0.2); color: #4ade80; border: 1px solid rgba(45,158,95,0.3); }
+
+/* TABELA */
+.tabela-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+th { background: var(--card2); color: var(--dourado-claro); padding: 9px 10px; text-align: left; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--cinza-claro); }
+td { padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* BADGES */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; }
+.badge-cni { background: rgba(30,77,140,0.4); color: #93c5fd; border: 1px solid rgba(30,77,140,0.6); }
+.badge-cnc { background: rgba(124,58,237,0.3); color: #c4b5fd; border: 1px solid rgba(124,58,237,0.4); }
+.badge-taca { background: rgba(201,168,76,0.2); color: var(--dourado-claro); border: 1px solid rgba(201,168,76,0.3); }
+.badge-open { background: rgba(45,158,95,0.2); color: #4ade80; border: 1px solid rgba(45,158,95,0.3); }
+.badge-torneio { background: rgba(100,116,139,0.3); color: #94a3b8; border: 1px solid rgba(100,116,139,0.4); }
+.badge-agendado { background: rgba(100,116,139,0.2); color: #94a3b8; }
+.badge-ativo { background: rgba(45,158,95,0.2); color: #4ade80; }
+.badge-concluido { background: rgba(30,77,140,0.2); color: #93c5fd; }
+
+/* CATEGORIAS */
+.cat-badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; margin-right: 4px; }
+.cat-H  { background: rgba(30,77,140,0.5);    color: #93c5fd; }
+.cat-S  { background: rgba(45,158,95,0.4);   color: #4ade80; }
+.cat-JM { background: rgba(239,68,68,0.35);  color: #fca5a5; }
+.cat-JF { background: rgba(239,68,68,0.2);   color: #fca5a5; }
+.cat-IM { background: rgba(251,146,60,0.35); color: #fdba74; }
+.cat-IF { background: rgba(251,146,60,0.2);  color: #fdba74; }
+.cat-SM { background: rgba(201,168,76,0.35); color: var(--dourado-claro); }
+.cat-SF { background: rgba(201,168,76,0.2);  color: var(--dourado-claro); }
+.cat-VM { background: rgba(124,58,237,0.35); color: #c4b5fd; }
+.cat-VF { background: rgba(124,58,237,0.2);  color: #c4b5fd; }
+
+/* CORES TACADAS */
+.t-azul { color: #60a5fa; }
+.t-verde { color: #4ade80; }
+.t-vermelho { color: #f87171; }
+.t-preto { color: #9ca3af; }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 500; align-items: center; justify-content: center; padding: 16px; }
+.modal-overlay.aberto { display: flex; }
+.modal { background: var(--card); border: 1px solid var(--cinza-claro); border-radius: 14px; padding: 22px; width: 100%; max-width: 600px; max-height: 92vh; overflow-y: auto; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.modal-header h3 { font-size: 1rem; font-weight: 800; color: var(--dourado-claro); }
+.btn-fechar { background: none; border: none; color: var(--texto-suave); font-size: 1.2rem; cursor: pointer; padding: 4px 8px; }
+.btn-fechar:hover { color: var(--texto); }
+
+/* PISTAS BARRA */
+.pista-btn { width: 36px; height: 36px; border: none; border-radius: 7px; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.pista-btn.atual { background: var(--dourado); color: #000; transform: scale(1.1); }
+.pista-btn.completa { background: rgba(45,158,95,0.35); color: #4ade80; }
+.pista-btn.vazia { background: var(--cinza-claro); color: var(--texto-suave); }
+
+/* STATS */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px,1fr)); gap: 10px; margin-bottom: 16px; }
+.stat-box { background: var(--card2); border-radius: 8px; padding: 12px 10px; text-align: center; }
+.stat-num { font-size: 1.5rem; font-weight: 800; color: var(--dourado-claro); }
+.stat-label { font-size: 0.68rem; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+
+/* LOGIN */
+.login-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 999; display: flex; align-items: center; justify-content: center; }
+.login-box { background: var(--card); border: 1px solid var(--cinza-claro); border-radius: 16px; padding: 32px 28px; width: 100%; max-width: 360px; text-align: center; }
+.login-logo { width: 72px; height: 72px; object-fit: contain; border-radius: 50%; margin: 0 auto 16px; display: block; }
+.login-box h2 { font-size: 1.1rem; font-weight: 800; color: var(--dourado-claro); margin-bottom: 4px; }
+.login-box p { font-size: 0.78rem; color: var(--texto-suave); margin-bottom: 20px; }
+
+/* NOTIFICAÇÃO */
+.notif { position: fixed; bottom: 24px; right: 20px; padding: 12px 20px; border-radius: 10px; color: #fff; font-size: 0.85rem; font-weight: 600; z-index: 9999; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--texto-suave); }
+.empty-state .icone { font-size: 2.5rem; margin-bottom: 10px; }
+
+/* FOOTER */
+.footer { text-align: center; padding: 20px; font-size: 0.68rem; color: var(--texto-suave); border-top: 1px solid var(--cinza-claro); margin-top: 40px; }
+
+/* ATLETA CARD no registo ao vivo */
+.atleta-input-card { background: rgba(255,255,255,0.04); border: 1px solid var(--cinza-claro); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; }
+.atleta-input-card.preenchido { border-color: rgba(201,168,76,0.3); }
+.btn-tacada { width: 32px; height: 32px; border-radius: 50%; border: none; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; transition: all 0.1s; }
+.btn-tacada:active { transform: scale(0.9); }
+.inp-tacada { width: 50px; height: 38px; text-align: center; border-radius: 7px; border: 1px solid var(--cinza-claro); background: var(--cinza-escuro); font-size: 1.1rem; font-weight: 800; color: var(--texto); }
+
+@media (max-width: 600px) {
+  .main { padding: 14px 10px 60px; }
+  .nav-tab { padding: 10px 12px; font-size: 0.76rem; }
+  .card { padding: 14px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<!-- LOADING OVERLAY -->
+<div id="loadingOverlay" style="position:fixed;inset:0;background:#0a0f1e;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:18px">
+  <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAlgCWAAD" style="height:70px;border-radius:50%;opacity:0.8" alt="">
+  <div style="color:#C9A84C;font-size:1rem;font-weight:700;letter-spacing:1px">Vizelgolfe — Provas Nacionais</div>
+  <div style="color:#6b7280;font-size:0.8rem">A carregar dados...</div>
+  <div style="width:40px;height:40px;border:3px solid #1f2a3a;border-top-color:#C9A84C;border-radius:50%;animation:spin 0.8s linear infinite"></div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- COPYRIGHT BAR -->
+<div style="background:#0d1428;border-bottom:1px solid #1f2a3a;padding:5px 16px;text-align:center;font-size:0.68rem;color:#4b5563;letter-spacing:0.3px">
+  © 2026 Rui Manuel Martins Gonçalves — Todos os direitos reservados. Uso não autorizado é proibido por lei.
+</div>
+
+<div class="login-overlay" id="loginOverlay" style="display:none">
+  <div class="login-box">
+    <img src="data:image/jpeg;base64,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" class="login-logo" alt="Vizelgolfe">
+    <h2>Vizelgolfe</h2>
+    <p>Provas Nacionais — Vizelgolfe</p>
+    <div class="form-group" style="margin-bottom:14px;text-align:left">
+      <label>Password</label>
+      <input type="password" id="loginPass" class="input-field" placeholder="••••••••"
+        onkeydown="if(event.key==='Enter') fazerLogin()">
+    </div>
+    <button class="btn btn-primario" style="width:100%;justify-content:center;padding:11px" onclick="fazerLogin()">
+      Entrar
+    </button>
+    <div id="loginErro" style="color:#f87171;font-size:0.78rem;margin-top:10px;display:none">Password incorrecta</div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <img src="data:image/jpeg;base64,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" alt="Vizelgolfe">
+  <div class="header-titulo">
+    <h1>🇵🇹 Provas Nacionais</h1>
+    <p id="headerModo">Vizelgolfe</p>
+  </div>
+  <div id="headerBadge" class="header-badge">Atleta</div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-tab active" onclick="mostrarSecao('dashboard',this)">🏠 Início</button>
+  <button class="nav-tab" onclick="mostrarSecao('provas',this)">🏆 Provas</button>
+  <button class="nav-tab" onclick="mostrarSecao('classificacoes',this)">📊 Classificações</button>
+  <button class="nav-tab" onclick="mostrarSecao('aovivo',this)">🔴 Ao Vivo</button>
+  <button class="nav-tab admin-only" onclick="mostrarSecao('atletas',this)">👥 Atletas</button>
+  <button class="nav-tab admin-only" onclick="mostrarSecao('gerir',this)">⚙️ Gerir</button>
+</nav>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="secao ativa" id="secao-dashboard">
+  <div class="stat-grid" id="dashStats"></div>
+  <div id="dashProvasAtivas"></div>
+  <div id="dashUltimosResultados"></div>
+</div>
+
+<!-- PROVAS -->
+<div class="secao" id="secao-provas">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div class="card-titulo" style="margin-bottom:0">🏆 Provas Nacionais</div>
+    <button class="btn btn-primario admin-only" onclick="abrirModalNovaProva()">➕ Nova Prova</button>
+  </div>
+  <div id="provasConteudo"></div>
+</div>
+
+<!-- CLASSIFICAÇÕES -->
+<div class="secao" id="secao-classificacoes">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div class="card-titulo" style="margin-bottom:0">📊 Classificações</div>
+    <select id="classProvaSelect" onchange="renderClassificacoes()" style="width:auto;min-width:200px"></select>
+  </div>
+  <div id="classConteudo"></div>
+</div>
+
+<!-- AO VIVO -->
+<div class="secao" id="secao-aovivo">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div class="card-titulo" style="margin-bottom:0">🔴 Registo Ao Vivo</div>
+    <div id="avStatusBadge"></div>
+  </div>
+
+  <!-- Config sessão -->
+  <div id="avConfig" class="card">
+    <p style="font-size:0.83rem;color:var(--texto-suave);margin-bottom:16px">
+      Selecciona a prova, categoria e volta. No final de cada volta insere os totais de cada atleta. Guarda e avança para a volta seguinte.
+    </p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px">
+      <div class="form-group">
+        <label>Prova</label>
+        <select id="avProva" onchange="avOnProvaChange()"></select>
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select id="avCategoria" onchange="avOnCategoriaChange()"></select>
+      </div>
+      <div class="form-group">
+        <label>Volta a registar</label>
+        <select id="avVolta"></select>
+      </div>
+      <div class="form-group">
+        <label>Nº de pistas</label>
+        <input type="number" id="avNPistas" value="18" min="1" max="36" class="input-field" style="text-align:center">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn btn-primario" onclick="avIniciarSessao()" style="padding:10px 24px">
+        🔴 Iniciar Registo Ao Vivo
+      </button>
+      <span style="font-size:0.75rem;color:var(--texto-suave)">Apenas admin pode iniciar sessão ao vivo</span>
+    </div>
+  </div>
+
+  <!-- Sessão activa -->
+  <div id="avSessao" style="display:none">
+    <!-- Cabeçalho sessão -->
+    <div class="card" style="padding:14px;margin-bottom:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+        <div>
+          <strong id="avTituloSessao" style="color:var(--dourado-claro);font-size:1rem"></strong>
+          <span id="avVoltaLabel" style="font-size:0.78rem;color:var(--texto-suave);margin-left:10px"></span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-secundario" style="font-size:0.78rem;padding:5px 12px" onclick="avPistaAnterior()">◀ Ant.</button>
+          <button class="btn btn-secundario" style="font-size:0.78rem;padding:5px 12px" onclick="avProximaPista()">Próx. ▶</button>
+          <button class="btn btn-perigo" style="font-size:0.78rem;padding:5px 12px" onclick="avTerminarSessao()">⏹ Terminar</button>
+        </div>
+      </div>
+      <!-- Pistas -->
+      <div id="avPistasBarra" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px"></div>
+      <div style="font-size:0.82rem;color:var(--texto-suave)">
+        Pista <strong id="avPistaAtualLabel" style="color:var(--dourado-claro);font-size:1.1rem"></strong>
+        <span style="margin:0 4px">/</span>
+        <strong id="avTotalPistasLabel"></strong>
+      </div>
+    </div>
+
+    <!-- Inserção pista actual -->
+    <div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--dourado);color:#000;display:flex;align-items:center;justify-content:center;font-size:1.3rem;font-weight:900" id="avPistaCirculo"></div>
+        <div>
+          <div style="font-weight:700;font-size:1rem">Pista <span id="avPistaNumLabel"></span></div>
+          <div style="font-size:0.75rem;color:var(--texto-suave)" id="avPistaVertenteLabel"></div>
+        </div>
+        <div style="margin-left:auto;font-size:0.78rem;color:var(--texto-suave)" id="avPistaProgresso"></div>
+      </div>
+      <div id="avAtletasLista"></div>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn btn-primario" style="flex:1;justify-content:center;padding:12px;font-size:0.9rem" onclick="avGuardarEAvancar()">
+          ✅ Guardar e ir para Pista <span id="avProxLabel"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Resumo ao vivo -->
+    <div class="card">
+      <div class="card-titulo">📊 Totais ao vivo</div>
+      <div id="avResumoTotais"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ATLETAS -->
+<div class="secao" id="secao-atletas">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+    <div class="card-titulo" style="margin-bottom:0">👥 Atletas</div>
+    <button class="btn btn-primario admin-only" onclick="abrirModalNovoAtleta()">➕ Novo Atleta</button>
+  </div>
+  <div id="atletasConteudo"></div>
+</div>
+
+<!-- GERIR -->
+<div class="secao" id="secao-gerir">
+  <div class="card-titulo">⚙️ Gestão</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+    <button class="btn btn-secundario" style="padding:14px;justify-content:center;flex-direction:column;gap:4px;text-align:center" onclick="exportarDados()">
+      📤 Exportar dados (JSON)
+    </button>
+    <button class="btn btn-secundario" style="padding:14px;justify-content:center;flex-direction:column;gap:4px;text-align:center" onclick="document.getElementById('inputImportar').click()">
+      📥 Importar dados (JSON)
+    </button>
+    <input type="file" id="inputImportar" accept=".json" style="display:none" onchange="importarDados(event)">
+    <button class="btn" style="padding:14px;justify-content:center;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.4);color:var(--dourado-claro)" onclick="reporCalendario2026()">
+      🔄 Repor Calendário Oficial 2026
+    </button>
+    <button class="btn btn-perigo" style="padding:14px;justify-content:center" onclick="if(confirm('Apagar TODOS os dados? Esta acção não pode ser desfeita.')){ provas=[]; atletas=[]; proximoProvaId=1; proximoAtletaId=1; localStorage.removeItem(LS_KEY); fbGuardar({provas:[],atletas:[],proximoProvaId:1,proximoAtletaId:1}); location.reload(); }">
+      🗑️ Limpar todos os dados
+    </button>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- FOOTER -->
+<div class="footer">
+  © 2026 Rui Manuel Martins Gonçalves — Sócio Vizelgolfe · Todos os direitos reservados. Uso indevido punido por lei.
+</div>
+
+<!-- NOTIFICAÇÃO -->
+<div class="notif" id="notif"></div>
+
+<!-- ===== MODAIS ===== -->
+
+<!-- MODAL NOVA PROVA -->
+<div class="modal-overlay" id="modalNovaProva">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h3 id="modalProvaTitulo">Nova Prova Nacional</h3>
+      <button class="btn-fechar" onclick="fecharModal('modalNovaProva')">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Nome da prova</label>
+        <input id="provaNome" class="input-field" placeholder="Ex: CNI 2026 — Jornada 1">
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select id="provaTipo">
+          <option value="cni">CNI — Campeonato Nacional Individual</option>
+          <option value="cnc">CNC — Campeonato Nacional de Clubes</option>
+          <option value="taca">Taça de Portugal</option>
+          <option value="open">Open</option>
+          <option value="torneio">Torneio de clube</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Época / Ano</label>
+        <input id="provaEpoca" class="input-field" placeholder="Ex: 2026" value="2026">
+      </div>
+      <div class="form-group">
+        <label>Jornada / Etapa (opcional)</label>
+        <input id="provaJornada" class="input-field" placeholder="Ex: 1, 2, Final...">
+      </div>
+      <div class="form-group">
+        <label>Clube / Local organizador</label>
+        <input id="provaClube" class="input-field" placeholder="Ex: Vizelgolfe, Associação de Setúbal...">
+      </div>
+      <div class="form-group">
+        <label>Campo / Cidade</label>
+        <input id="provaCampo" class="input-field" placeholder="Ex: Vizela, Vilamoura, Lisboa...">
+      </div>
+      <div class="form-group">
+        <label>Data início</label>
+        <input id="provaDataInicio" type="date" class="input-field">
+      </div>
+      <div class="form-group">
+        <label>Data fim (se multi-dia)</label>
+        <input id="provaDataFim" type="date" class="input-field">
+      </div>
+    </div>
+    <!-- CONFIGURAÇÃO POR CATEGORIA -->
+    <div style="margin-bottom:14px">
+      <div style="font-size:0.78rem;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">
+        Categorias, Vertentes e Equipas
+      </div>
+      <div style="font-size:0.75rem;color:var(--texto-suave);margin-bottom:10px">
+        Activa as categorias que participam e define a vertente, nº de voltas e pistas. No CNC indica o nº de equipas por clube.
+      </div>
+      <div id="provaCategoriasCfg" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="form-group">
+        <label>Estado</label>
+        <select id="provaEstado">
+          <option value="agendado">Agendado</option>
+          <option value="ativo">A decorrer</option>
+          <option value="concluido">Concluído</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Notas (opcional)</label>
+        <input id="provaNotas" class="input-field" placeholder="Ex: Prova contabiliza para ranking nacional">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secundario" onclick="fecharModal('modalNovaProva')">Cancelar</button>
+      <button class="btn btn-primario" onclick="guardarProva()">💾 Guardar Prova</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL NOVO ATLETA -->
+<div class="modal-overlay" id="modalNovoAtleta">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-header">
+      <h3 id="modalAtletaTitulo">Novo Atleta</h3>
+      <button class="btn-fechar" onclick="fecharModal('modalNovoAtleta')">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Nome completo</label>
+        <input id="atletaNome" class="input-field" placeholder="Nome do atleta">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select id="atletaCategoria">
+          <option value="Homens">Homens (H)</option>
+          <option value="Senhoras">Senhoras (S)</option>
+          <option value="Juniores Masculinos">Juniores Masculinos (JM)</option>
+          <option value="Juniores Femininos">Juniores Femininos (JF)</option>
+          <option value="Infantis Masculinos">Infantis Masculinos (IM)</option>
+          <option value="Infantis Femininos">Infantis Femininos (IF)</option>
+          <option value="Seniores Masculinos">Seniores Masculinos (SM)</option>
+          <option value="Seniores Femininos">Seniores Femininos (SF)</option>
+          <option value="Veteranos Masculinos">Veteranos Masculinos (VM)</option>
+          <option value="Veteranos Femininos">Veteranos Femininos (VF)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Clube de origem</label>
+        <select id="atletaClubeSelect" onchange="atletaClubeOnChange()">
+          <option value="">-- Seleccionar clube --</option>
+        </select>
+        <input id="atletaClube" class="input-field" placeholder="Nome do clube" style="display:none;margin-top:6px">
+      </div>
+      <div class="form-group">
+        <label>Handicap (HCP)</label>
+        <input id="atletaHcp" type="number" class="input-field" placeholder="Ex: 36" min="0" max="72">
+      </div>
+      <div class="form-group">
+        <label>Nº de licença (opcional)</label>
+        <input id="atletaLicenca" class="input-field" placeholder="Nº de licença nacional">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secundario" onclick="fecharModal('modalNovoAtleta')">Cancelar</button>
+      <button class="btn btn-primario" onclick="guardarAtleta()">💾 Guardar Atleta</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DETALHES PROVA -->
+<div class="modal-overlay" id="modalDetalheProva">
+  <div class="modal" style="max-width:860px;width:95vw;max-height:92vh;overflow-y:auto">
+    <div class="modal-header">
+      <h3 id="detalheProvaTitulo"></h3>
+      <button class="btn-fechar" onclick="fecharModal('modalDetalheProva')">✕</button>
+    </div>
+    <div id="detalheProvaConteudo"></div>
+  </div>
+</div>
+
+<!-- MODAL INSERIR RESULTADO -->
+<div class="modal-overlay" id="modalInserirRes">
+  <div class="modal" style="max-width:700px;width:95vw;max-height:92vh;overflow-y:auto">
+    <div class="modal-header">
+      <h3 id="inserirResTitulo">Inserir Resultados</h3>
+      <button class="btn-fechar" onclick="fecharModal('modalInserirRes')">✕</button>
+    </div>
+    <div id="inserirResConteudo"></div>
+  </div>
+</div>
+
+
+
+<script>
+// ============================================================
+// CONSTANTES
+// ============================================================
+const PASS_ADMIN = 'Vizela2026***';
+const PASS_ATLETA = 'Vizelgolfe2026*';
+const LS_KEY = 'fpng_dados_v1';
+
+const CATEGORIAS = [
+  'Homens','Senhoras',
+  'Juniores Masculinos','Juniores Femininos',
+  'Infantis Masculinos','Infantis Femininos',
+  'Seniores Masculinos','Seniores Femininos',
+  'Veteranos Masculinos','Veteranos Femininos'
+];
+const CAT_SIGLA = {
+  'Homens':'H','Senhoras':'S',
+  'Juniores Masculinos':'JM','Juniores Femininos':'JF',
+  'Infantis Masculinos':'IM','Infantis Femininos':'IF',
+  'Seniores Masculinos':'SM','Seniores Femininos':'SF',
+  'Veteranos Masculinos':'VM','Veteranos Femininos':'VF'
+};
+const CLUBES_BASE = [
+  'Vizelgolfe',
+  'Clube de Minigolfe do Porto',
+  'Minigolfe Clube de Portugal',
+  'Minigolfe Clube de Lamego',
+  'Clube Minigolfe Costa Nova',
+  'ADA Portel',
+  'Albufeira Minigolfe',
+  'Necessidades Futebol Clube',
+  'UDP Praiense',
+  'Individual'
+];
+
+const TIPO_LABEL = {
+  cni:'CNI', cnc:'CNC', taca:'Taça', open:'Open', torneio:'Torneio'
+};
+const VERTENTE_LABEL = { minigolfe:'Minigolfe', petergolfe:'Petergolfe', feltgolf:'Feltgolf' };
+const VERTENTE_PISTAS = { minigolfe:18, petergolfe:18, feltgolf:18 };
+
+// ============================================================
+// ESTADO
+// ============================================================
+let modoAdmin = false;
+let provas = [];
+let atletas = [];
+let proximoProvaId = 1;
+let proximoAtletaId = 1;
+let avEstado = { ativo:false };
+let editandoProvaId = null;
+let editandoAtletaId = null;
+
+// ============================================================
+// PERSISTÊNCIA
+// ============================================================
+function salvarDados() {
+  const payload = { provas, atletas, proximoProvaId, proximoAtletaId };
+  // Guardar Firebase (REST) + localStorage como backup
+  fbGuardar(payload);
+  localStorage.setItem(LS_KEY, JSON.stringify(payload));
+}
+function carregarDados() {
+  // Fallback localStorage (usado se Firebase ainda não carregou)
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    provas = d.provas || [];
+    atletas = d.atletas || [];
+    proximoProvaId = d.proximoProvaId || (provas.length ? Math.max(...provas.map(p=>p.id))+1 : 1);
+    proximoAtletaId = d.proximoAtletaId || (atletas.length ? Math.max(...atletas.map(a=>a.id))+1 : 1);
+  } catch(e) { console.error('Erro ao carregar:', e); }
+  if (!atletas.length) carregarAtletasBase();
+  if (!provas.length) carregarCalendario2026();
+}
+
+function carregarAtletasBase() {
+  const base = [
+    // VIZELGOLFE — Homens
+    {nome:'Nuno Cunha', categoria:'Homens', clube:'Vizelgolfe'},
+    {nome:'Uwe Ludwig', categoria:'Homens', clube:'Vizelgolfe'},
+    {nome:'Rui Dias', categoria:'Homens', clube:'Vizelgolfe'},
+    {nome:'Helder Tropa', categoria:'Homens', clube:'Vizelgolfe'},
+    {nome:'Adriano Costa', categoria:'Homens', clube:'Vizelgolfe'},
+    {nome:'Abilio Meneses', categoria:'Homens', clube:'Vizelgolfe'},
+    {nome:'Ricardo Ferreira', categoria:'Homens', clube:'Vizelgolfe'},
+    {nome:'Paulo Cassiano', categoria:'Homens', clube:'Vizelgolfe'},
+    {nome:'Celso Dias', categoria:'Homens', clube:'Vizelgolfe'},
+    {nome:'Rui Cunha', categoria:'Homens', clube:'Vizelgolfe'},
+    // VIZELGOLFE — Senhoras
+    {nome:'Cristina Fernandes', categoria:'Senhoras', clube:'Vizelgolfe'},
+    {nome:'Filomena Mendes', categoria:'Senhoras', clube:'Vizelgolfe'},
+    {nome:'Ana Ferreira', categoria:'Senhoras', clube:'Vizelgolfe'},
+    {nome:'Conceição Andrade', categoria:'Senhoras', clube:'Vizelgolfe'},
+    // VIZELGOLFE — Juniores Masculinos
+    {nome:'Guilherme Pinto', categoria:'Juniores Masculinos', clube:'Vizelgolfe'},
+    // VIZELGOLFE — Seniores Masculinos
+    {nome:'João Ferreira', categoria:'Seniores Masculinos', clube:'Vizelgolfe'},
+    {nome:'Fernando Carneiro', categoria:'Seniores Masculinos', clube:'Vizelgolfe'},
+    {nome:'Hélder Mendes', categoria:'Seniores Masculinos', clube:'Vizelgolfe'},
+    {nome:'Paulo Torralvo', categoria:'Seniores Masculinos', clube:'Minigolfe Clube de Lamego'},
+    {nome:'José Cunha', categoria:'Seniores Masculinos', clube:'Vizelgolfe'},
+    // VIZELGOLFE — Veteranos Masculinos
+    {nome:'Manuel Pinto', categoria:'Veteranos Masculinos', clube:'Vizelgolfe'},
+    {nome:'António Silva', categoria:'Veteranos Masculinos', clube:'Vizelgolfe'},
+    {nome:'Domingos Ribeiro', categoria:'Veteranos Masculinos', clube:'Vizelgolfe'},
+    {nome:'Manuel Silva', categoria:'Veteranos Masculinos', clube:'Vizelgolfe'},
+    {nome:'José Armando Lopes', categoria:'Veteranos Masculinos', clube:'Vizelgolfe'},
+    {nome:'Armindo Machado', categoria:'Veteranos Masculinos', clube:'Vizelgolfe'},
+    {nome:'Manuel Sousa', categoria:'Veteranos Masculinos', clube:'Vizelgolfe'},
+    {nome:'José Martins', categoria:'Veteranos Masculinos', clube:'Vizelgolfe'},
+    // OUTROS CLUBES — apenas referência para classificações
+    {nome:'João Nabais', categoria:'Homens', clube:'Minigolfe Clube de Portugal'},
+    {nome:'André Campos', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Fábio Lima', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Luís Silva', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Rui Garcia', categoria:'Homens', clube:'Minigolfe Clube de Portugal'},
+    {nome:'Cláudio Ching', categoria:'Homens', clube:'Minigolfe Clube de Portugal'},
+    {nome:'Ricardo Jorge', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Nuno Costa', categoria:'Homens', clube:'Minigolfe Clube de Portugal'},
+    {nome:'José Fontes', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Paulo Gomes', categoria:'Homens', clube:'Individual'},
+    {nome:'António Manuel', categoria:'Homens', clube:'Minigolfe Clube de Portugal'},
+    {nome:'António Santiago', categoria:'Homens', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Bernardo Silva', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Luís António', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Reinaldo Oliveira', categoria:'Homens', clube:'Necessidades Futebol Clube'},
+    {nome:'João Fontes', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Carlos Teixeira', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'José Tropa', categoria:'Homens', clube:'Vizelgolfe'},
+    {nome:'Justiniano Cruz', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Amadeu Martins', categoria:'Homens', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Alcino Cunha', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Artur Lopes', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Rui Oliveira', categoria:'Homens', clube:'Necessidades Futebol Clube'},
+    {nome:'Carlos Pereira', categoria:'Homens', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Luís Silva Jr.', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Jorge Carvalho', categoria:'Homens', clube:'Necessidades Futebol Clube'},
+    {nome:'Pedro Carvalho', categoria:'Homens', clube:'Clube de Minigolfe do Porto'},
+    {nome:'João Miguel Gonçalves', categoria:'Homens', clube:'Minigolfe Clube de Portugal'},
+    {nome:'Ivo Santos', categoria:'Homens', clube:'Minigolfe Clube de Portugal'},
+    {nome:'Joaquim Ramos', categoria:'Homens', clube:'Minigolfe Clube de Lamego'},
+    {nome:'João Diogo', categoria:'Homens', clube:'Minigolfe Clube de Lamego'},
+    // Senhoras outros clubes
+    {nome:'Anabela Pereira', categoria:'Senhoras', clube:'Minigolfe Clube de Portugal'},
+    {nome:'Sónia Fontes', categoria:'Senhoras', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Sofia Santos', categoria:'Senhoras', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Lidia Santiago', categoria:'Senhoras', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Fernanda Costa', categoria:'Senhoras', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Shirley Oliveira', categoria:'Senhoras', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Maria Silva', categoria:'Senhoras', clube:'Clube de Minigolfe do Porto'},
+    // Infantis Masculinos
+    {nome:'Rodrigo Martins', categoria:'Infantis Masculinos', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Francisco Pereira', categoria:'Infantis Masculinos', clube:'Minigolfe Clube de Lamego'},
+    // Seniores Femininos
+    {nome:'Fernanda Costa SF', categoria:'Seniores Femininos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Juventina Silva', categoria:'Seniores Femininos', clube:'ADA Portel'},
+    {nome:'Fernanda Manso', categoria:'Seniores Femininos', clube:'ADA Portel'},
+    {nome:'Anunciação Almeida', categoria:'Seniores Femininos', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Conceição Andrade SF', categoria:'Seniores Femininos', clube:'Vizelgolfe'},
+    {nome:'Emilia Alves', categoria:'Seniores Femininos', clube:'Minigolfe Clube de Lamego'},
+    // Seniores Masculinos outros clubes
+    {nome:'André Silva', categoria:'Seniores Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Domingos Silva', categoria:'Seniores Masculinos', clube:'ADA Portel'},
+    {nome:'Carlos Ferreira', categoria:'Seniores Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Belarmino Soares', categoria:'Seniores Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'João Fidalgo', categoria:'Seniores Masculinos', clube:'Clube Minigolfe Costa Nova'},
+    {nome:'António Costa e Silva', categoria:'Seniores Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Jorge Torres', categoria:'Seniores Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Ananias Quintano', categoria:'Seniores Masculinos', clube:'ADA Portel'},
+    {nome:'Jaime Andrade', categoria:'Seniores Masculinos', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Vitor Jesus', categoria:'Seniores Masculinos', clube:'Minigolfe Clube de Portugal'},
+    {nome:'Miguel Bento', categoria:'Homens', clube:'Minigolfe Clube de Portugal'},
+    {nome:'José Alves', categoria:'Seniores Masculinos', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Sebastião Campos', categoria:'Seniores Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Pedro Santiago', categoria:'Seniores Masculinos', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Orlando Carvalho', categoria:'Seniores Masculinos', clube:'Necessidades Futebol Clube'},
+    {nome:'Ricardo Alberto', categoria:'Seniores Masculinos', clube:'ADA Portel'},
+    {nome:'Eduardo Salazar', categoria:'Seniores Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Bruno Claro', categoria:'Seniores Masculinos', clube:'Minigolfe Clube de Portugal'},
+    {nome:'João Pinheiro', categoria:'Seniores Masculinos', clube:'Minigolfe Clube de Portugal'},
+    {nome:'José Garcia', categoria:'Seniores Masculinos', clube:'Minigolfe Clube de Portugal'},
+    {nome:'António Abreu', categoria:'Seniores Masculinos', clube:'Minigolfe Clube de Portugal'},
+    {nome:'António Ferreira', categoria:'Seniores Masculinos', clube:'Minigolfe Clube de Lamego'},
+    // Veteranos Masculinos outros clubes
+    {nome:'Manuel Simões', categoria:'Veteranos Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Joaquim Baptista', categoria:'Veteranos Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'António Ferreira V', categoria:'Veteranos Masculinos', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Hernâni Teixeira', categoria:'Veteranos Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Carlos Paulo', categoria:'Veteranos Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'José Mendes', categoria:'Veteranos Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Henrique Pereira', categoria:'Veteranos Masculinos', clube:'Clube de Minigolfe do Porto'},
+    {nome:'Gentil Sousa', categoria:'Veteranos Masculinos', clube:'Minigolfe Clube de Lamego'},
+    {nome:'José Basílio', categoria:'Veteranos Masculinos', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Delfim Segorelho', categoria:'Veteranos Masculinos', clube:'Minigolfe Clube de Lamego'},
+    {nome:'Armindo Costa', categoria:'Veteranos Masculinos', clube:'Clube de Minigolfe do Porto'},
+  ];
+  base.forEach((a, i) => {
+    atletas.push({ ...a, id: proximoAtletaId++, hcp: null, licenca: '' });
+  });
+  salvarDados();
+}
+
+function reporCalendario2026() {
+  if (!confirm('Isto vai apagar todas as provas actuais e repor o calendário oficial 2026.\nOs atletas e resultados já inseridos são mantidos.\n\nTens a certeza?')) return;
+  proximoProvaId = 1;
+  carregarCalendario2026();
+  mostrarNotif('✅ Calendário oficial 2026 reposto com sucesso!');
+  renderDashboard();
+  renderProvas();
+}
+
+function carregarCalendario2026() {
+  const calendario = [
+    {
+      id: proximoProvaId++,
+      nome: '1.ª CNI 2026',
+      tipo: 'cni',
+      estado: 'agendado',
+      campo: 'Miraflores, Lisboa',
+      organizacao: 'Minigolfe Clube de Portugal',
+      dataInicio: '2026-03-28',
+      dataFim: '2026-03-29',
+      categorias: {},
+      resultados: {}
+    },
+    {
+      id: proximoProvaId++,
+      nome: '2.ª CNI 2026',
+      tipo: 'cni',
+      estado: 'agendado',
+      campo: 'Vizela',
+      organizacao: 'Vizelgolfe',
+      dataInicio: '2026-04-25',
+      dataFim: '2026-04-26',
+      categorias: {},
+      resultados: {}
+    },
+    {
+      id: proximoProvaId++,
+      nome: 'CNC 2026',
+      tipo: 'cnc',
+      estado: 'agendado',
+      campo: 'Porto',
+      organizacao: 'Clube de Minigolfe do Porto',
+      dataInicio: '2026-05-16',
+      dataFim: '2026-05-17',
+      categorias: {},
+      resultados: {}
+    },
+    {
+      id: proximoProvaId++,
+      nome: '3.ª CNI 2026',
+      tipo: 'cni',
+      estado: 'agendado',
+      campo: 'Lamego',
+      organizacao: 'Minigolfe Clube de Lamego',
+      dataInicio: '2026-06-06',
+      dataFim: '2026-06-07',
+      categorias: {},
+      resultados: {}
+    },
+    {
+      id: proximoProvaId++,
+      nome: 'Torneio CMP 2026',
+      tipo: 'torneio',
+      estado: 'agendado',
+      campo: 'Porto',
+      organizacao: 'Clube de Minigolfe do Porto',
+      dataInicio: '2026-06-20',
+      dataFim: '2026-06-21',
+      categorias: {},
+      resultados: {}
+    },
+    {
+      id: proximoProvaId++,
+      nome: 'Torneio UDP Praiense 2026',
+      tipo: 'torneio',
+      estado: 'agendado',
+      campo: 'Açores',
+      organizacao: 'UDP Praiense',
+      dataInicio: '2026-07-03',
+      dataFim: '2026-07-05',
+      categorias: {},
+      resultados: {}
+    },
+    {
+      id: proximoProvaId++,
+      nome: 'Taça de Portugal 2026',
+      tipo: 'taca',
+      estado: 'agendado',
+      campo: 'Vizela',
+      organizacao: 'Vizelgolfe',
+      dataInicio: '2026-07-11',
+      dataFim: '2026-07-12',
+      categorias: {},
+      resultados: {}
+    },
+    {
+      id: proximoProvaId++,
+      nome: 'Torneio MCL 2026',
+      tipo: 'torneio',
+      estado: 'agendado',
+      campo: 'Lamego',
+      organizacao: 'Minigolfe Clube de Lamego',
+      dataInicio: '2026-08-29',
+      dataFim: '2026-08-30',
+      categorias: {},
+      resultados: {}
+    },
+    {
+      id: proximoProvaId++,
+      nome: 'Torneio ADA Portel 2026',
+      tipo: 'torneio',
+      estado: 'agendado',
+      campo: 'Portel',
+      organizacao: 'ADA Portel',
+      dataInicio: '2026-09-05',
+      dataFim: '2026-09-06',
+      categorias: {},
+      resultados: {}
+    },
+    {
+      id: proximoProvaId++,
+      nome: 'VI Open MOS 2026',
+      tipo: 'open',
+      estado: 'agendado',
+      campo: 'Vilamoura, Algarve',
+      organizacao: 'FPM',
+      dataInicio: '2026-09-12',
+      dataFim: '2026-09-13',
+      categorias: {},
+      resultados: {}
+    }
+  ];
+  provas = calendario;
+  salvarDados();
+}
+function exportarDados() {
+  const blob = new Blob([JSON.stringify({provas,atletas},null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `vizelgolfe_provas_${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+}
+function importarDados(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (confirm('Importar dados? Os dados actuais serão substituídos.')) {
+        provas = d.provas || [];
+        atletas = d.atletas || [];
+        proximoProvaId = provas.length ? Math.max(...provas.map(p=>p.id))+1 : 1;
+        proximoAtletaId = atletas.length ? Math.max(...atletas.map(a=>a.id))+1 : 1;
+        salvarDados();
+        renderProvas(); renderDashboard();
+        mostrarNotif('✅ Dados importados com sucesso!');
+      }
+    } catch { mostrarNotif('❌ Ficheiro inválido', true); }
+  };
+  reader.readAsText(file);
+}
+
+// ============================================================
+// LOGIN
+// ============================================================
+function fazerLogin() {
+  const pass = document.getElementById('loginPass').value;
+  if (pass === PASS_ADMIN) {
+    modoAdmin = true;
+    document.getElementById('headerBadge').textContent = '⚙️ Admin';
+    document.getElementById('headerModo').textContent = 'Modo Administrador';
+    document.querySelectorAll('.admin-only').forEach(e => e.style.display = '');
+    document.getElementById('loginOverlay').style.display = 'none';
+    renderDashboard(); renderProvas();
+  } else if (pass === PASS_ATLETA) {
+    modoAdmin = false;
+    document.getElementById('headerBadge').textContent = 'Atleta';
+    document.getElementById('loginOverlay').style.display = 'none';
+    renderDashboard(); renderProvas();
+  } else {
+    document.getElementById('loginErro').style.display = 'block';
+  }
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+function mostrarSecao(id, btn) {
+  document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('secao-'+id).classList.add('ativa');
+  if (btn) btn.classList.add('active');
+  if (id==='provas') renderProvas();
+  if (id==='classificacoes') renderClassificacoes();
+  if (id==='atletas') renderAtletas();
+  if (id==='aovivo') avPopularProvas();
+  if (id==='dashboard') renderDashboard();
+}
+
+// ============================================================
+// CORES TACADAS
+// ============================================================
+function corMini(v) {
+  v = parseInt(v);
+  if (v <= 19) return 't-azul';
+  if (v <= 24) return 't-verde';
+  if (v <= 29) return 't-vermelho';
+  return 't-preto';
+}
+function corPeter(v) {
+  v = parseInt(v);
+  if (v <= 24) return 't-azul';
+  if (v <= 29) return 't-verde';
+  if (v <= 35) return 't-vermelho';
+  return 't-preto';
+}
+function corFelt(v) {
+  v = parseInt(v);
+  if (v <= 19) return 't-azul';
+  if (v <= 24) return 't-verde';
+  if (v <= 29) return 't-vermelho';
+  return 't-preto';
+}
+function corVoltaPorVertente(v, vertente) {
+  if (vertente === 'petergolfe') return corPeter(v);
+  return corMini(v); // minigolfe e feltgolf usam mesma escala
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function formatData(d) {
+  if (!d) return '—';
+  const [y,m,day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+function estadoLabel(e) {
+  return e==='ativo'?'A decorrer':e==='agendado'?'Agendado':'Concluído';
+}
+function tipoLabel(t) { return TIPO_LABEL[t] || t; }
+function mostrarNotif(msg, erro) {
+  const el = document.getElementById('notif');
+  el.textContent = msg;
+  el.style.background = erro ? '#dc2626' : '#2d9e5f';
+  el.style.display = 'block';
+  setTimeout(() => el.style.display='none', 3500);
+}
+function fecharModal(id) {
+  document.getElementById(id).classList.remove('aberto');
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const total = provas.length;
+  const ativas = provas.filter(p=>p.estado==='ativo').length;
+  const totalAtletas = atletas.length;
+  const totalResultados = provas.reduce((acc,p) => acc + Object.keys(p.resultados||{}).length, 0);
+
+  document.getElementById('dashStats').innerHTML = `
+    <div class="stat-box"><div class="stat-num">${total}</div><div class="stat-label">Provas</div></div>
+    <div class="stat-box"><div class="stat-num">${ativas}</div><div class="stat-label">A decorrer</div></div>
+    <div class="stat-box"><div class="stat-num">${totalAtletas}</div><div class="stat-label">Atletas</div></div>
+    <div class="stat-box"><div class="stat-num">${totalResultados}</div><div class="stat-label">Resultados</div></div>
+  `;
+
+  // Provas activas
+  const pAtivas = provas.filter(p=>p.estado==='ativo'||p.estado==='agendado').slice(0,4);
+  let html = pAtivas.length ? '' : '<div class="empty-state"><div class="icone">📅</div><p>Sem provas activas</p></div>';
+  pAtivas.forEach(p => {
+    html += `<div class="card" style="cursor:pointer" onclick="abrirDetalheProva(${p.id})">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div>
+          <span class="badge badge-${p.tipo}" style="margin-right:8px">${tipoLabel(p.tipo)}</span>
+          <strong>${p.nome}</strong>
+        </div>
+        <span class="badge badge-${p.estado}">${estadoLabel(p.estado)}</span>
+      </div>
+      <div style="font-size:0.78rem;color:var(--texto-suave);margin-top:6px">
+        📍 ${p.campo||'—'} &nbsp;|&nbsp; 📅 ${formatData(p.dataInicio)}
+        ${p.vertentes?.length ? '&nbsp;|&nbsp; 🏌️ ' + p.vertentes.map(v=>VERTENTE_LABEL[v]||v).join(', ') : ''}
+      </div>
+    </div>`;
+  });
+  document.getElementById('dashProvasAtivas').innerHTML = html;
+}
+
+// ============================================================
+// PROVAS
+// ============================================================
+function renderProvas() {
+  if (!provas.length) {
+    document.getElementById('provasConteudo').innerHTML =
+      '<div class="empty-state"><div class="icone">🏆</div><p>Sem provas. Cria a primeira!</p></div>';
+    return;
+  }
+  // Agrupar por época
+  const epocas = [...new Set(provas.map(p=>p.epoca||'—'))].sort().reverse();
+  let html = '';
+  epocas.forEach(ep => {
+    const lista = provas.filter(p=>(p.epoca||'—')===ep);
+    html += `<div style="margin-bottom:20px">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;padding-left:4px">
+        📅 Época ${ep}
+      </div>`;
+    lista.forEach(p => {
+      html += `<div class="card" style="margin-bottom:10px">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+              <span class="badge badge-${p.tipo}">${tipoLabel(p.tipo)}</span>
+              <strong style="font-size:0.95rem">${p.nome}</strong>
+              <span class="badge badge-${p.estado}">${estadoLabel(p.estado)}</span>
+            </div>
+            <div style="font-size:0.78rem;color:var(--texto-suave);display:flex;flex-wrap:wrap;gap:12px">
+              ${p.clube ? `<span>🏟️ ${p.clube}</span>` : ''}
+              ${p.campo ? `<span>📍 ${p.campo}</span>` : ''}
+              <span>📅 ${formatData(p.dataInicio)}${p.dataFim && p.dataFim!==p.dataInicio ? ' → '+formatData(p.dataFim) : ''}</span>
+              ${p.vertentes?.length ? `<span>🏌️ ${p.vertentes.map(v=>VERTENTE_LABEL[v]||v).join(', ')}</span>` : ''}
+              ${p.nVoltas ? `<span>🔄 ${p.nVoltas} volta(s) × ${p.nPistas||18} pistas</span>` : ''}
+            </div>
+            ${p.notas ? `<div style="font-size:0.75rem;color:var(--dourado-claro);margin-top:6px;opacity:0.8">📝 ${p.notas}</div>` : ''}
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-secundario" style="font-size:0.78rem;padding:5px 12px" onclick="abrirDetalheProva(${p.id})">
+              👁️ Ver
+            </button>
+            ${modoAdmin ? `
+            <button class="btn btn-secundario" style="font-size:0.78rem;padding:5px 12px" onclick="abrirInserirResultados(${p.id})">
+              ✏️ Inserir
+            </button>
+            <button class="btn btn-secundario" style="font-size:0.78rem;padding:5px 12px" onclick="editarProva(${p.id})">
+              ⚙️ Editar
+            </button>
+            <button class="btn btn-perigo" style="font-size:0.78rem;padding:5px 12px" onclick="removerProva(${p.id})">
+              🗑️
+            </button>` : ''}
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  document.getElementById('provasConteudo').innerHTML = html;
+}
+
+function toggleCatCfg(sigla) {
+  const cb = document.getElementById('catAtiva_' + sigla);
+  const cfg = document.getElementById('catCfg_' + sigla);
+  if (cfg) cfg.style.display = cb.checked ? 'flex' : 'none';
+}
+
+function renderProvaCategoriasCfg(dadosExistentes) {
+  const tipo = document.getElementById('provaTipo') ? document.getElementById('provaTipo').value : 'cni';
+  const isCNC = tipo === 'cnc';
+  const container = document.getElementById('provaCategoriasCfg');
+  if (!container) return;
+
+  // Defaults composição equipa CNC
+  const defaultEquipa = {
+    'Homens': {titulares:6, suplentes:1},
+    'Senhoras': {titulares:3, suplentes:1},
+    'Juniores Masculinos': {titulares:3, suplentes:1},
+    'Juniores Femininos': {titulares:3, suplentes:1},
+    'Infantis Masculinos': {titulares:3, suplentes:1},
+    'Infantis Femininos': {titulares:3, suplentes:1},
+    'Seniores Masculinos': {titulares:3, suplentes:1},
+    'Seniores Femininos': {titulares:3, suplentes:1},
+    'Veteranos Masculinos': {titulares:3, suplentes:1},
+    'Veteranos Femininos': {titulares:3, suplentes:1},
+  };
+
+  const voltasOpts = [1,2,3,4,5,6,7,8,9,10].map(n =>
+    `<option value="${n}">${n} volta${n>1?'s':''}</option>`).join('');
+
+  let htmlStr = '';
+  CATEGORIAS.forEach(cat => {
+    const sigla = CAT_SIGLA[cat];
+    const cfg = dadosExistentes ? (dadosExistentes[cat] || {}) : {};
+    const defAtiva = ['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos'].includes(cat);
+    const ativa = cfg.ativa !== undefined ? cfg.ativa : defAtiva;
+    const vertente = cfg.vertente || 'minigolfe';
+    const nVoltas = cfg.nVoltas || 2;
+    const nPistas = cfg.nPistas || 18;
+    const nEquipas = cfg.equipasPorClube || 1;
+    const titulares = cfg.titulares || defaultEquipa[cat]?.titulares || 3;
+    const suplentes = cfg.suplentes || defaultEquipa[cat]?.suplentes || 1;
+
+    const voltasSelected = [1,2,3,4,5,6,7,8,9,10].map(n =>
+      `<option value="${n}" ${nVoltas==n?'selected':''}>${n} volta${n>1?'s':''}</option>`).join('');
+
+    htmlStr += `
+    <div style="background:rgba(255,255,255,0.03);border:1px solid var(--cinza-claro);border-radius:8px;padding:10px 12px;margin-bottom:4px">
+      <div style="display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;min-width:190px;padding-top:4px">
+          <input type="checkbox" id="catAtiva_${sigla}" ${ativa?'checked':''} onchange="toggleCatCfg('${sigla}')">
+          <span class="cat-badge cat-${sigla}">${sigla}</span>
+          <span style="font-size:0.82rem;font-weight:600">${cat}</span>
+        </label>
+        <div id="catCfg_${sigla}" style="display:${ativa?'flex':'none'};align-items:flex-end;gap:8px;flex-wrap:wrap">
+          <div class="form-group" style="min-width:130px;margin:0">
+            <label style="font-size:0.7rem">Vertente</label>
+            <select id="catVert_${sigla}" style="padding:5px 8px;font-size:0.8rem">
+              <option value="minigolfe" ${vertente==='minigolfe'?'selected':''}>Minigolfe</option>
+              <option value="petergolfe" ${vertente==='petergolfe'?'selected':''}>Petergolfe</option>
+              <option value="feltgolf" ${vertente==='feltgolf'?'selected':''}>Feltgolf</option>
+            </select>
+          </div>
+          <div class="form-group" style="min-width:90px;margin:0">
+            <label style="font-size:0.7rem">Nº Voltas</label>
+            <select id="catVoltas_${sigla}" style="padding:5px 8px;font-size:0.8rem">
+              ${voltasSelected}
+            </select>
+          </div>
+          <div class="form-group" style="min-width:80px;margin:0">
+            <label style="font-size:0.7rem">Pistas/volta</label>
+            <input type="number" id="catPistas_${sigla}" value="${nPistas}" min="1" max="36"
+              style="padding:5px 8px;font-size:0.8rem;width:65px;background:var(--cinza-escuro);border:1px solid var(--cinza-claro);border-radius:6px;color:var(--texto);text-align:center">
+          </div>
+          ${isCNC ? `
+          <div class="form-group" style="min-width:90px;margin:0">
+            <label style="font-size:0.7rem">Equipas/clube</label>
+            <select id="catEquipas_${sigla}" style="padding:5px 8px;font-size:0.8rem">
+              <option value="1" ${nEquipas==1?'selected':''}>1 equipa</option>
+              <option value="2" ${nEquipas==2?'selected':''}>2 equipas</option>
+            </select>
+          </div>
+          <div class="form-group" style="min-width:80px;margin:0">
+            <label style="font-size:0.7rem">Titulares</label>
+            <input type="number" id="catTitulares_${sigla}" value="${titulares}" min="1" max="12"
+              style="padding:5px 8px;font-size:0.8rem;width:60px;background:var(--cinza-escuro);border:1px solid var(--cinza-claro);border-radius:6px;color:var(--texto);text-align:center">
+          </div>
+          <div class="form-group" style="min-width:80px;margin:0">
+            <label style="font-size:0.7rem">Suplentes</label>
+            <input type="number" id="catSuplentes_${sigla}" value="${suplentes}" min="0" max="5"
+              style="padding:5px 8px;font-size:0.8rem;width:60px;background:var(--cinza-escuro);border:1px solid var(--cinza-claro);border-radius:6px;color:var(--texto);text-align:center">
+          </div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = htmlStr;
+}
+
+function lerCategoriasCfg() {
+  const tipo = document.getElementById('provaTipo').value;
+  const isCNC = tipo === 'cnc';
+  const cfg = {};
+  CATEGORIAS.forEach(cat => {
+    const sigla = CAT_SIGLA[cat];
+    const ativa = document.getElementById('catAtiva_' + sigla)?.checked || false;
+    cfg[cat] = {
+      ativa,
+      vertente: document.getElementById('catVert_' + sigla)?.value || 'minigolfe',
+      nVoltas: parseInt(document.getElementById('catVoltas_' + sigla)?.value) || 2,
+      nPistas: parseInt(document.getElementById('catPistas_' + sigla)?.value) || 18,
+      equipasPorClube: isCNC ? parseInt(document.getElementById('catEquipas_' + sigla)?.value)||1 : null,
+      titulares: isCNC ? parseInt(document.getElementById('catTitulares_' + sigla)?.value)||3 : null,
+      suplentes: isCNC ? parseInt(document.getElementById('catSuplentes_' + sigla)?.value)||1 : null,
+    };
+  });
+  return cfg;
+}
+
+function abrirModalNovaProva() {
+  editandoProvaId = null;
+  document.getElementById('modalProvaTitulo').textContent = 'Nova Prova Nacional';
+  document.getElementById('provaNome').value = '';
+  document.getElementById('provaTipo').value = 'cni';
+  document.getElementById('provaEpoca').value = '2026';
+  document.getElementById('provaJornada').value = '';
+  document.getElementById('provaClube').value = '';
+  document.getElementById('provaCampo').value = '';
+  document.getElementById('provaDataInicio').value = '';
+  document.getElementById('provaDataFim').value = '';
+  document.getElementById('provaEstado').value = 'agendado';
+  document.getElementById('provaNotas').value = '';
+  document.getElementById('provaTipo').onchange = () => renderProvaCategoriasCfg();
+  renderProvaCategoriasCfg();
+  document.getElementById('modalNovaProva').classList.add('aberto');
+}
+
+function editarProva(id) {
+  const p = provas.find(x=>x.id===id);
+  if (!p) return;
+  editandoProvaId = id;
+  document.getElementById('modalProvaTitulo').textContent = 'Editar Prova';
+  document.getElementById('provaNome').value = p.nome||'';
+  document.getElementById('provaTipo').value = p.tipo||'cni';
+  document.getElementById('provaEpoca').value = p.epoca||'2026';
+  document.getElementById('provaJornada').value = p.jornada||'';
+  document.getElementById('provaClube').value = p.clube||'';
+  document.getElementById('provaCampo').value = p.campo||'';
+  document.getElementById('provaDataInicio').value = p.dataInicio||'';
+  document.getElementById('provaDataFim').value = p.dataFim||'';
+  document.getElementById('provaEstado').value = p.estado||'agendado';
+  document.getElementById('provaNotas').value = p.notas||'';
+  document.getElementById('provaTipo').onchange = () => renderProvaCategoriasCfg();
+  renderProvaCategoriasCfg(p.categoriasCfg);
+  document.getElementById('modalNovaProva').classList.add('aberto');
+}
+
+function guardarProva() {
+  const nome = document.getElementById('provaNome').value.trim();
+  if (!nome) { mostrarNotif('❌ Insere o nome da prova', true); return; }
+  const categoriasCfg = lerCategoriasCfg();
+  // Derivar vertentes únicas para compatibilidade
+  const verts = [...new Set(Object.values(categoriasCfg).filter(c=>c.ativa).map(c=>c.vertente))];
+  // nPistas e nVoltas globais (do primeiro grupo activo)
+  const primeiroActivo = Object.values(categoriasCfg).find(c=>c.ativa);
+
+  const dados = {
+    nome,
+    tipo: document.getElementById('provaTipo').value,
+    epoca: document.getElementById('provaEpoca').value.trim(),
+    jornada: document.getElementById('provaJornada').value.trim(),
+    clube: document.getElementById('provaClube').value.trim(),
+    campo: document.getElementById('provaCampo').value.trim(),
+    dataInicio: document.getElementById('provaDataInicio').value,
+    dataFim: document.getElementById('provaDataFim').value,
+    vertentes: verts,
+    nVoltas: primeiroActivo?.nVoltas || 2,
+    nPistas: primeiroActivo?.nPistas || 18,
+    categoriasCfg,
+    estado: document.getElementById('provaEstado').value,
+    notas: document.getElementById('provaNotas').value.trim(),
+    resultados: {}
+  };
+
+  if (editandoProvaId) {
+    const idx = provas.findIndex(p=>p.id===editandoProvaId);
+    if (idx !== -1) {
+      dados.id = editandoProvaId;
+      dados.resultados = provas[idx].resultados || {};
+      provas[idx] = dados;
+    }
+  } else {
+    dados.id = proximoProvaId++;
+    provas.push(dados);
+  }
+  salvarDados();
+  fecharModal('modalNovaProva');
+  renderProvas();
+  renderDashboard();
+  mostrarNotif('✅ Prova guardada!');
+}
+
+function removerProva(id) {
+  if (!confirm('Remover esta prova e todos os resultados?')) return;
+  provas = provas.filter(p=>p.id!==id);
+  salvarDados();
+  renderProvas();
+  renderDashboard();
+  mostrarNotif('🗑️ Prova removida');
+}
+
+// ============================================================
+// DETALHE PROVA
+// ============================================================
+function abrirDetalheProva(id) {
+  const p = provas.find(x=>x.id===id);
+  if (!p) return;
+  document.getElementById('detalheProvaTitulo').textContent = p.nome;
+
+  const res = p.resultados || {};
+  const atletasComResult = atletas.filter(a => res[a.id]);
+
+  let html = `
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+      <span class="badge badge-${p.tipo}">${tipoLabel(p.tipo)}</span>
+      <span class="badge badge-${p.estado}">${estadoLabel(p.estado)}</span>
+      ${p.epoca ? `<span class="badge" style="background:rgba(255,255,255,0.08)">📅 ${p.epoca}</span>` : ''}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:16px;font-size:0.82rem">
+      ${p.clube ? `<div><span style="color:var(--texto-suave)">Clube:</span> ${p.clube}</div>` : ''}
+      ${p.campo ? `<div><span style="color:var(--texto-suave)">Campo:</span> ${p.campo}</div>` : ''}
+      <div><span style="color:var(--texto-suave)">Data:</span> ${formatData(p.dataInicio)}${p.dataFim&&p.dataFim!==p.dataInicio?' → '+formatData(p.dataFim):''}</div>
+      ${p.vertentes?.length ? `<div><span style="color:var(--texto-suave)">Vertentes:</span> ${p.vertentes.map(v=>VERTENTE_LABEL[v]||v).join(', ')}</div>` : ''}
+      <div><span style="color:var(--texto-suave)">Voltas:</span> ${p.nVoltas||2} × ${p.nPistas||18} pistas</div>
+    </div>`;
+
+  // Resultados por categoria
+  if (atletasComResult.length) {
+    CATEGORIAS.forEach(cat => {
+      const lista = atletasComResult.filter(a=>a.categoria===cat);
+      if (!lista.length) return;
+      html += `<div style="margin-bottom:16px">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--texto-suave);text-transform:uppercase;margin-bottom:8px">
+          <span class="cat-badge cat-${CAT_SIGLA[cat]}">${cat}</span>
+        </div>
+        <div class="tabela-wrap"><table>
+          <thead><tr>
+            <th>Pos</th><th>Atleta</th><th>Clube</th>
+            ${(p.vertentes||['minigolfe']).map(v => Array.from({length:p.nVoltas||2},(_,i) =>
+              `<th>${VERTENTE_LABEL[v]||v} V${i+1}</th>`
+            ).join('')).join('')}
+            <th>Total</th>
+          </tr></thead>
+          <tbody>`;
+      // Ordenar por total
+      const comTotal = lista.map(a => {
+        const r = res[a.id]||{};
+        let total = 0;
+        (p.vertentes||['minigolfe']).forEach(v => {
+          for (let i=1;i<=(p.nVoltas||2);i++) {
+            const val = parseInt(r[v+'_v'+i]);
+            if (!isNaN(val)) total += val;
+          }
+        });
+        return { atleta: a, res: r, total };
+      }).sort((a,b) => a.total - b.total);
+
+      comTotal.forEach(({atleta, res:r, total}, idx) => {
+        const pos = idx+1;
+        const medal = pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
+        html += `<tr>
+          <td>${medal||pos}</td>
+          <td><strong>${atleta.nome}</strong></td>
+          <td style="font-size:0.78rem;color:var(--texto-suave)">${atleta.clube||'—'}</td>`;
+        (p.vertentes||['minigolfe']).forEach(v => {
+          for (let i=1;i<=(p.nVoltas||2);i++) {
+            const val = r[v+'_v'+i];
+            const cor = val ? corVoltaPorVertente(val,v) : '';
+            html += `<td class="${cor}" style="text-align:center;font-weight:700">${val||'—'}</td>`;
+          }
+        });
+        html += `<td style="text-align:center;font-weight:800;color:var(--dourado-claro)">${total||'—'}</td></tr>`;
+      });
+      html += `</tbody></table></div></div>`;
+    });
+  } else {
+    html += '<div class="empty-state"><div class="icone">📋</div><p>Sem resultados registados</p></div>';
+  }
+
+  document.getElementById('detalheProvaConteudo').innerHTML = html;
+  document.getElementById('modalDetalheProva').classList.add('aberto');
+}
+
+// ============================================================
+// INSERIR RESULTADOS (manual — totais por volta)
+// ============================================================
+function abrirInserirResultados(provaId) {
+  const p = provas.find(x=>x.id===provaId);
+  if (!p) return;
+  document.getElementById('inserirResTitulo').textContent = `✏️ ${p.nome}`;
+
+  let html = `<p style="font-size:0.8rem;color:var(--texto-suave);margin-bottom:16px">
+    Insere o total de tacadas por volta para cada atleta.
+  </p>`;
+
+  CATEGORIAS.forEach(cat => {
+    const lista = atletas.filter(a=>a.categoria===cat);
+    if (!lista.length) return;
+    html += `<div style="margin-bottom:18px">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--texto-suave);text-transform:uppercase;margin-bottom:10px">
+        <span class="cat-badge cat-${CAT_SIGLA[cat]}">${cat}</span>
+      </div>`;
+    lista.forEach(a => {
+      const r = p.resultados[a.id]||{};
+      html += `<div style="background:rgba(255,255,255,0.03);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-weight:600;margin-bottom:8px;font-size:0.88rem">${a.nome}
+          <span style="font-size:0.72rem;color:var(--texto-suave);margin-left:6px">${a.clube||''}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px">`;
+      (p.vertentes||['minigolfe']).forEach(v => {
+        for (let i=1;i<=(p.nVoltas||2);i++) {
+          const key = v+'_v'+i;
+          html += `<div class="form-group">
+            <label>${VERTENTE_LABEL[v]||v} V${i}</label>
+            <input type="number" id="res_${a.id}_${key}" class="input-field"
+              value="${r[key]||''}" min="1" max="99" placeholder="—" style="text-align:center">
+          </div>`;
+        }
+      });
+      html += `</div></div>`;
+    });
+    html += '</div>';
+  });
+
+  html += `<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+    <button class="btn btn-secundario" onclick="fecharModal('modalInserirRes')">Cancelar</button>
+    <button class="btn btn-primario" onclick="guardarResultados(${provaId})">💾 Guardar Resultados</button>
+  </div>`;
+
+  document.getElementById('inserirResConteudo').innerHTML = html;
+  document.getElementById('modalInserirRes').classList.add('aberto');
+}
+
+function guardarResultados(provaId) {
+  const p = provas.find(x=>x.id===provaId);
+  if (!p) return;
+  atletas.forEach(a => {
+    const r = {};
+    (p.vertentes||['minigolfe']).forEach(v => {
+      for (let i=1;i<=(p.nVoltas||2);i++) {
+        const key = v+'_v'+i;
+        const el = document.getElementById(`res_${a.id}_${key}`);
+        if (el) {
+          const val = parseInt(el.value);
+          if (!isNaN(val) && val > 0) r[key] = val;
+        }
+      }
+    });
+    if (Object.keys(r).length) p.resultados[a.id] = r;
+  });
+  salvarDados();
+  fecharModal('modalInserirRes');
+  mostrarNotif('✅ Resultados guardados!');
+  renderClassificacoes();
+}
+
+// ============================================================
+// CLASSIFICAÇÕES
+// ============================================================
+function renderClassificacoes() {
+  const sel = document.getElementById('classProvaSelect');
+  if (!sel.options.length || !provas.find(p=>p.id===parseInt(sel.value))) {
+    sel.innerHTML = provas.map(p =>
+      `<option value="${p.id}">${p.nome}</option>`
+    ).join('') || '<option>Sem provas</option>';
+  }
+  const provaId = parseInt(sel.value);
+  const p = provas.find(x=>x.id===provaId);
+  if (!p) { document.getElementById('classConteudo').innerHTML = '<div class="empty-state"><div class="icone">📊</div><p>Selecciona uma prova</p></div>'; return; }
+
+  const res = p.resultados||{};
+  let html = '';
+
+  CATEGORIAS.forEach(cat => {
+    const lista = atletas.filter(a=>a.categoria===cat && res[a.id]);
+    if (!lista.length) return;
+
+    const comTotal = lista.map(a => {
+      const r = res[a.id]||{};
+      let total = 0;
+      (p.vertentes||['minigolfe']).forEach(v => {
+        for (let i=1;i<=(p.nVoltas||2);i++) {
+          const val = parseInt(r[v+'_v'+i]);
+          if (!isNaN(val)) total += val;
+        }
+      });
+      return { atleta:a, res:r, total };
+    }).sort((a,b)=>a.total-b.total);
+
+    html += `<div class="card" style="margin-bottom:14px">
+      <div class="card-titulo"><span class="cat-badge cat-${CAT_SIGLA[cat]}">${cat}</span></div>
+      <div class="tabela-wrap"><table>
+        <thead><tr><th>Pos</th><th>Atleta</th><th>Clube</th><th>HCP</th>
+          ${(p.vertentes||['minigolfe']).map(v=>Array.from({length:p.nVoltas||2},(_,i)=>`<th>${VERTENTE_LABEL[v]||v} V${i+1}</th>`).join('')).join('')}
+          <th>Total</th>
+        </tr></thead><tbody>`;
+    comTotal.forEach(({atleta,res:r,total},i) => {
+      const pos = i+1;
+      const medal = pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
+      html += `<tr>
+        <td style="font-weight:800">${medal||pos}</td>
+        <td><strong>${atleta.nome}</strong></td>
+        <td style="font-size:0.78rem;color:var(--texto-suave)">${atleta.clube||'—'}</td>
+        <td style="text-align:center;font-size:0.78rem;color:var(--texto-suave)">${atleta.hcp||'—'}</td>`;
+      (p.vertentes||['minigolfe']).forEach(v=>{
+        for(let j=1;j<=(p.nVoltas||2);j++){
+          const val=r[v+'_v'+j];
+          const cor=val?corVoltaPorVertente(val,v):'';
+          html+=`<td class="${cor}" style="text-align:center;font-weight:700">${val||'—'}</td>`;
+        }
+      });
+      html+=`<td style="text-align:center;font-weight:800;font-size:1rem;color:var(--dourado-claro)">${total||'—'}</td></tr>`;
+    });
+    html += '</tbody></table></div></div>';
+  });
+
+  if (!html) html = '<div class="empty-state"><div class="icone">📋</div><p>Sem resultados para esta prova</p></div>';
+  document.getElementById('classConteudo').innerHTML = html;
+}
+
+// ============================================================
+// ATLETAS
+// ============================================================
+function renderAtletas() {
+  if (!atletas.length) {
+    document.getElementById('atletasConteudo').innerHTML =
+      '<div class="empty-state"><div class="icone">👥</div><p>Sem atletas. Adiciona o primeiro!</p></div>';
+    return;
+  }
+  let html = '';
+  CATEGORIAS.forEach(cat => {
+    const lista = atletas.filter(a=>a.categoria===cat);
+    if (!lista.length) return;
+    html += `<div class="card" style="margin-bottom:14px">
+      <div class="card-titulo"><span class="cat-badge cat-${CAT_SIGLA[cat]}">${cat}</span></div>
+      <div class="tabela-wrap"><table>
+        <thead><tr><th>#</th><th>Nome</th><th>Clube</th><th>HCP</th><th>Licença</th>
+          ${modoAdmin?'<th>Ações</th>':''}
+        </tr></thead><tbody>`;
+    lista.forEach((a,i) => {
+      html += `<tr>
+        <td>${i+1}</td>
+        <td><strong>${a.nome}</strong></td>
+        <td style="font-size:0.8rem;color:var(--texto-suave)">${a.clube||'—'}</td>
+        <td style="text-align:center">${a.hcp||'—'}</td>
+        <td style="font-size:0.78rem;color:var(--texto-suave)">${a.licenca||'—'}</td>
+        ${modoAdmin?`<td style="display:flex;gap:6px">
+          <button class="btn btn-secundario" style="padding:3px 8px;font-size:0.72rem" onclick="editarAtleta(${a.id})">✏️</button>
+          <button class="btn btn-perigo" style="padding:3px 8px;font-size:0.72rem" onclick="removerAtleta(${a.id})">🗑️</button>
+        </td>`:''}
+      </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+  });
+  document.getElementById('atletasConteudo').innerHTML = html;
+}
+
+function atletaClubeOnChange() {
+  const sel = document.getElementById('atletaClubeSelect');
+  const inp = document.getElementById('atletaClube');
+  if (sel.value === '__outro__') {
+    inp.style.display = 'block';
+    inp.value = '';
+    inp.focus();
+  } else {
+    inp.style.display = 'none';
+    inp.value = sel.value;
+  }
+}
+
+function popularSelectClube() {
+  const sel = document.getElementById('atletaClubeSelect');
+  sel.innerHTML = '<option value="">-- Seleccionar clube --</option>' +
+    CLUBES_BASE.map(c => `<option value="${c}">${c}</option>`).join('') +
+    '<option value="__outro__">➕ Outro clube...</option>';
+}
+
+function abrirModalNovoAtleta() {
+  editandoAtletaId = null;
+  document.getElementById('modalAtletaTitulo').textContent = 'Novo Atleta';
+  ['atletaNome','atletaClube','atletaHcp','atletaLicenca'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('atletaCategoria').value = 'Homens';
+  popularSelectClube();
+  document.getElementById('atletaClubeSelect').value = '';
+  document.getElementById('atletaClube').style.display = 'none';
+  document.getElementById('modalNovoAtleta').classList.add('aberto');
+}
+
+function editarAtleta(id) {
+  const a = atletas.find(x=>x.id===id);
+  if (!a) return;
+  editandoAtletaId = id;
+  document.getElementById('modalAtletaTitulo').textContent = 'Editar Atleta';
+  document.getElementById('atletaNome').value = a.nome||'';
+  document.getElementById('atletaCategoria').value = a.categoria||'Homens';
+  document.getElementById('atletaHcp').value = a.hcp||'';
+  document.getElementById('atletaLicenca').value = a.licenca||'';
+  popularSelectClube();
+  const clubeExiste = CLUBES_BASE.includes(a.clube);
+  document.getElementById('atletaClubeSelect').value = clubeExiste ? (a.clube||'') : '__outro__';
+  document.getElementById('atletaClube').value = a.clube||'';
+  document.getElementById('atletaClube').style.display = clubeExiste ? 'none' : 'block';
+  document.getElementById('modalNovoAtleta').classList.add('aberto');
+}
+
+function guardarAtleta() {
+  const nome = document.getElementById('atletaNome').value.trim();
+  if (!nome) { mostrarNotif('❌ Insere o nome', true); return; }
+  const dados = {
+    nome,
+    categoria: document.getElementById('atletaCategoria').value,
+    clube: document.getElementById('atletaClube').value.trim(),
+    hcp: document.getElementById('atletaHcp').value || null,
+    licenca: document.getElementById('atletaLicenca').value.trim()
+  };
+  if (editandoAtletaId) {
+    const idx = atletas.findIndex(a=>a.id===editandoAtletaId);
+    if (idx!==-1) { dados.id=editandoAtletaId; atletas[idx]=dados; }
+  } else {
+    dados.id = proximoAtletaId++;
+    atletas.push(dados);
+  }
+  salvarDados();
+  fecharModal('modalNovoAtleta');
+  renderAtletas();
+  mostrarNotif('✅ Atleta guardado!');
+}
+
+function removerAtleta(id) {
+  if (!confirm('Remover este atleta?')) return;
+  atletas = atletas.filter(a=>a.id!==id);
+  salvarDados();
+  renderAtletas();
+  mostrarNotif('🗑️ Atleta removido');
+}
+
+// ============================================================
+// AO VIVO — PISTA A PISTA
+// ============================================================
+function avPopularProvas() {
+  const sel = document.getElementById('avProva');
+  sel.innerHTML = provas.map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+  if (provas.length) avOnProvaChange();
+}
+
+function avOnProvaChange() {
+  const p = provas.find(x=>x.id===parseInt(document.getElementById('avProva').value));
+  if (!p) return;
+  // Popular select de categoria
+  const catSel = document.getElementById('avCategoria');
+  if (catSel) {
+    const cfg = p.categoriasCfg || {};
+    const cats = CATEGORIAS.filter(cat => {
+      const c = cfg[cat];
+      return c ? c.ativa : ['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos'].includes(cat);
+    });
+    catSel.innerHTML = cats.map(cat =>
+      `<option value="${cat}">${cat} (${CAT_SIGLA[cat]})</option>`
+    ).join('');
+    avOnCategoriaChange();
+  }
+}
+
+function avOnCategoriaChange() {
+  const p = provas.find(x=>x.id===parseInt(document.getElementById('avProva').value));
+  if (!p) return;
+  const cat = document.getElementById('avCategoria')?.value;
+  const cfg = p.categoriasCfg?.[cat] || {};
+  const vertente = cfg.vertente || (p.vertentes?.[0] || 'minigolfe');
+  const nVoltas = cfg.nVoltas || p.nVoltas || 2;
+  const nPistas = cfg.nPistas || p.nPistas || 18;
+
+  // Popular voltas
+  const voltaSel = document.getElementById('avVolta');
+  if (voltaSel) {
+    let opts = '';
+    for (let i=1; i<=nVoltas; i++) {
+      opts += `<option value="${vertente}_v${i}">${VERTENTE_LABEL[vertente]||vertente} — Volta ${i}</option>`;
+    }
+    voltaSel.innerHTML = opts;
+  }
+  // Actualizar nPistas
+  const nPistasEl = document.getElementById('avNPistas');
+  if (nPistasEl) nPistasEl.value = nPistas;
+}
+
+function avOnJornadaChange() { avOnCategoriaChange(); }
+
+function avIniciarSessao() {
+  if (!modoAdmin) { mostrarNotif('❌ Apenas o admin pode iniciar', true); return; }
+  const provaId = parseInt(document.getElementById('avProva').value);
+  const p = provas.find(x=>x.id===provaId);
+  if (!p) return;
+  const volta = document.getElementById('avVolta').value;
+  const nPistas = parseInt(document.getElementById('avNPistas').value)||18;
+
+  // Parse volta: ex "minigolfe_v1" -> {vertente:"minigolfe", nVolta:1}
+  const [vertente, vPart] = volta.split('_');
+  const nVolta = parseInt(vPart.replace('v',''));
+
+  avEstado = { ativo:true, provaId, volta, vertente, nVolta, nPistas, pistaAtual:1, dados:{} };
+
+  // Pré-carregar dados existentes
+  atletas.forEach(a => {
+    const r = p.resultados[a.id];
+    if (r?.pistasDetalhadas?.[volta]) {
+      avEstado.dados[a.id] = {...r.pistasDetalhadas[volta]};
+    } else {
+      avEstado.dados[a.id] = {};
+    }
+  });
+
+  document.getElementById('avConfig').style.display = 'none';
+  document.getElementById('avSessao').style.display = 'block';
+  document.getElementById('avTituloSessao').textContent = p.nome;
+  document.getElementById('avVoltaLabel').textContent = `${VERTENTE_LABEL[vertente]||vertente} — Volta ${nVolta}`;
+  document.getElementById('avTotalPistasLabel').textContent = nPistas;
+  avRenderBarra();
+  avRenderPistaAtual();
+  avRenderResumo();
+}
+
+function avRenderBarra() {
+  const { nPistas, pistaAtual, dados } = avEstado;
+  let html = '';
+  for (let p=1;p<=nPistas;p++) {
+    const completa = atletas.length > 0 && atletas.every(a => (dados[a.id]?.[p]||0) > 0);
+    const atual = p === pistaAtual;
+    let cls = atual ? 'atual' : completa ? 'completa' : 'vazia';
+    html += `<button class="pista-btn ${cls}" onclick="avIrPara(${p})">${p}</button>`;
+  }
+  document.getElementById('avPistasBarra').innerHTML = html;
+  document.getElementById('avPistaAtualLabel').textContent = pistaAtual;
+  document.getElementById('avProxLabel').textContent = pistaAtual < avEstado.nPistas ? pistaAtual+1 : '✅ Fim';
+}
+
+function avRenderPistaAtual() {
+  const { pistaAtual, nPistas, volta, vertente, dados } = avEstado;
+  document.getElementById('avPistaCirculo').textContent = pistaAtual;
+  document.getElementById('avPistaNumLabel').textContent = pistaAtual;
+  document.getElementById('avPistaVertenteLabel').textContent = `${VERTENTE_LABEL[vertente]||vertente}`;
+  document.getElementById('avPistaProgresso').textContent = `${pistaAtual} / ${nPistas}`;
+
+  let html = '';
+  CATEGORIAS.forEach(cat => {
+    const lista = atletas.filter(a=>a.categoria===cat);
+    if (!lista.length) return;
+    html += `<div style="margin-bottom:14px">
+      <div style="font-size:0.72rem;font-weight:700;color:var(--texto-suave);text-transform:uppercase;margin-bottom:8px">
+        <span class="cat-badge cat-${CAT_SIGLA[cat]}">${cat}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px">`;
+    lista.forEach(a => {
+      const val = dados[a.id]?.[pistaAtual]||'';
+      let totalParcial = 0;
+      for (let p=1;p<=nPistas;p++) { if (dados[a.id]?.[p]>0) totalParcial+=dados[a.id][p]; }
+      const corClass = val ? corVoltaPorVertente(val, vertente) : '';
+      const corMap = {'t-azul':'#60a5fa','t-verde':'#4ade80','t-vermelho':'#f87171','t-preto':'#9ca3af'};
+      const corStyle = val ? (corMap[corClass]||'') : '';
+      html += `<div class="atleta-input-card ${val?'preenchido':''}">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.8rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nome}</div>
+          <div style="font-size:0.68rem;color:var(--texto-suave)">
+            ${a.clube||''} ${totalParcial?'· Total: <strong style="color:var(--dourado-claro)">'+totalParcial+'</strong>':''}
+          </div>
+        </div>
+        <button class="btn-tacada" style="background:var(--cinza-claro);color:var(--texto)" onclick="avAjustar(${a.id},${pistaAtual},-1)">−</button>
+        <input class="inp-tacada" type="number" id="av_${a.id}_${pistaAtual}"
+          value="${val}" min="1" max="20" placeholder="—"
+          oninput="avOnInput(${a.id},${pistaAtual})"
+          style="color:${corStyle||'var(--texto)'};font-weight:${val?'800':'400'}">
+        <button class="btn-tacada" style="background:var(--cinza-claro);color:var(--texto)" onclick="avAjustar(${a.id},${pistaAtual},1)">+</button>
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('avAtletasLista').innerHTML = html;
+}
+
+function avOnInput(atletaId, pista) {
+  const inp = document.getElementById(`av_${atletaId}_${pista}`);
+  if (!inp) return;
+  const val = parseInt(inp.value);
+  if (!isNaN(val) && val > 0) {
+    if (!avEstado.dados[atletaId]) avEstado.dados[atletaId] = {};
+    avEstado.dados[atletaId][pista] = val;
+    const cor = corVoltaPorVertente(val, avEstado.vertente);
+    const corMap = {'t-azul':'#60a5fa','t-verde':'#4ade80','t-vermelho':'#f87171','t-preto':'#9ca3af'};
+    inp.style.color = corMap[cor]||'';
+    inp.style.fontWeight = '800';
+  }
+  avRenderResumo();
+}
+
+function avAjustar(atletaId, pista, delta) {
+  const inp = document.getElementById(`av_${atletaId}_${pista}`);
+  if (!inp) return;
+  const novo = Math.max(1, (parseInt(inp.value)||0)+delta);
+  inp.value = novo;
+  avOnInput(atletaId, pista);
+}
+
+function avGuardarPistaAtual() {
+  const p = avEstado.pistaAtual;
+  atletas.forEach(a => {
+    const inp = document.getElementById(`av_${a.id}_${p}`);
+    if (!inp) return;
+    const val = parseInt(inp.value);
+    if (!isNaN(val) && val > 0) {
+      if (!avEstado.dados[a.id]) avEstado.dados[a.id] = {};
+      avEstado.dados[a.id][p] = val;
+    }
+  });
+}
+
+function avIrPara(pista) {
+  avGuardarPistaAtual();
+  avEstado.pistaAtual = pista;
+  avRenderBarra();
+  avRenderPistaAtual();
+}
+
+function avPistaAnterior() {
+  if (avEstado.pistaAtual > 1) {
+    avGuardarPistaAtual();
+    avEstado.pistaAtual--;
+    avRenderBarra();
+    avRenderPistaAtual();
+  }
+}
+
+function avProximaPista() { avGuardarEAvancar(); }
+
+function avGuardarEAvancar() {
+  avGuardarPistaAtual();
+  if (avEstado.pistaAtual < avEstado.nPistas) {
+    avEstado.pistaAtual++;
+    avRenderBarra();
+    avRenderPistaAtual();
+    avRenderResumo();
+  } else {
+    avFinalizarVolta();
+  }
+}
+
+function avRenderResumo() {
+  const { dados, nPistas, vertente } = avEstado;
+  let html = '<div style="overflow-x:auto"><table style="width:100%;font-size:0.75rem;border-collapse:collapse">';
+  html += '<thead><tr><th style="text-align:left;padding:5px 8px;color:var(--dourado-claro)">Atleta</th>';
+  for (let p=1;p<=nPistas;p++) html += `<th style="padding:3px;text-align:center;color:var(--texto-suave);font-weight:400">${p}</th>`;
+  html += '<th style="padding:5px 8px;text-align:center;color:var(--dourado-claro)">Total</th></tr></thead><tbody>';
+
+  // Ordenar por total actual
+  const ordenados = [...atletas].sort((a,b) => {
+    let ta=0,tb=0;
+    for(let p=1;p<=nPistas;p++){if(dados[a.id]?.[p]>0)ta+=dados[a.id][p];if(dados[b.id]?.[p]>0)tb+=dados[b.id][p];}
+    return ta-tb;
+  });
+
+  ordenados.forEach(atleta => {
+    let total=0;
+    html+=`<tr><td style="padding:4px 8px;font-weight:600;white-space:nowrap">${atleta.nome}</td>`;
+    for(let p=1;p<=nPistas;p++){
+      const v=dados[atleta.id]?.[p];
+      if(v>0){
+        total+=v;
+        const cor=corVoltaPorVertente(v,vertente);
+        const corMap={'t-azul':'color:#60a5fa','t-verde':'color:#4ade80','t-vermelho':'color:#f87171','t-preto':'color:#9ca3af'};
+        html+=`<td style="text-align:center;padding:2px;${corMap[cor]||''};font-weight:700">${v}</td>`;
+      } else {
+        html+=`<td style="text-align:center;padding:2px;color:#374151">·</td>`;
+      }
+    }
+    html+=`<td style="text-align:center;padding:4px 8px;font-weight:800;color:var(--dourado-claro)">${total||'—'}</td></tr>`;
+  });
+  html+='</tbody></table></div>';
+  document.getElementById('avResumoTotais').innerHTML = html;
+}
+
+function avFinalizarVolta() {
+  const { provaId, volta, vertente, nVolta, dados, nPistas } = avEstado;
+  const p = provas.find(x=>x.id===provaId);
+  if (!p) return;
+  if (!confirm(`Finalizar registo de ${VERTENTE_LABEL[vertente]||vertente} V${nVolta}? Os totais serão guardados.`)) return;
+
+  atletas.forEach(a => {
+    const pistasAtleta = dados[a.id]||{};
+    let total=0;
+    for(let i=1;i<=nPistas;i++) if(pistasAtleta[i]>0) total+=pistasAtleta[i];
+    if(total>0){
+      if(!p.resultados[a.id]) p.resultados[a.id]={};
+      p.resultados[a.id][volta] = total;
+      if(!p.resultados[a.id].pistasDetalhadas) p.resultados[a.id].pistasDetalhadas={};
+      p.resultados[a.id].pistasDetalhadas[volta] = {...pistasAtleta};
+    }
+  });
+  salvarDados();
+  mostrarNotif(`✅ ${VERTENTE_LABEL[vertente]||vertente} V${nVolta} guardada!`);
+  avTerminarSessao();
+}
+
+function avTerminarSessao() {
+  avEstado.ativo = false;
+  document.getElementById('avConfig').style.display = 'block';
+  document.getElementById('avSessao').style.display = 'none';
+  avPopularProvas();
+}
+
+// ============================================================
+// FECHAR MODAIS AO CLICAR FORA
+// ============================================================
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if(e.target===el) el.classList.remove('aberto'); });
+});
+
+// ============================================================
+// ARRANQUE — carregar dados do Firebase via REST
+// ============================================================
+(function() {
+  fbLer().then(function(d) {
+    if (d && (Array.isArray(d.provas) || Array.isArray(d.atletas))) {
+      provas = Array.isArray(d.provas) ? d.provas : [];
+      atletas = Array.isArray(d.atletas) ? d.atletas : [];
+      proximoProvaId = d.proximoProvaId || (provas.length ? Math.max.apply(null, provas.map(function(p){return p.id;})) + 1 : 1);
+      proximoAtletaId = d.proximoAtletaId || (atletas.length ? Math.max.apply(null, atletas.map(function(a){return a.id;})) + 1 : 1);
+    } else {
+      // Firebase vazio ou offline — tentar localStorage
+      carregarDados();
+    }
+    if (!atletas.length) carregarAtletasBase();
+    if (!provas.length) carregarCalendario2026();
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('loadingOverlay').style.display = 'none';
+  }).catch(function() {
+    carregarDados();
+    document.getElementById('loginOverlay').style.display = 'flex';
+    document.getElementById('loadingOverlay').style.display = 'none';
+  });
+})();
+</script>
+</body>
+</html>
