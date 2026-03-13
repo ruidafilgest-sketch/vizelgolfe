@@ -59,6 +59,7 @@ body { background: var(--fundo); color: var(--texto); font-family: -apple-system
 .nav-tab:hover { color: var(--texto); }
 .nav-tab.active { color: var(--dourado-claro); border-bottom-color: var(--dourado); }
 .nav-tab.admin-only { display: none; }
+.admin-only { display: none; }
 
 /* LAYOUT */
 .main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
@@ -286,10 +287,10 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-      <button class="btn btn-primario" onclick="avIniciarSessao()" style="padding:10px 24px">
+      <button class="btn btn-primario admin-only" onclick="avIniciarSessao()" style="padding:10px 24px">
         🔴 Iniciar Registo Ao Vivo
       </button>
-      <span style="font-size:0.75rem;color:var(--texto-suave)">Apenas admin pode iniciar sessão ao vivo</span>
+      <span class="admin-only" style="font-size:0.75rem;color:var(--texto-suave)">Apenas admin pode iniciar sessão ao vivo</span>
     </div>
   </div>
 
@@ -913,7 +914,11 @@ function fazerLogin() {
     modoAdmin = true;
     document.getElementById('headerBadge').textContent = '⚙️ Admin';
     document.getElementById('headerModo').textContent = 'Modo Administrador';
-    document.querySelectorAll('.admin-only').forEach(e => e.style.display = '');
+    document.querySelectorAll('.admin-only').forEach(e => {
+      if (e.tagName === 'BUTTON') e.style.display = 'inline-flex';
+      else if (e.tagName === 'SPAN') e.style.display = 'inline-block';
+      else e.style.display = '';
+    });
     document.getElementById('loginOverlay').style.display = 'none';
     renderDashboard(); renderProvas();
   } else if (pass === PASS_ATLETA) {
