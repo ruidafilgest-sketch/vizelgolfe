@@ -1242,6 +1242,7 @@ function abrirModalNovaProva() {
 }
 
 function editarProva(id) {
+  if (!modoAdmin) { mostrarNotif('🔒 Só o administrador pode editar provas', true); return; }
   const p = provas.find(x=>x.id===id);
   if (!p) return;
   editandoProvaId = id;
@@ -1307,6 +1308,7 @@ function guardarProva() {
 }
 
 function removerProva(id) {
+  if (!modoAdmin) { mostrarNotif('🔒 Só o administrador pode remover provas', true); return; }
   if (!confirm('Remover esta prova e todos os resultados?')) return;
   provas = provas.filter(p=>p.id!==id);
   salvarDados();
@@ -1401,6 +1403,7 @@ function abrirDetalheProva(id) {
 // INSERIR RESULTADOS (manual — totais por volta)
 // ============================================================
 function abrirInserirResultados(provaId) {
+  if (!modoAdmin) { mostrarNotif('🔒 Só o administrador pode inserir resultados', true); return; }
   const p = provas.find(x=>x.id===provaId);
   if (!p) return;
   document.getElementById('inserirResTitulo').textContent = `✏️ ${p.nome}`;
@@ -1945,6 +1948,10 @@ document.querySelectorAll('.modal-overlay').forEach(el => {
     }
     if (!atletas.length) carregarAtletasBase();
     if (!provas.length) carregarCalendario2026();
+    // Renderizar só depois de ter os dados, se já estiver logado
+    if (document.getElementById('loginOverlay').style.display === 'none') {
+      renderDashboard(); renderProvas();
+    }
     document.getElementById('loginOverlay').style.display = 'flex';
     document.getElementById('loadingOverlay').style.display = 'none';
   }).catch(function() {
