@@ -13,25 +13,25 @@
         .nav button { background: none; border: none; color: white; cursor: pointer; font-weight: bold; padding: 10px; font-size: 16px; }
         .nav button.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
         #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
-        .card { background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 500px; margin: 20px auto; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: 1px solid #334b73; background: #0a1424; color: white; }
-        button.main-btn { width: 100%; padding: 12px; background: var(--primary); border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        .card { background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 95%; max-width: 900px; margin: 20px auto; }
+        input { padding: 8px; border-radius: 4px; border: 1px solid #334b73; background: #0a1424; color: white; margin-right: 5px; }
+        .main-btn { padding: 10px 20px; background: var(--primary); border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; }
         .tab-content { display: none; padding: 20px; }
         .tab-content.active { display: block; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: rgba(0,0,0,0.2); }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        th { color: var(--primary); text-transform: uppercase; font-size: 12px; }
+        th { color: var(--primary); font-size: 12px; }
+        .edit-input { width: 60px; text-align: center; font-weight: bold; background: #0f1e35; color: #4ade80; border: 1px dashed var(--primary); }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
-    <div class="card">
+    <div class="card" style="max-width:400px">
         <h2 style="text-align:center; color:var(--primary)">VIZELGOLFE ADMIN</h2>
-        <input type="email" id="email" placeholder="Email (rui.dafilgest@gmail.com)">
-        <input type="password" id="pass" placeholder="Senha Firebase">
-        <button class="main-btn" onclick="fazerLogin()">ENTRAR NO SISTEMA</button>
-        <p id="login-error" style="color:#ff4444; font-size:12px; margin-top:10px; display:none;">Dados incorretos.</p>
+        <input type="email" id="email" placeholder="Email" style="width:100%; margin-bottom:10px;">
+        <input type="password" id="pass" placeholder="Senha" style="width:100%; margin-bottom:10px;">
+        <button class="main-btn" onclick="fazerLogin()" style="width:100%">ENTRAR</button>
     </div>
 </div>
 
@@ -52,9 +52,10 @@
     </div>
 
     <div id="tab-interno" class="tab-content">
-        <div class="card" style="max-width: 800px;">
-            <h3>Gestão Interna (Coleção 'dados')</h3>
-            <div id="lista-atletas">A carregar sócios de Vizela...</div>
+        <div class="card">
+            <h3>Gestão Interna (Vizela)</h3>
+            <p style="font-size: 0.8rem; color: #aaa;">Altera o valor no campo e clica em "Gravar" para atualizar a TV.</p>
+            <div id="lista-atletas">A carregar sócios...</div>
         </div>
     </div>
 </div>
@@ -81,7 +82,7 @@
                 document.getElementById('main-panel').style.display = 'block';
                 carregarInterno();
             })
-            .catch(() => document.getElementById('login-error').style.display = 'block');
+            .catch(() => alert("Dados incorretos!"));
     }
 
     function logout() { auth.signOut().then(() => location.reload()); }
@@ -96,28 +97,54 @@
         evt.currentTarget.className += " active";
     }
 
+    // CARREGA E PERMITE EDITAR OS DADOS DE VIZELA
     function carregarInterno() {
         const container = document.getElementById('lista-atletas');
         db.collection('vizelgolfe').doc('dados').onSnapshot(doc => {
             if(doc.exists) {
                 const data = doc.data();
-                let html = '<table><tr><th>Nome</th><th>Total/HCP</th></tr>';
-                // Tentativa de ler categorias ou lista direta
-                const lista = data.categorias ? Object.values(data.categorias).flat() : (Array.isArray(data) ? data : []);
-                lista.forEach(a => {
-                    html += `<tr><td>${a.nome}</td><td>${a.total || 0}</td></tr>`;
-                });
+                let categorias = data.categorias || data;
+                let html = '<table><tr><th>Nome</th><th>Total / HCP</th><th>Ação</th></tr>';
+                
+                // Vamos percorrer todas as categorias e atletas
+                for (const [catNome, atletas] of Object.entries(categorias)) {
+                    if (Array.isArray(atletas)) {
+                        atletas.forEach((atleta, index) => {
+                            html += `<tr>
+                                <td>${atleta.nome} <small>(${catNome})</small></td>
+                                <td><input type="number" class="edit-input" id="val-${catNome}-${index}" value="${atleta.total}"></td>
+                                <td><button class="main-btn" style="padding:5px 10px; font-size:10px;" onclick="salvarHcp('${catNome}', ${index})">GRAVAR</button></td>
+                            </tr>`;
+                        });
+                    }
+                }
                 html += '</table>';
-                container.innerHTML = lista.length > 0 ? html : "Sem dados formatados na coleção 'dados'.";
+                container.innerHTML = html;
             }
         });
     }
 
+    // FUNÇÃO PARA GRAVAR O NOVO HANDICAP/TOTAL NO FIREBASE
+    async function salvarHcp(cat, index) {
+        const novoValor = document.getElementById(`val-${cat}-${index}`).value;
+        const docRef = db.collection('vizelgolfe').doc('dados');
+        
+        try {
+            const doc = await docRef.get();
+            const data = doc.data();
+            data.categorias[cat][index].total = parseInt(novoValor);
+            await docRef.update(data);
+            alert("Atualizado com sucesso! A TV já vai mostrar o novo valor.");
+        } catch (e) {
+            alert("Erro ao gravar: " + e);
+        }
+    }
+
     function puxarNacional() {
         const id = document.getElementById('id-prova').value;
-        if(!id) return alert("Insere o ID da prova!");
-        document.getElementById('status-nacional').innerText = "A atualizar... (Isto demora 5-10 segundos)";
-        // Aqui o Gemini já sabe que deve rodar o fetch do Bangolfe
+        if(!id) return alert("Insere o ID!");
+        document.getElementById('status-nacional').innerText = "A atualizar CNI... aguarda.";
+        // Aqui corre a tua lógica de fetch que já conheces.
     }
 </script>
 </body>
