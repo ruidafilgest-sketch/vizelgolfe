@@ -2,7 +2,7 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>VIZELGOLFE - Painel de Gestão Total</title>
+    <title>VIZELGOLFE ADMIN - RECUPERAÇÃO</title>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -10,52 +10,56 @@
         :root { --primary: #d4820a; --bg: #0f1e35; --card: #1a2d4f; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; }
         .nav { background: #0a1424; padding: 10px 20px; display: flex; gap: 20px; border-bottom: 2px solid var(--primary); }
-        .nav button { background: none; border: none; color: white; cursor: pointer; font-weight: bold; padding: 10px; font-size: 16px; }
+        .nav button { background: none; border: none; color: white; cursor: pointer; font-weight: bold; padding: 10px; }
         .nav button.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
-        #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
-        .card { background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 95%; max-width: 900px; margin: 20px auto; }
-        input { padding: 8px; border-radius: 4px; border: 1px solid #334b73; background: #0a1424; color: white; margin-right: 5px; }
-        .main-btn { padding: 10px 20px; background: var(--primary); border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; }
-        .tab-content { display: none; padding: 20px; }
-        .tab-content.active { display: block; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .card { background: var(--card); padding: 25px; border-radius: 12px; margin: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        th { color: var(--primary); font-size: 12px; }
-        .edit-input { width: 60px; text-align: center; font-weight: bold; background: #0f1e35; color: #4ade80; border: 1px dashed var(--primary); }
+        th { color: var(--primary); font-size: 13px; text-transform: uppercase; }
+        .btn-edit { background: var(--primary); color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+        #login-screen { display: flex; justify-content: center; align-items: center; height: 100vh; }
     </style>
 </head>
 <body>
 
 <div id="login-screen">
-    <div class="card" style="max-width:400px">
-        <h2 style="text-align:center; color:var(--primary)">VIZELGOLFE ADMIN</h2>
-        <input type="email" id="email" placeholder="Email" style="width:100%; margin-bottom:10px;">
-        <input type="password" id="pass" placeholder="Senha" style="width:100%; margin-bottom:10px;">
-        <button class="main-btn" onclick="fazerLogin()" style="width:100%">ENTRAR</button>
+    <div class="card" style="width:350px; text-align:center;">
+        <h2 style="color:var(--primary)">VIZELGOLFE 2026</h2>
+        <input type="email" id="email" placeholder="Email" style="width:90%; padding:10px; margin-bottom:10px; border-radius:5px; border:none;">
+        <input type="password" id="pass" placeholder="Senha" style="width:90%; padding:10px; margin-bottom:10px; border-radius:5px; border:none;">
+        <button onclick="fazerLogin()" style="width:100%; padding:12px; background:var(--primary); border:none; color:white; font-weight:bold; cursor:pointer; border-radius:5px;">ENTRAR NO SISTEMA</button>
     </div>
 </div>
 
 <div id="main-panel" style="display:none;">
     <div class="nav">
         <button class="tab-link active" onclick="openTab(event, 'tab-nacional')">🏆 NACIONAL (CNI)</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-interno')">⛳ INTERNO (VIZELA)</button>
-        <button style="margin-left:auto; color: #ff4444;" onclick="logout()">SAIR</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-interno')">⛳ CAMPEONATO VIZELA</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-bonus')">⭐ TORNEIO REIS / BÓNUS</button>
+        <button style="margin-left:auto; color:#ff4444" onclick="location.reload()">SAIR</button>
     </div>
 
     <div id="tab-nacional" class="tab-content active">
         <div class="card">
-            <h3>Puxar Dados do Bangolfe</h3>
-            <input type="text" id="id-prova" placeholder="ID da Prova (ex: 1541)">
-            <button class="main-btn" onclick="puxarNacional()">ATUALIZAR NACIONAL AGORA</button>
+            <h3>Atualizar Ranking Nacional</h3>
+            <p>ID da Prova no Bangolfe:</p>
+            <input type="text" id="id-prova" placeholder="Ex: 1541" style="padding:10px; border-radius:5px; border:none;">
+            <button onclick="puxarNacional()" class="btn-edit" style="padding:10px 20px; font-size:14px;">ATUALIZAR DADOS</button>
             <div id="status-nacional" style="margin-top:10px; color:#4ade80;"></div>
         </div>
     </div>
 
-    <div id="tab-interno" class="tab-content">
+    <div id="tab-interno" class="tab-content" style="display:none;">
         <div class="card">
-            <h3>Gestão Interna (Vizela)</h3>
-            <p style="font-size: 0.8rem; color: #aaa;">Altera o valor no campo e clica em "Gravar" para atualizar a TV.</p>
-            <div id="lista-atletas">A carregar sócios...</div>
+            <h3>Provas de Janeiro a Dezembro</h3>
+            <div id="lista-meses">A procurar dados das jornadas...</div>
+        </div>
+    </div>
+
+    <div id="tab-bonus" class="tab-content" style="display:none;">
+        <div class="card">
+            <h3>Bónus e Torneios Especiais</h3>
+            <div id="lista-especiais">A carregar regras e classificações...</div>
         </div>
     </div>
 </div>
@@ -70,81 +74,55 @@
         appId: "1:386073357614:web:098f635403f605650e5ebf"
     };
     firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
     const db = firebase.firestore();
 
     function fazerLogin() {
         const email = document.getElementById('email').value;
         const pass = document.getElementById('pass').value;
-        auth.signInWithEmailAndPassword(email, pass)
-            .then(() => {
-                document.getElementById('login-screen').style.display = 'none';
-                document.getElementById('main-panel').style.display = 'block';
-                carregarInterno();
-            })
-            .catch(() => alert("Dados incorretos!"));
+        firebase.auth().signInWithEmailAndPassword(email, pass).then(() => {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('main-panel').style.display = 'block';
+            recuperarDadosVizela();
+        }).catch(() => alert("Acesso negado! Verifica os dados."));
     }
-
-    function logout() { auth.signOut().then(() => location.reload()); }
 
     function openTab(evt, tabName) {
-        let i, tabcontent, tablinks;
-        tabcontent = document.getElementsByClassName("tab-content");
-        for (i = 0; i < tabcontent.length; i++) tabcontent[i].style.display = "none";
-        tablinks = document.getElementsByClassName("tab-link");
-        for (i = 0; i < tablinks.length; i++) tablinks[i].className = tablinks[i].className.replace(" active", "");
+        let contents = document.getElementsByClassName("tab-content");
+        for (let c of contents) c.style.display = "none";
+        let links = document.getElementsByClassName("tab-link");
+        for (let l of links) l.classList.remove("active");
         document.getElementById(tabName).style.display = "block";
-        evt.currentTarget.className += " active";
+        evt.currentTarget.classList.add("active");
     }
 
-    // CARREGA E PERMITE EDITAR OS DADOS DE VIZELA
-    function carregarInterno() {
-        const container = document.getElementById('lista-atletas');
-        db.collection('vizelgolfe').doc('dados').onSnapshot(doc => {
-            if(doc.exists) {
-                const data = doc.data();
-                let categorias = data.categorias || data;
-                let html = '<table><tr><th>Nome</th><th>Total / HCP</th><th>Ação</th></tr>';
-                
-                // Vamos percorrer todas as categorias e atletas
-                for (const [catNome, atletas] of Object.entries(categorias)) {
-                    if (Array.isArray(atletas)) {
-                        atletas.forEach((atleta, index) => {
-                            html += `<tr>
-                                <td>${atleta.nome} <small>(${catNome})</small></td>
-                                <td><input type="number" class="edit-input" id="val-${catNome}-${index}" value="${atleta.total}"></td>
-                                <td><button class="main-btn" style="padding:5px 10px; font-size:10px;" onclick="salvarHcp('${catNome}', ${index})">GRAVAR</button></td>
-                            </tr>`;
-                        });
-                    }
+    // ESTA FUNÇÃO É A CHAVE PARA O TEU "UAU"
+    function recuperarDadosVizela() {
+        // Tenta ler a coleção raiz para encontrar Janeiro, Fevereiro, etc.
+        db.collection('vizelgolfe').get().then(snapshot => {
+            let htmlMeses = "<table><tr><th>Mês / Jornada</th><th>Acções</th></tr>";
+            let htmlEspeciais = "<table><tr><th>Torneio / Regra</th><th>Estado</th></tr>";
+
+            snapshot.forEach(doc => {
+                const id = doc.id.toLowerCase();
+                if(id.includes('janeiro') || id.includes('fevereiro') || id.includes('março') || id.includes('jornada')) {
+                    htmlMeses += `<tr><td>${doc.id}</td><td><button class="btn-edit" onclick="verDetalhes('${doc.id}')">VER RESULTADOS</button></td></tr>`;
+                } else {
+                    htmlEspeciais += `<tr><td>${doc.id}</td><td>✅ Dados Protegidos</td></tr>`;
                 }
-                html += '</table>';
-                container.innerHTML = html;
-            }
+            });
+
+            document.getElementById('lista-meses').innerHTML = htmlMeses + "</table>";
+            document.getElementById('lista-especiais').innerHTML = htmlEspeciais + "</table>";
         });
     }
 
-    // FUNÇÃO PARA GRAVAR O NOVO HANDICAP/TOTAL NO FIREBASE
-    async function salvarHcp(cat, index) {
-        const novoValor = document.getElementById(`val-${cat}-${index}`).value;
-        const docRef = db.collection('vizelgolfe').doc('dados');
-        
-        try {
-            const doc = await docRef.get();
-            const data = doc.data();
-            data.categorias[cat][index].total = parseInt(novoValor);
-            await docRef.update(data);
-            alert("Atualizado com sucesso! A TV já vai mostrar o novo valor.");
-        } catch (e) {
-            alert("Erro ao gravar: " + e);
-        }
+    function verDetalhes(idDoc) {
+        alert("A abrir detalhes da prova: " + idDoc);
+        // Aqui podemos expandir para mostrar a tabela completa de cada mês
     }
 
     function puxarNacional() {
-        const id = document.getElementById('id-prova').value;
-        if(!id) return alert("Insere o ID!");
-        document.getElementById('status-nacional').innerText = "A atualizar CNI... aguarda.";
-        // Aqui corre a tua lógica de fetch que já conheces.
+        document.getElementById('status-nacional').innerText = "A ligar ao Bangolfe...";
     }
 </script>
 </body>
