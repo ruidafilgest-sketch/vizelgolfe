@@ -559,8 +559,8 @@ NACIONAL -->
 // Atletas Vizelgolfe (para destacar)
 const VIZELGOLFE_CLUBE = 'vizelgolfe';
 
-let nacDados = {}; // { provaId: { nome, data, url, categorias: { cat: [ {rank,nome,clube,voltas:[],total} ] } } }
-let nacProvaAtiva = null;
+window.nacDados = {};
+window.nacProvaAtiva = null;
 
 // Mostrar/ocultar painel de importação
 function abrirImportarNacional() {
@@ -623,7 +623,7 @@ function renderNacProvas() {
     const ativo = id === nacProvaAtiva;
     return `<button class="btn ${ativo ? 'btn-primario' : 'btn-secundario'}"
       style="font-size:0.78rem"
-      onclick="nacProvaAtiva='${id}';renderNacProvas();renderNacional()">
+      onclick="window.nacProvaAtiva='${id}';window.renderNacProvas();window.renderNacional()">
       🏆 ${p.nome}${p.data ? ' · ' + p.data : ''}
     </button>`;
   }).join('');
