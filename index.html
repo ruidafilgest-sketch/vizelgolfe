@@ -632,6 +632,9 @@ function renderNacProvas() {
 // Render classificação da prova ativa
 function renderNacional() {
   const div = document.getElementById('nacConteudo');
+  if (!div) return;
+  const nacProvaAtiva = window.nacProvaAtiva;
+  const nacDados = window.nacDados;
   if (!nacProvaAtiva || !nacDados[nacProvaAtiva]) {
     div.innerHTML = `<div class="empty-state"><div class="icone">🇵🇹</div><p>${modoAdmin ? 'Importa uma prova para começar.' : 'Sem resultados disponíveis.'}</p></div>`;
     return;
