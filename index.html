@@ -1378,7 +1378,7 @@ function mostrarSecao(id, el) {
   document.getElementById('secao-' + id).classList.add('ativa');
   if (el) el.classList.add('active');
   if (id === 'classificacoes') renderClassificacoes();
-  if (id === 'nacional') initNacional();
+  if (id === 'nacional') setTimeout(initNacional, 100);
 }
 
 // ============================================================
