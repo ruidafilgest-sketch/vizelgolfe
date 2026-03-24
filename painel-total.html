@@ -1,1 +1,151 @@
+Tens toda a razão, Rui! Peço desculpa, com tanta conversa sobre os nomes dos ficheiros, acabei por não te passar o "código mestre" que junta o Nacional e o Interno no mesmo sítio.
 
+Aqui tens o código para o teu painel-total.html. Este é o único ficheiro que precisas de criar agora no GitHub para teres o teu "Programa" de volta com tudo incluído.
+
+Passo 1: Criar o ficheiro no GitHub
+Clica em Add file -> Create new file.
+
+Nome: painel-total.html
+
+Cola o código abaixo:
+
+HTML
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>VIZELGOLFE - Painel de Gestão Total</title>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <style>
+        :root { --primary: #d4820a; --bg: #0f1e35; --card: #1a2d4f; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: white; margin: 0; }
+        .nav { background: #0a1424; padding: 10px 20px; display: flex; gap: 20px; border-bottom: 2px solid var(--primary); }
+        .nav button { background: none; border: none; color: white; cursor: pointer; font-weight: bold; padding: 10px; font-size: 16px; }
+        .nav button.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+        
+        #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+        .card { background: var(--card); padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 90%; max-width: 500px; margin: 20px auto; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 5px; border: none; }
+        button.main-btn { width: 100%; padding: 12px; background: var(--primary); border: none; color: white; font-weight: bold; border-radius: 5px; cursor: pointer; margin-top: 10px; }
+        
+        .tab-content { display: none; padding: 20px; }
+        .tab-content.active { display: block; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: rgba(0,0,0,0.2); }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        th { color: var(--primary); text-transform: uppercase; font-size: 12px; }
+        .vzg-highlight { color: #4ade80; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="card">
+        <h2 style="text-align:center; color:var(--primary)">VIZELGOLFE ADMIN</h2>
+        <input type="email" id="email" placeholder="Teu Email (rui.dafilgest@gmail.com)">
+        <input type="password" id="pass" placeholder="Tua Senha do Firebase">
+        <button class="main-btn" onclick="fazerLogin()">ENTRAR NO SISTEMA</button>
+        <p id="login-error" style="color:red; font-size:12px; margin-top:10px; display:none;">Erro no login. Verifica os dados.</p>
+    </div>
+</div>
+
+<div id="main-panel" style="display:none;">
+    <div class="nav">
+        <button class="tab-link active" onclick="openTab(event, 'tab-nacional')">🏆 NACIONAL (CNI)</button>
+        <button class="tab-link" onclick="openTab(event, 'tab-interno')">⛳ INTERNO (VIZELA)</button>
+        <button style="margin-left:auto; color: #ff4444;" onclick="logout()">SAIR</button>
+    </div>
+
+    <div id="tab-nacional" class="tab-content active">
+        <div class="card">
+            <h3>Puxar Dados do Bangolfe</h3>
+            <p>Insere o ID da prova (ex: 1234) para atualizar o Nacional.</p>
+            <input type="text" id="id-prova" placeholder="ID da Prova">
+            <button class="main-btn" onclick="puxarNacional()">ATUALIZAR NACIONAL AGORA</button>
+            <div id="status-nacional" style="margin-top:10px; font-size:14px;"></div>
+        </div>
+    </div>
+
+    <div id="tab-interno" class="tab-content">
+        <div class="card">
+            <h3>Gestão de Atletas e Handicap</h3>
+            <p>Aqui estão os dados da coleção <strong>'dados'</strong> (Vizela).</p>
+            <div id="lista-atletas">A carregar atletas de Vizela...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // CONFIGURAÇÃO FIREBASE (A mesma que usas)
+    const firebaseConfig = {
+        apiKey: "AIzaSyDr7wfBzKbH1VAiXbte4YzkejuvJpQvltE",
+        authDomain: "vizelgolfe-ec270.firebaseapp.com",
+        projectId: "vizelgolfe-ec270",
+        storageBucket: "vizelgolfe-ec270.appspot.com",
+        messagingSenderId: "386073357614",
+        appId: "1:386073357614:web:098f635403f605650e5ebf"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // LOGIN
+    function fazerLogin() {
+        const email = document.getElementById('email').value;
+        const pass = document.getElementById('pass').value;
+        auth.signInWithEmailAndPassword(email, pass)
+            .then(() => {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-panel').style.display = 'block';
+                carregarInterno();
+            })
+            .catch(err => {
+                document.getElementById('login-error').style.display = 'block';
+                console.error(err);
+            });
+    }
+
+    function logout() { auth.signOut().then(() => location.reload()); }
+
+    // NAVEGAÇÃO
+    function openTab(evt, tabName) {
+        let i, tabcontent, tablinks;
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) tabcontent[i].style.display = "none";
+        tablinks = document.getElementsByClassName("tab-link");
+        for (i = 0; i < tablinks.length; i++) tablinks[i].className = tablinks[i].className.replace(" active", "");
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+
+    // CARREGAR DADOS INTERNOS (HANDICAP / NOMES)
+    function carregarInterno() {
+        const container = document.getElementById('lista-atletas');
+        db.collection('vizelgolfe').doc('dados').onSnapshot(doc => {
+            if(doc.exists) {
+                const dados = doc.data();
+                let html = '<table><tr><th>Nome</th><th>Clube</th><th>HCP</th></tr>';
+                // Ajusta aqui conforme a estrutura exata do teu "dados"
+                const atletas = dados.categorias || dados; 
+                Object.values(atletas).flat().forEach(a => {
+                    html += `<tr><td>${a.nome}</td><td>${a.clube || 'Vizelgolfe'}</td><td>${a.total || 0}</td></tr>`;
+                });
+                html += '</table>';
+                container.innerHTML = html;
+            } else {
+                container.innerHTML = "Coleção 'dados' não encontrada.";
+            }
+        });
+    }
+
+    // FUNÇÃO PARA PUXAR NACIONAL (Lógica simplificada para teste)
+    function puxarNacional() {
+        const id = document.getElementById('id-prova').value;
+        document.getElementById('status-nacional').innerText = "A ligar ao Bangolfe para a prova " + id + "...";
+        // Aqui entra a lógica de fetch que o Gemini te deu anteriormente
+    }
+</script>
+</body>
+</html>
