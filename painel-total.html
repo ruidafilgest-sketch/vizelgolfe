@@ -2,65 +2,78 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>VIZELGOLFE - PAINEL MASTER 2026</title>
+    <title>VIZELGOLFE - PAINEL ADMINISTRATIVO</title>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
-        :root { --primary: #d4820a; --bg: #0f1e35; --card: #1a2d4f; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg); color: white; margin: 0; }
-        .nav { background: #0a1424; padding: 10px 20px; display: flex; gap: 15px; border-bottom: 2px solid var(--primary); sticky: top; }
-        .nav button { background: none; border: none; color: white; cursor: pointer; font-weight: bold; padding: 10px; font-size: 14px; text-transform: uppercase; }
-        .nav button.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
-        .card { background: var(--card); padding: 20px; border-radius: 12px; margin: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; background: rgba(0,0,0,0.2); }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        th { color: var(--primary); font-size: 12px; }
-        .tab-content { display: none; padding: 10px; }
+        :root { --gold: #d4820a; --dark: #0a1424; --card: #1a2d4f; }
+        body { font-family: 'Segoe UI', sans-serif; background: #0f1e35; color: white; margin: 0; }
+        .header { background: var(--dark); padding: 15px 20px; border-bottom: 3px solid var(--gold); display: flex; align-items: center; justify-content: space-between; }
+        .nav { display: flex; background: var(--dark); padding: 0 20px; gap: 10px; }
+        .nav button { background: none; border: none; color: #888; padding: 15px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; border-bottom: 3px solid transparent; }
+        .nav button.active { color: var(--gold); border-bottom: 3px solid var(--gold); }
+        .container { padding: 20px; }
+        .card { background: var(--card); border-radius: 8px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; color: var(--gold); border-bottom: 2px solid #334b73; padding: 10px; font-size: 13px; }
+        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+        .tab-content { display: none; }
         .tab-content.active { display: block; }
-        .btn-update { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .cat-tag { font-size: 10px; background: #334b73; padding: 2px 6px; border-radius: 4px; margin-left: 10px; }
+        input { padding: 8px; border-radius: 4px; border: none; }
+        .btn-gold { background: var(--gold); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div id="login-screen" style="display: flex; justify-content: center; align-items: center; height: 100vh;">
-    <div class="card" style="width: 350px; text-align: center;">
-        <h2 style="color: var(--primary);">VIZELGOLFE ADMIN</h2>
-        <input type="email" id="email" placeholder="Email" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: none;">
-        <input type="password" id="pass" placeholder="Senha" style="width: 90%; padding: 10px; margin-bottom: 10px; border-radius: 5px; border: none;">
-        <button class="btn-update" onclick="fazerLogin()" style="width: 100%;">ENTRAR</button>
+<div id="login-area" style="display: flex; justify-content: center; align-items: center; height: 100vh;">
+    <div class="card" style="width: 320px; text-align: center;">
+        <h2 style="color:var(--gold)">VIZELGOLFE LOGIN</h2>
+        <input type="email" id="email" placeholder="Email" style="width: 90%; margin-bottom: 10px;"><br>
+        <input type="password" id="pass" placeholder="Senha" style="width: 90%; margin-bottom: 10px;"><br>
+        <button class="btn-gold" onclick="login()" style="width: 100%">ENTRAR NO PAINEL</button>
     </div>
 </div>
 
-<div id="main-panel" style="display: none;">
+<div id="admin-area" style="display: none;">
+    <div class="header">
+        <h2 style="margin:0; color:var(--gold)">PAINEL DE CONTROLO 2026</h2>
+        <button onclick="location.reload()" style="background:none; border:1px solid #ff4444; color:#ff4444; cursor:pointer; padding:5px 10px; border-radius:4px;">SAIR</button>
+    </div>
+
     <div class="nav">
-        <button class="tab-link active" onclick="openTab(event, 'tab-nacional')">🏆 NACIONAL</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-socios')">👥 SÓCIOS</button>
-        <button class="tab-link" onclick="openTab(event, 'tab-provas')">⛳ CAMPEONATO/PROVAS</button>
-        <button style="margin-left: auto; color: #ff4444;" onclick="location.reload()">SAIR</button>
+        <button class="tab-btn active" onclick="switchTab(event, 'tab-nacional')">🏆 Nacional (CNI)</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-socios')">👥 Sócios</button>
+        <button class="tab-btn" onclick="switchTab(event, 'tab-campeonato')">⛳ Campeonato Vizela</button>
     </div>
 
-    <div id="tab-nacional" class="tab-content active">
-        <div class="card">
-            <h3>Gestão CNI (Bangolfe)</h3>
-            <input type="text" id="id-prova" placeholder="ID da Prova Bangolfe" style="padding: 10px; border-radius: 5px; border: none; width: 200px;">
-            <button class="btn-update" onclick="puxarNacional()">ATUALIZAR TV</button>
-            <div id="status-nacional" style="margin-top: 15px; color: #4ade80;"></div>
+    <div class="container">
+        <div id="tab-nacional" class="tab-content active">
+            <div class="card">
+                <h3>Atualizar Dados do Bangolfe</h3>
+                <input type="text" id="id-bangolfe" placeholder="ID da Prova (Ex: 1541)">
+                <button class="btn-gold" onclick="alert('A ligar ao servidor Bangolfe...')">ATUALIZAR TV</button>
+            </div>
         </div>
-    </div>
 
-    <div id="tab-socios" class="tab-content">
-        <div class="card">
-            <h3>Lista de Atletas Registados</h3>
-            <div id="lista-socios">A carregar atletas...</div>
+        <div id="tab-socios" class="tab-content">
+            <div class="card">
+                <h3>Lista de Atletas Registados</h3>
+                <table id="tabela-socios">
+                    <thead><tr><th>ID</th><th>Nome</th><th>Categoria</th></tr></thead>
+                    <tbody id="corpo-socios"></tbody>
+                </table>
+            </div>
         </div>
-    </div>
 
-    <div id="tab-provas" class="tab-content">
-        <div class="card">
-            <h3>Calendário e Provas 2026</h3>
-            <div id="lista-provas">A carregar provas...</div>
+        <div id="tab-campeonato" class="tab-content">
+            <div class="card">
+                <h3>Provas e Torneios Guardados</h3>
+                <table id="tabela-provas">
+                    <thead><tr><th>Prova</th><th>Data</th><th>Tipo</th><th>Estado</th></tr></thead>
+                    <tbody id="corpo-provas"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -77,64 +90,49 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    function fazerLogin() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('pass').value;
-        firebase.auth().signInWithEmailAndPassword(email, pass).then(() => {
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('main-panel').style.display = 'block';
-            carregarTudo();
-        }).catch(() => alert("Acesso negado!"));
+    function login() {
+        const e = document.getElementById('email').value;
+        const p = document.getElementById('pass').value;
+        firebase.auth().signInWithEmailAndPassword(e, p).then(() => {
+            document.getElementById('login-area').style.display = 'none';
+            document.getElementById('admin-area').style.display = 'block';
+            carregarDadosInterface();
+        }).catch(err => alert("Erro: " + err.message));
     }
 
-    function openTab(evt, tabName) {
+    function switchTab(evt, tabId) {
         let contents = document.getElementsByClassName("tab-content");
         for (let c of contents) c.classList.remove("active");
-        let links = document.getElementsByClassName("tab-link");
-        for (let l of links) l.classList.remove("active");
-        document.getElementById(tabName).classList.add("active");
+        let btns = document.getElementsByClassName("tab-btn");
+        for (let b of btns) b.classList.remove("active");
+        document.getElementById(tabId).classList.add("active");
         evt.currentTarget.classList.add("active");
     }
 
-    function carregarTudo() {
-        // 1. CARREGAR SÓCIOS
+    function carregarDadosInterface() {
         db.collection('vizelgolfe').doc('dados').get().then(doc => {
             if (doc.exists) {
-                const data = doc.data();
-                
-                // Renderizar Sócios
-                let hSocios = "<table><tr><th>ID</th><th>Nome</th><th>Categoria</th></tr>";
-                data.atletas.forEach(atleta => {
-                    hSocios += `<tr><td>${atleta.id}</td><td>${atleta.nome}</td><td><span class="cat-tag">${atleta.categoria}</span></td></tr>`;
+                const d = doc.data();
+                // Preencher Sócios
+                let hAtletas = "";
+                d.atletas.forEach(a => {
+                    hAtletas += `<tr><td>${a.id}</td><td>${a.nome}</td><td>${a.categoria}</td></tr>`;
                 });
-                document.getElementById('lista-socios').innerHTML = hSocios + "</table>";
+                document.getElementById('corpo-socios').innerHTML = hAtletas;
 
-                // Renderizar Provas (Filtrar objetos que têm 'nome' e 'data')
-                let hProvas = "<table><tr><th>Data</th><th>Prova</th><th>Tipo</th><th>Estado</th></tr>";
-                // O Firebase armazena provas como documentos ou campos, vamos varrer a coleção
+                // Preencher Provas
                 db.collection('vizelgolfe').get().then(snap => {
+                    let hProvas = "";
                     snap.forEach(pDoc => {
                         const p = pDoc.data();
-                        if(p.nome && p.data) {
-                            hProvas += `<tr>
-                                <td>${p.data}</td>
-                                <td><strong>${p.nome}</strong></td>
-                                <td>${p.tipo}</td>
-                                <td style="color:${p.estado === 'concluido' ? '#4ade80' : '#d4820a'}">${p.estado.toUpperCase()}</td>
-                            </tr>`;
+                        if(p.nome) {
+                            hProvas += `<tr><td>${p.nome}</td><td>${p.data || '--'}</td><td>${p.tipo || '--'}</td><td>${p.estado || '--'}</td></tr>`;
                         }
                     });
-                    document.getElementById('lista-provas').innerHTML = hProvas + "</table>";
+                    document.getElementById('corpo-provas').innerHTML = hProvas;
                 });
             }
         });
-    }
-
-    function puxarNacional() {
-        const id = document.getElementById('id-prova').value;
-        if(!id) return alert("Insere o ID da prova!");
-        document.getElementById('status-nacional').innerText = "A ligar ao Bangolfe... A atualizar ranking nacional.";
-        // Aqui corre a tua lógica de fetch habitual
     }
 </script>
 </body>
