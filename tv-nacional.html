@@ -1,1 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vizelgolfe — TV Nacional</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:Barlow,sans-serif;background:#0f1e35;color:#f0f4f7;overflow:hidden;}
+
+/* HEADER */
+.header {
+  background: #1a2d4f;
+  padding: 15px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 2px solid #d4820a;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  position: relative;
+  z-index: 10;
+}
+.header-left { display: flex; align-items: center; gap: 20px; }
+.header-left img { width: 60px; height: 60px; border-radius: 50%; border: 2px solid #d4820a; }
+.header-title { font-family: "Bebas Neue", sans-serif; font-size: 2.5rem; letter-spacing: 3px; color: #e8960f; line-height: 1; }
+.header-subtitle { font-size: 1rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 2px; }
+.header-right { text-align: right; }
+.clock { font-family: "Bebas Neue", sans-serif; font-size: 2rem; color: #fff; letter-spacing: 2px; }
+.last-update { font-size: 0.8rem; color: #4ade80; text-transform: uppercase; letter-spacing: 1px; }
+
+/* SCROLL CONTAINER */
+.scroll-container {
+  height: calc(100vh - 92px);
+  overflow: hidden;
+  position: relative;
+}
+
+.scroll-content {
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  /* Animação será controlada via JS */
+}
+
+/* CATEGORIAS */
+.categoria {
+  background: rgba(26, 45, 79, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.05);
+  overflow: hidden;
+}
+.cat-title {
+  background: #d4820a;
+  color: #fff;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 2rem;
+  padding: 10px 20px;
+  letter-spacing: 2px;
+}
+
+/* TABELA */
+table { width: 100%; border-collapse: collapse; }
+th {
+  background: rgba(0,0,0,0.4);
+  color: rgba(255,255,255,0.5);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 12px 20px;
+  text-align: left;
+  font-weight: 600;
+}
+th.center { text-align: center; }
+td {
+  padding: 15px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  font-size: 1.2rem;
+}
+tr:last-child td { border-bottom: none; }
+tr.vzg { background: rgba(212, 130, 10, 0.15); } /* Destaque Vizelgolfe */
+
+.rank { font-family: "Bebas Neue", sans-serif; font-size: 1.5rem; color: #e8960f; width: 60px; }
+.nome { font-weight: 600; }
+.clube { font-size: 1rem; color: rgba(255,255,255,0.6); }
+.voltas { font-family: monospace; font-size: 1.1rem; color: rgba(255,255,255,0.8); letter-spacing: 2px; }
+.total { font-family: "Bebas Neue", sans-serif; font-size: 1.8rem; color: #4ade80; text-align: center; }
+.dnf { color: #ef4444; font-size: 1.2rem; }
+
+/* LOADING */
+.loading {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 3rem;
+  color: #e8960f;
+  letter-spacing: 5px;
+  animation: pulse 1.5s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <img src="data:image/jpeg;base64,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" alt="Vizelgolfe">
+    <div>
+      <div class="header-title" id="prova-nome">A carregar...</div>
+      <div class="header-subtitle">Resultados Nacionais</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="clock" id="clock">00:00:00</div>
+    <div class="last-update" id="last-update">Atualizado: --:--</div>
+  </div>
+</div>
+
+<div class="loading" id="loading">A CARREGAR DADOS...</div>
+
+<div class="scroll-container" id="scroll-container">
+  <div class="scroll-content" id="content">
+    <!-- Categorias injetadas aqui -->
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDr7wfBzKbH1VAiXbte4YzkejuvJpQvltE",
+  authDomain:"vizelgolfe-ec270.firebaseapp.com",
+  projectId:"vizelgolfe-ec270",
+  storageBucket:"vizelgolfe-ec270.firebasestorage.app",
+  messagingSenderId:"386073357614",
+  appId:"1:386073357614:web:098f635403f605650e5ebf"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+// Relógio
+setInterval(() => {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-PT');
+}, 1000);
+
+function isVzg(clube) { return clube && clube.toLowerCase().includes('vizelgolfe'); }
+
+function renderCategorias(categorias) {
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+
+  for (const [catName, atletas] of Object.entries(categorias)) {
+    if (!atletas || !atletas.length) continue;
+
+    // Determinar max voltas para o cabeçalho
+    const maxVoltas = Math.max(...atletas.map(a => a.voltas ? a.voltas.length : 0), 1);
+
+    let html = `
+      <div class="categoria">
+        <div class="cat-title">${catName}</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Pos</th>
+              <th>Nome</th>
+              <th>Clube</th>
+    `;
+    
+    for(let i=1; i<=maxVoltas; i++) html += `<th class="center">V${i}</th>`;
+    
+    html += `
+              <th class="center">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    atletas.forEach(a => {
+      const isV = isVzg(a.clube);
+      html += `<tr class="${isV ? 'vzg' : ''}">
+        <td class="rank">${a.rank}º</td>
+        <td class="nome">${a.nome}</td>
+        <td class="clube">${a.clube}</td>
+      `;
+
+      for(let i=0; i<maxVoltas; i++) {
+        const v = a.voltas && a.voltas[i] ? a.voltas[i] : '-';
+        html += `<td class="center voltas">${v}</td>`;
+      }
+
+      const tot = a.dnf ? '<span class="dnf">DNF</span>' : a.total;
+      html += `<td class="center total">${tot}</td></tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+    content.innerHTML += html;
+  }
+}
+
+// Auto-Scroll
+let scrollPos = 0;
+let scrollSpeed = 1; // px per frame
+let scrollReq;
+let isScrolling = false;
+
+function scrollLoop() {
+  const container = document.getElementById('scroll-container');
+  const content = document.getElementById('content');
+  
+  if (content.scrollHeight > container.clientHeight) {
+    scrollPos += scrollSpeed;
+    if (scrollPos > content.scrollHeight - container.clientHeight + 100) {
+      // Pausa no fim e volta ao topo
+      scrollSpeed = 0;
+      setTimeout(() => {
+        scrollPos = 0;
+        scrollSpeed = 1;
+      }, 3000);
+    }
+    content.style.transform = `translateY(-${scrollPos}px)`;
+  } else {
+    content.style.transform = `translateY(0)`;
+  }
+  
+  scrollReq = requestAnimationFrame(scrollLoop);
+}
+
+// Escutar Firestore
+onSnapshot(doc(db, 'vizelgolfe', 'nacional'), (docSnap) => {
+  if (docSnap.exists()) {
+    const data = docSnap.data().bangolfe;
+    if (data) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('prova-nome').textContent = data.nome || 'Prova Nacional';
+      
+      const d = new Date(data.atualizadoEm);
+      document.getElementById('last-update').textContent = 'Atualizado: ' + d.toLocaleTimeString('pt-PT').slice(0,5);
+
+      // Guardar posição atual para não saltar bruscamente se estiver a meio do scroll
+      const oldHeight = document.getElementById('content').scrollHeight;
+      
+      renderCategorias(data.categorias);
+
+      if (!isScrolling) {
+        isScrolling = true;
+        scrollLoop();
+      }
+    }
+  }
+});
+
+</script>
+</body>
+</html>
 
