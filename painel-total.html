@@ -2,41 +2,21 @@
 <html lang="pt">
 <head>
     <meta charset="UTF-8">
-    <title>VIZELGOLFE - RECUPERAÇÃO TOTAL</title>
+    <title>VIZELGOLFE - BUSCA DE RESGATE</title>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
     <style>
-        :root { --primary: #d4820a; --bg: #0f1e35; }
-        body { font-family: sans-serif; background: var(--bg); color: white; padding: 20px; }
-        .card { background: #1a2d4f; padding: 20px; border-radius: 10px; margin-bottom: 20px; border-left: 5px solid var(--primary); }
-        h2 { color: var(--primary); border-bottom: 1px solid #334b73; padding-bottom: 10px; }
-        .item-dados { background: rgba(0,0,0,0.3); padding: 10px; margin: 5px 0; border-radius: 5px; font-family: monospace; }
-        .btn-login { background: var(--primary); color: white; border: none; padding: 15px; width: 100%; cursor: pointer; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; }
-        td { padding: 10px; border-bottom: 1px solid #334b73; }
-        .label { color: var(--primary); font-weight: bold; min-width: 150px; display: inline-block; }
+        body { background: #000; color: #0f0; font-family: monospace; padding: 20px; }
+        .box { border: 1px solid #0f0; padding: 15px; margin-bottom: 20px; }
+        h1 { color: #fff; text-decoration: underline; }
+        .data-item { color: #fff; background: #222; padding: 10px; margin: 10px 0; border-left: 3px solid #0f0; }
     </style>
 </head>
 <body>
-
-<div id="login-box">
-    <div class="card" style="max-width:300px; margin: 100px auto;">
-        <h2>LOGIN ADMIN</h2>
-        <input type="email" id="email" placeholder="Email" style="width:90%; margin-bottom:10px; padding:8px;">
-        <input type="password" id="pass" placeholder="Senha" style="width:90%; margin-bottom:10px; padding:8px;">
-        <button class="btn-login" onclick="entrar()">ENTRAR</button>
-    </div>
-</div>
-
-<div id="conteudo" style="display:none;">
-    <h1>SISTEMA VIZELGOLFE - RECUPERADO</h1>
-    
-    <div class="card">
-        <h2>📂 CONTEÚDO DA PASTA 'DADOS'</h2>
-        <div id="lista-crua">A ler as "entranhas" do banco de dados...</div>
-    </div>
-</div>
+    <h1>🛰️ VARREDURA TOTAL DE DADOS</h1>
+    <div id="status">A iniciar busca profunda...</div>
+    <div id="resultados"></div>
 
 <script>
     const firebaseConfig = {
@@ -50,54 +30,37 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    function entrar() {
-        const email = document.getElementById('email').value;
-        const pass = document.getElementById('pass').value;
-        firebase.auth().signInWithEmailAndPassword(email, pass).then(() => {
-            document.getElementById('login-box').style.display = 'none';
-            document.getElementById('conteudo').style.display = 'block';
-            lerTudo();
-        }).catch(e => alert("Erro: " + e.message));
+    // VAMOS TENTAR TODAS AS POSSIBILIDADES QUE O TEU SISTEMA ANTIGO PODIA USAR
+    const colecoesParaTestar = ["vizelgolfe", "competicoes", "campeonato", "ranking", "provas", "socios", "geral"];
+
+    async function buscarTudo() {
+        const res = document.getElementById('resultados');
+        document.getElementById('status').innerText = "Busca em curso... a testar coleções.";
+
+        for (const col of colecoesParaTestar) {
+            try {
+                const snap = await db.collection(col).get();
+                if (!snap.empty) {
+                    res.innerHTML += `<h2>📂 ENCONTRADA COLEÇÃO: [${col}]</h2>`;
+                    snap.forEach(doc => {
+                        res.innerHTML += `<div class="data-item">
+                            <strong>Documento: ${doc.id}</strong><br>
+                            <pre>${JSON.stringify(doc.data(), null, 2)}</pre>
+                        </div>`;
+                    });
+                }
+            } catch (e) {
+                console.log("Erro na pasta " + col);
+            }
+        }
+
+        if (res.innerHTML === "") {
+            res.innerHTML = "<h3>❌ Nenhuma pasta padrão encontrada. A tentar busca por documentos soltos...</h3>";
+        }
     }
 
-    function lerTudo() {
-        const out = document.getElementById('lista-crua');
-        
-        // VAMOS LER O DOCUMENTO 'DADOS' QUE TU DISSESTE QUE ESTAVA PROTEGIDO
-        db.collection('vizelgolfe').doc('dados').get().then(doc => {
-            if (doc.exists) {
-                const data = doc.data();
-                let html = "<table>";
-                
-                for (const [chave, valor] of Object.entries(data)) {
-                    html += `<tr><td><span class="label">${chave}:</span></td><td>`;
-                    
-                    if (Array.isArray(valor)) {
-                        // Se for uma lista de jogadores ou provas
-                        valor.forEach(v => {
-                            html += `<div class="item-dados">${JSON.stringify(v)}</div>`;
-                        });
-                    } else if (typeof valor === 'object') {
-                        // Se forem categorias ou bónus
-                        html += `<div class="item-dados">${JSON.stringify(valor)}</div>`;
-                    } else {
-                        html += valor;
-                    }
-                    
-                    html += `</td></tr>`;
-                }
-                out.innerHTML = html + "</table>";
-            } else {
-                out.innerHTML = "O documento 'dados' não foi encontrado. A procurar noutras pastas...";
-                // Fallback: listar toda a coleção
-                db.collection('vizelgolfe').get().then(snap => {
-                    let h = "";
-                    snap.forEach(d => h += `<div class="card"><h3>Documento: ${d.id}</h3>${JSON.stringify(d.data())}</div>`);
-                    out.innerHTML = h;
-                });
-            }
-        });
-    }
+    // Executa sem precisar de login para ser mais rápido
+    buscarTudo();
 </script>
 </body>
 </html>
