@@ -480,17 +480,381 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div id="gerirProvasList"></div>
   </div>
 </div>
-
-<!-- NACIONAL -->
+NACIONAL -->
 <div class="secao" id="secao-nacional">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px">
-    <div class="card-titulo" style="margin-bottom:0">🇵🇹 Provas Nacionais — Atletas Vizelgolfe</div>
-    <button class="btn btn-secundario" style="font-size:0.78rem;padding:5px 12px" onclick="carregarNacionalExterno()">🔄 Actualizar</button>
+
+  <!-- CABEÇALHO + CONTROLES ADMIN -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+    <div class="card-titulo" style="margin-bottom:0">🇵🇹 Provas Nacionais</div>
+    <div class="admin-only" style="display:none;gap:8px;align-items:center" id="nacAdminBar">
+      <button class="btn btn-secundario" style="font-size:0.78rem;padding:5px 12px" onclick="abrirImportarNacional()">⬇️ Importar Bangolfe</button>
+      <button class="btn btn-secundario" style="font-size:0.78rem;padding:5px 12px" onclick="limparNacional()">🗑️ Limpar dados</button>
+    </div>
+    <button class="btn btn-secundario" style="font-size:0.78rem;padding:5px 12px" onclick="renderNacional()">🔄 Actualizar</button>
   </div>
-  <div id="nacionalExternoConteudo">
-    <div class="empty-state"><div class="icone">🔄</div><p>A carregar dados...</p></div>
+
+  <!-- PAINEL DE IMPORTAÇÃO (admin only, oculto por defeito) -->
+  <div id="painelImportar" class="card" style="display:none;margin-bottom:20px;border:1px solid rgba(201,168,76,0.4);background:rgba(201,168,76,0.05)">
+    <div class="card-titulo" style="margin-bottom:12px">⬇️ Importar resultados do Bangolfe / FPM</div>
+    <div style="font-size:0.82rem;color:var(--texto-suave);margin-bottom:12px;line-height:1.6">
+      Cola o URL da página de resultados da FPM. Exemplo:<br>
+      <code style="font-size:0.78rem;background:rgba(0,0,0,0.3);padding:2px 8px;border-radius:4px">http://www.fp-minigolfe.com/resultados/2026/cnm/result.htm</code>
+    </div>
+    <div style="display:flex;gap:10px;align-items:flex-start;flex-wrap:wrap">
+      <input type="text" id="nacUrlInput" placeholder="http://www.fp-minigolfe.com/resultados/2026/.../result.htm"
+        style="flex:1;min-width:280px;padding:9px 12px;border-radius:8px;border:1px solid var(--cinza-claro);background:var(--cinza-escuro);color:var(--texto);font-size:0.85rem">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <input type="text" id="nacNomeProva" placeholder="Nome da prova (ex: CNM 2026 — 1ª Jornada)"
+          style="padding:9px 12px;border-radius:8px;border:1px solid var(--cinza-claro);background:var(--cinza-escuro);color:var(--texto);font-size:0.85rem;min-width:260px">
+        <input type="date" id="nacDataProva"
+          style="padding:9px 12px;border-radius:8px;border:1px solid var(--cinza-claro);background:var(--cinza-escuro);color:var(--texto);font-size:0.85rem">
+      </div>
+      <button class="btn btn-primario" onclick="importarBangolfe()" id="btnImportar">⬇️ Importar</button>
+    </div>
+    <div id="nacImportStatus" style="margin-top:12px;font-size:0.82rem;display:none"></div>
   </div>
+
+  <!-- LISTA DE PROVAS NACIONAIS GUARDADAS -->
+  <div id="nacProvasList" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px"></div>
+
+  <!-- CONTEÚDO DA PROVA SELECIONADA -->
+  <div id="nacConteudo">
+    <div class="empty-state">
+      <div class="icone">🇵🇹</div>
+      <p>Sem provas nacionais importadas.<br>
+      <span class="admin-only" style="display:none">Usa o botão "Importar Bangolfe" para carregar resultados.</span>
+      <span id="nacSemDados">A carregar...</span>
+      </p>
+    </div>
+  </div>
+
 </div>
+
+
+<!-- ============================================================
+     JAVASCRIPT — adicionar dentro do <script> principal
+     Adiciona ANTES do closing </script>
+     ============================================================ -->
+<script id="nacScript">
+// ============================================================
+// NACIONAL — IMPORTADOR BANGOLFE
+// ============================================================
+
+// Atletas Vizelgolfe (para destacar)
+const VIZELGOLFE_CLUBE = 'vizelgolfe';
+
+let nacDados = {}; // { provaId: { nome, data, url, categorias: { cat: [ {rank,nome,clube,voltas:[],total} ] } } }
+let nacProvaAtiva = null;
+
+// Mostrar/ocultar painel de importação
+function abrirImportarNacional() {
+  const p = document.getElementById('painelImportar');
+  p.style.display = p.style.display === 'none' ? '' : 'none';
+}
+
+// Inicializar secção nacional
+function initNacional() {
+  // Mostrar barra admin se admin
+  if (modoAdmin) {
+    document.getElementById('nacAdminBar').style.display = 'flex';
+    document.querySelectorAll('#secao-nacional .admin-only').forEach(el => el.style.display = '');
+    document.getElementById('nacSemDados').style.display = 'none';
+  }
+  // Carregar dados guardados do Firebase
+  carregarNacionalFirebase();
+}
+
+// Carregar dados nacionais do Firebase
+async function carregarNacionalFirebase() {
+  if (!window._fbCarregarNacional) return;
+  const dados = await window._fbCarregarNacional();
+  if (dados) {
+    nacDados = dados;
+    renderNacProvas();
+    if (Object.keys(nacDados).length > 0) {
+      nacProvaAtiva = Object.keys(nacDados)[Object.keys(nacDados).length - 1];
+      renderNacional();
+    }
+  } else {
+    document.getElementById('nacSemDados').textContent = modoAdmin ? '' : 'Sem resultados disponíveis.';
+  }
+}
+
+// Guardar dados nacionais no Firebase
+async function guardarNacionalFirebase() {
+  if (!window._fbGuardarNacional) return;
+  await window._fbGuardarNacional(nacDados);
+}
+
+// Limpar todos os dados nacionais
+async function limparNacional() {
+  if (!confirm('Tens a certeza que queres apagar todos os dados nacionais?')) return;
+  nacDados = {};
+  nacProvaAtiva = null;
+  await guardarNacionalFirebase();
+  renderNacProvas();
+  renderNacional();
+  mostrarNotif('Dados nacionais apagados');
+}
+
+// Render lista de provas nacionais (tabs)
+function renderNacProvas() {
+  const div = document.getElementById('nacProvasList');
+  const ids = Object.keys(nacDados);
+  if (!ids.length) { div.innerHTML = ''; return; }
+  div.innerHTML = ids.map(id => {
+    const p = nacDados[id];
+    const ativo = id === nacProvaAtiva;
+    return `<button class="btn ${ativo ? 'btn-primario' : 'btn-secundario'}"
+      style="font-size:0.78rem"
+      onclick="nacProvaAtiva='${id}';renderNacProvas();renderNacional()">
+      🏆 ${p.nome}${p.data ? ' · ' + p.data : ''}
+    </button>`;
+  }).join('');
+}
+
+// Render classificação da prova ativa
+function renderNacional() {
+  const div = document.getElementById('nacConteudo');
+  if (!nacProvaAtiva || !nacDados[nacProvaAtiva]) {
+    div.innerHTML = `<div class="empty-state"><div class="icone">🇵🇹</div><p>${modoAdmin ? 'Importa uma prova para começar.' : 'Sem resultados disponíveis.'}</p></div>`;
+    return;
+  }
+
+  const prova = nacDados[nacProvaAtiva];
+  let html = '';
+
+  // Info da prova
+  html += `<div class="card" style="margin-bottom:16px;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div>
+      <div style="font-weight:700;font-size:0.95rem;color:var(--dourado-claro)">${prova.nome}</div>
+      <div style="font-size:0.75rem;color:var(--texto-suave)">${prova.data||''} · <a href="${prova.url||''}" target="_blank" style="color:var(--dourado-claro);font-size:0.72rem">Ver original ↗</a></div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <span style="font-size:0.72rem;color:var(--texto-suave)">🟡 = Vizelgolfe</span>
+      ${modoAdmin ? `<button class="btn btn-perigo" style="font-size:0.72rem;padding:3px 10px" onclick="apagarProvaNacional('${nacProvaAtiva}')">🗑️ Apagar prova</button>` : ''}
+    </div>
+  </div>`;
+
+  // Categorias
+  const cats = prova.categorias || {};
+  const catOrdem = ['Homens','Senhoras','Juniores Masculinos','Juniores Femininos','Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos','Veteranos Masculinos','Veteranos Femininos'];
+
+  const catsPresentes = catOrdem.filter(c => cats[c] && cats[c].length > 0);
+  if (!catsPresentes.length) {
+    html += '<div class="empty-state"><p>Sem dados nesta prova.</p></div>';
+    div.innerHTML = html;
+    return;
+  }
+
+  catsPresentes.forEach(cat => {
+    const atletas = cats[cat];
+    const vzg = atletas.filter(a => isVizelgolfe(a.clube));
+
+    html += `<div class="cat-secao">
+      <div class="cat-header">
+        <span class="cat-badge cat-${getCatKey(cat)}">${cat}</span>
+        <span style="font-size:0.82rem;font-weight:600;margin-left:4px">${cat}</span>
+        <span class="cat-count">${atletas.length} atletas · ${vzg.length} Vizelgolfe</span>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pos</th>
+              <th>Nome</th>
+              <th>Clube</th>
+              ${gerarCabecalhoVoltas(atletas)}
+              <th>Total</th>
+              <th>Situação</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${atletas.map(a => {
+              const vzgAtleta = isVizelgolfe(a.clube);
+              const posClass = a.rank === 1 ? 'pos-1' : a.rank === 2 ? 'pos-2' : a.rank === 3 ? 'pos-3' : '';
+              const rowStyle = vzgAtleta ? 'background:rgba(201,168,76,0.08);border-left:3px solid var(--dourado)' : '';
+              const voltasCells = (a.voltas||[]).map(v => `<td style="text-align:center;font-size:0.82rem">${v||'—'}</td>`).join('');
+              const dnf = a.dnf ? `<span style="color:#ef4444;font-size:0.72rem;font-weight:700">DNF</span>` : '';
+              return `<tr style="${rowStyle}${!a.completo?';opacity:0.7':''}">
+                <td class="pos ${posClass}">${a.rank ? a.rank+'º' : '—'}</td>
+                <td class="nome-atleta">${vzgAtleta ? '🟡 ' : ''}${a.nome}</td>
+                <td style="font-size:0.78rem;color:var(--texto-suave)">${a.clube}</td>
+                ${voltasCells}
+                <td class="pontos-total">${a.total||'—'}</td>
+                <td style="font-size:0.72rem">${dnf}${a.completo ? '✅' : a.dnf ? '' : '⏳'}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  });
+
+  div.innerHTML = html;
+}
+
+function gerarCabecalhoVoltas(atletas) {
+  // Descobrir número máximo de voltas
+  const maxV = Math.max(...atletas.map(a => (a.voltas||[]).length), 0);
+  if (!maxV) return '';
+  return Array.from({length: maxV}, (_,i) => `<th style="text-align:center;font-size:0.7rem">V${i+1}</th>`).join('');
+}
+
+function isVizelgolfe(clube) {
+  return clube && clube.toLowerCase().includes('vizelgolfe');
+}
+
+function getCatKey(cat) {
+  const m = {'Homens':'H','Senhoras':'S','Seniores Masculinos':'SM','Seniores Femininos':'SF','Veteranos Masculinos':'VM','Veteranos Femininos':'VF','Juniores Masculinos':'J','Juniores Femininos':'J','Infantis Masculinos':'J','Infantis Femininos':'J'};
+  return m[cat] || 'H';
+}
+
+function apagarProvaNacional(id) {
+  if (!confirm('Apagar esta prova?')) return;
+  delete nacDados[id];
+  if (nacProvaAtiva === id) nacProvaAtiva = Object.keys(nacDados)[0] || null;
+  guardarNacionalFirebase();
+  renderNacProvas();
+  renderNacional();
+  mostrarNotif('Prova apagada');
+}
+
+// ============================================================
+// IMPORTADOR BANGOLFE
+// ============================================================
+async function importarBangolfe() {
+  const url = document.getElementById('nacUrlInput').value.trim();
+  const nome = document.getElementById('nacNomeProva').value.trim();
+  const data = document.getElementById('nacDataProva').value;
+
+  if (!url) { mostrarNotif('Cola o URL da prova!', true); return; }
+  if (!url.includes('fp-minigolfe.com') && !url.includes('result.htm')) {
+    if (!confirm('O URL não parece ser do site da FPM. Continuar mesmo assim?')) return;
+  }
+
+  const status = document.getElementById('nacImportStatus');
+  const btn = document.getElementById('btnImportar');
+  status.style.display = '';
+  status.style.color = 'var(--dourado-claro)';
+  status.textContent = '⏳ A importar dados do Bangolfe... (pode demorar alguns segundos)';
+  btn.disabled = true;
+  btn.textContent = '⏳ A importar...';
+
+  try {
+    // Usar Claude API para fazer fetch e parsear o HTML (resolve CORS)
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        messages: [{
+          role: 'user',
+          content: `Vai buscar a página HTML em ${url} e extrai os resultados de minigolfe.
+
+Devolve APENAS um objeto JSON válido, sem markdown, sem explicações, sem backticks.
+
+Formato exato:
+{
+  "categorias": {
+    "Nome da Categoria": [
+      {
+        "rank": 1,
+        "nome": "Nome Atleta",
+        "clube": "Nome Clube",
+        "voltas": [29, 28, 32, 27, 30, 32, 22, 21, 22, 24, 21, 22, 21, 22, 22, 22, 23, 21, 27, 24],
+        "total": 492,
+        "completo": true,
+        "dnf": false
+      }
+    ]
+  }
+}
+
+Regras:
+- voltas: array com TODOS os valores numéricos das colunas B1..B6, E7..E20 (ou equivalentes) por ordem
+- total: o valor da coluna "Tot" 
+- completo: true se o atleta terminou, false se "Não terminou"
+- dnf: true se "Não terminou"
+- rank: número inteiro da posição (coluna Rank)
+- Inclui TODOS os atletas de TODAS as categorias
+- Usa os nomes das categorias exatamente como aparecem na página (ex: "Homens", "Senhoras", "Seniores Masculinos", etc)`
+        }]
+      })
+    });
+
+    const result = await response.json();
+    if (!result.content || !result.content[0]) throw new Error('Resposta inválida da API');
+
+    let jsonText = result.content[0].text.trim();
+    // Limpar possíveis backticks
+    jsonText = jsonText.replace(/^```json?\s*/i, '').replace(/\s*```$/,'').trim();
+
+    const parsed = JSON.parse(jsonText);
+    if (!parsed.categorias) throw new Error('Formato de dados inválido');
+
+    // Guardar prova
+    const provaId = 'nac_' + Date.now();
+    nacDados[provaId] = {
+      nome: nome || extrairNomeProva(url),
+      data: data || '',
+      url: url,
+      importadoEm: new Date().toISOString(),
+      categorias: parsed.categorias
+    };
+
+    nacProvaAtiva = provaId;
+
+    // Guardar no Firebase
+    await guardarNacionalFirebase();
+
+    // Contar totais
+    const totalAtletas = Object.values(parsed.categorias).reduce((s,a) => s+a.length, 0);
+    const totalVzg = Object.values(parsed.categorias).reduce((s,a) => s+a.filter(x=>isVizelgolfe(x.clube)).length, 0);
+
+    status.style.color = '#5dce90';
+    status.textContent = `✅ Importado com sucesso! ${totalAtletas} atletas em ${Object.keys(parsed.categorias).length} categorias · ${totalVzg} da Vizelgolfe`;
+
+    renderNacProvas();
+    renderNacional();
+    mostrarNotif('✅ Resultados nacionais importados!');
+
+    // Fechar painel após 2 segundos
+    setTimeout(() => {
+      document.getElementById('painelImportar').style.display = 'none';
+      document.getElementById('nacUrlInput').value = '';
+      document.getElementById('nacNomeProva').value = '';
+      document.getElementById('nacDataProva').value = '';
+    }, 2000);
+
+  } catch(e) {
+    console.error('Erro importação:', e);
+    status.style.color = '#f87171';
+    status.textContent = `❌ Erro: ${e.message}. Verifica o URL e tenta novamente.`;
+    mostrarNotif('Erro ao importar. Verifica o URL.', true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⬇️ Importar';
+  }
+}
+
+function extrairNomeProva(url) {
+  // Tentar extrair nome do URL ex: /2026/cnm/ → CNM 2026
+  const m = url.match(/\/(\d{4})\/([^/]+)\//);
+  if (m) return `${m[2].toUpperCase()} ${m[1]}`;
+  return 'Prova Nacional';
+}
+
+// ============================================================
+// FIREBASE — funções adicionais para Nacional
+// ============================================================
+// Adicionar ao bloco Firebase no <head> do index.html:
+// window._fbCarregarNacional e window._fbGuardarNacional
+// Ver instruções abaixo
+</script>
+
+
 
 <!-- REGRAS -->
 <div class="secao" id="secao-regras">
