@@ -3,144 +3,146 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vizelgolfe — Atualizador Nacional</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
+<title>Painel Total - Vizelgolfe</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:Barlow,sans-serif;background:#0f1e35;color:#f0f4f7;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
-.card{background:#1a2d4f;border-radius:16px;padding:32px;width:100%;max-width:520px;border:1px solid rgba(212,130,10,0.3);}
-img{width:70px;height:70px;border-radius:50%;border:2px solid #d4820a;display:block;margin:0 auto 16px;}
-h1{font-family:"Bebas Neue",sans-serif;font-size:1.8rem;letter-spacing:5px;color:#e8960f;text-align:center;margin-bottom:4px;}
-p{font-size:0.85rem;color:rgba(255,255,255,0.45);text-align:center;margin-bottom:24px;line-height:1.6;}
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; margin: 0; color: #333; }
+  
+  /* Login Section */
+  #login-section { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
+  .login-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; width: 100%; max-width: 350px; }
+  .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+  .login-box button { width: 100%; padding: 12px; background: #d4820a; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px; }
+  .login-box button:hover { background: #b56d08; }
+  #login-error { color: red; margin-top: 10px; font-size: 14px; }
 
-.form-group{margin-bottom:14px;}
-.form-group label{font-size:0.72rem;letter-spacing:2px;color:rgba(255,255,255,0.45);text-transform:uppercase;display:block;margin-bottom:6px;}
-.form-group input, .form-group select{
-  width:100%;padding:10px 14px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;
-  background:rgba(255,255,255,0.05);color:#f0f4f7;font-size:0.88rem;font-family:Barlow,sans-serif;
-}
-.form-group input:focus,.form-group select:focus{outline:none;border-color:#d4820a;}
+  /* Dashboard Section */
+  #dashboard-section { display: none; max-width: 1000px; margin: 0 auto; padding: 20px; }
+  
+  /* Header & Tabs */
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px; }
+  .tabs { display: flex; gap: 10px; }
+  .tab-btn { padding: 10px 20px; border: none; background: #e0e0e0; cursor: pointer; border-radius: 4px 4px 0 0; font-weight: bold; font-size: 16px; }
+  .tab-btn.active { background: #1a2d4f; color: white; }
+  #btn-logout { padding: 8px 15px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; }
 
-.btns{display:flex;gap:10px;margin-top:20px;}
-.btn{flex:1;padding:12px;border:none;border-radius:8px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:Barlow,sans-serif;letter-spacing:1px;transition:all 0.2s;}
-.btn-start{background:#d4820a;color:#fff;}
-.btn-start:hover{background:#e8960f;}
-.btn-start:disabled{background:#555;cursor:not-allowed;}
-.btn-stop{background:#dc2626;color:#fff;display:none;}
-.btn-stop:hover{background:#b91c1c;}
-.btn-now{background:rgba(255,255,255,0.1);color:#f0f4f7;}
-.btn-now:hover{background:rgba(255,255,255,0.15);}
+  /* Tab Content */
+  .tab-content { background: white; padding: 20px; border-radius: 0 4px 4px 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: none; }
+  .tab-content.active { display: block; }
 
-/* STATUS */
-.status-box{margin-top:20px;border-radius:10px;overflow:hidden;}
-.status-header{
-  display:flex;align-items:center;gap:10px;
-  background:rgba(0,0,0,0.3);padding:12px 16px;
-}
-.dot{width:10px;height:10px;border-radius:50%;background:#6b7280;flex-shrink:0;}
-.dot.verde{background:#4ade80;animation:pulse 1.5s ease-in-out infinite;}
-.dot.laranja{background:#f59e0b;}
-.dot.vermelho{background:#ef4444;}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(0.7)}}
-.status-text{font-size:0.85rem;font-weight:600;}
-.status-sub{font-size:0.72rem;color:rgba(255,255,255,0.4);margin-left:auto;}
+  /* Form Elements */
+  .form-group { margin-bottom: 15px; }
+  .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+  .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+  
+  .btn { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; }
+  .btn-green { background: #10b981; }
+  .btn-red { background: #ef4444; }
+  .btn-blue { background: #3b82f6; }
+  .btn-orange { background: #d4820a; }
 
-/* LOG */
-.log{background:rgba(0,0,0,0.4);padding:12px 16px;max-height:200px;overflow-y:auto;font-size:0.75rem;font-family:monospace;line-height:1.8;}
-.log-entry{border-bottom:1px solid rgba(255,255,255,0.05);padding:3px 0;}
-.log-ok{color:#4ade80;}
-.log-err{color:#f87171;}
-.log-info{color:#60a5fa;}
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+  th { background: #f8f9fa; }
+  td input { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+  .btn-remove { background: #ef4444; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
 
-/* COUNTDOWN */
-.countdown{
-  text-align:center;margin-top:16px;
-  font-family:"Bebas Neue",sans-serif;font-size:2.5rem;letter-spacing:4px;
-  color:#e8960f;display:none;
-}
-.countdown span{font-size:0.75rem;display:block;letter-spacing:3px;color:rgba(255,255,255,0.35);font-family:Barlow,sans-serif;margin-top:-8px;}
-
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px;}
-.stat{background:rgba(0,0,0,0.3);border-radius:8px;padding:10px;text-align:center;}
-.stat .n{font-family:"Bebas Neue",sans-serif;font-size:1.5rem;color:#e8960f;}
-.stat .l{font-size:0.65rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;}
+  /* Logs & Stats */
+  #log { background: #1e293b; color: #4ade80; padding: 15px; border-radius: 4px; height: 200px; overflow-y: auto; font-family: monospace; margin-top: 20px; }
+  .stats { display: flex; gap: 20px; margin-top: 20px; background: #f8f9fa; padding: 15px; border-radius: 4px; }
+  .stat-box { flex: 1; text-align: center; }
+  .stat-box span { display: block; font-size: 24px; font-weight: bold; color: #1a2d4f; }
 </style>
 </head>
 <body>
 
-<!-- TELA DE LOGIN -->
-<div class="card" id="login-screen" style="text-align:center; max-width: 400px; margin-bottom: 20px;">
-  <h1 style="margin-bottom: 10px;">Acesso Restrito</h1>
-  <p style="margin-bottom: 20px; color:rgba(255,255,255,0.6);">Autenticação necessária para atualizar resultados nacionais.</p>
-  <div class="form-group">
-    <input type="email" id="inp-email" placeholder="Email do Administrador">
+<!-- SECÇÃO DE LOGIN -->
+<div id="login-section">
+  <div class="login-box">
+    <h2>Admin Vizelgolfe</h2>
+    <input type="email" id="email" placeholder="Email do Admin" required>
+    <input type="password" id="password" placeholder="Palavra-passe" required>
+    <button id="btn-login">Entrar</button>
+    <div id="login-error"></div>
   </div>
-  <div class="form-group">
-    <input type="password" id="inp-password" placeholder="Palavra-passe">
-  </div>
-  <button class="btn btn-start" style="width:100%" onclick="loginEmail()">Entrar</button>
-  <p id="login-error" style="color:#ef4444; font-size:0.8rem; margin-top:10px; display:none;"></p>
 </div>
 
-<div class="card" id="app-screen" style="display:none;">
-  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px;">
-    <span id="user-email" style="font-size:0.8rem; color:#e8960f; font-weight:bold;"></span>
-    <button class="btn btn-stop" style="display:block; padding: 6px 12px; font-size: 0.75rem;" onclick="logout()">Sair</button>
-  </div>
-  <img src="data:image/jpeg;base64,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" alt="Vizelgolfe">
-  <h1>Atualizador Nacional</h1>
-  <p>Mantém esta janela aberta durante a prova.<br>Os resultados são atualizados automaticamente.</p>
-
-  <div class="form-group">
-    <label>URL da prova (Bangolfe / FPM)</label>
-    <input type="text" id="inp-url" placeholder="http://www.fp-minigolfe.com/resultados/2026/.../result.htm">
-  </div>
-  <div class="form-group">
-    <label>Nome da prova</label>
-    <input type="text" id="inp-nome" placeholder="CNM 2026 — 1ª Jornada">
-  </div>
-  <div class="form-group">
-    <label>Atualizar de X em X minutos</label>
-    <select id="inp-mins">
-      <option value="3">3 minutos</option>
-      <option value="5" selected>5 minutos</option>
-      <option value="10">10 minutos</option>
-      <option value="15">15 minutos</option>
-    </select>
-  </div>
-
-  <div class="btns">
-    <button class="btn btn-start" id="btn-start" onclick="iniciar()">▶ Iniciar</button>
-    <button class="btn btn-stop" id="btn-stop" onclick="parar()">⏹ Parar</button>
-    <button class="btn btn-now" onclick="atualizarAgora()">🔄 Agora</button>
-  </div>
-
-  <div class="countdown" id="countdown">
-    00:00
-    <span>próxima atualização</span>
-  </div>
-
-  <div class="stats" id="stats" style="display:none">
-    <div class="stat"><div class="n" id="st-atletas">0</div><div class="l">Atletas</div></div>
-    <div class="stat"><div class="n" id="st-vzg">0</div><div class="l">Vizelgolfe</div></div>
-    <div class="stat"><div class="n" id="st-upd">0</div><div class="l">Atualizações</div></div>
-  </div>
-
-  <div class="status-box" id="status-box" style="display:none">
-    <div class="status-header">
-      <div class="dot" id="dot"></div>
-      <div class="status-text" id="status-text">A aguardar...</div>
-      <div class="status-sub" id="status-sub"></div>
+<!-- SECÇÃO DO DASHBOARD -->
+<div id="dashboard-section">
+  <header>
+    <div class="tabs">
+      <button class="tab-btn active" data-target="nacional">Nacional (Bangolfe)</button>
+      <button class="tab-btn" data-target="interno">Gestão Interna</button>
     </div>
-    <div class="log" id="log"></div>
+    <button id="btn-logout">Sair</button>
+  </header>
+
+  <!-- ABA NACIONAL -->
+  <div id="nacional" class="tab-content active">
+    <h2>Atualizador Nacional (CNI)</h2>
+    
+    <div class="form-group">
+      <label>URL da Prova (Bangolfe):</label>
+      <input type="text" id="url" placeholder="https://www.bangolfe.fpm.pt/sport/...">
+    </div>
+    <div class="form-group">
+      <label>Nome da Prova:</label>
+      <input type="text" id="nome-prova" placeholder="Ex: 1ª Jornada CNI">
+    </div>
+    <div class="form-group">
+      <label>Intervalo de Atualização:</label>
+      <select id="intervalo">
+        <option value="3">3 Minutos</option>
+        <option value="5">5 Minutos</option>
+        <option value="10">10 Minutos</option>
+      </select>
+    </div>
+
+    <div style="display: flex; gap: 10px; margin-top: 20px;">
+      <button class="btn btn-green" id="btn-iniciar">▶ Iniciar Auto</button>
+      <button class="btn btn-red" id="btn-parar" disabled>⏹ Parar</button>
+      <button class="btn btn-blue" id="btn-agora">🔄 Atualizar Agora</button>
+    </div>
+
+    <div class="stats">
+      <div class="stat-box">Próxima em: <span id="countdown">--:--</span></div>
+      <div class="stat-box">Atletas Totais: <span id="stat-total">0</span></div>
+      <div class="stat-box">Vizelgolfe: <span id="stat-vzg">0</span></div>
+      <div class="stat-box">Atualizações: <span id="stat-updates">0</span></div>
+    </div>
+
+    <div id="log">A aguardar início...</div>
+  </div>
+
+  <!-- ABA INTERNA -->
+  <div id="interno" class="tab-content">
+    <h2>Atletas e Handicaps (Vizelgolfe)</h2>
+    <p>Estes dados são guardados em <code>vizelgolfe/dados</code> e podem ser usados para torneios internos.</p>
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+      <button class="btn btn-blue" id="btn-add-atleta">+ Adicionar Atleta</button>
+      <button class="btn btn-orange" id="btn-save-interno">💾 Guardar Alterações</button>
+    </div>
+
+    <table id="table-interno">
+      <thead>
+        <tr>
+          <th>Nome do Atleta</th>
+          <th style="width: 150px;">Handicap</th>
+          <th style="width: 80px;">Ação</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Preenchido via JS -->
+      </tbody>
+    </table>
   </div>
 </div>
-</div> <!-- Fim do app-screen -->
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey:"AIzaSyDr7wfBzKbH1VAiXbte4YzkejuvJpQvltE",
@@ -150,242 +152,303 @@ const firebaseConfig = {
   messagingSenderId:"386073357614",
   appId:"1:386073357614:web:098f635403f605650e5ebf"
 };
+
 const app = initializeApp(firebaseConfig);
-const db  = getFirestore(app);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-// ── AUTENTICAÇÃO ──
-window.loginEmail = async () => {
-  const email = document.getElementById('inp-email').value.trim();
-  const pass = document.getElementById('inp-password').value;
-  const errEl = document.getElementById('login-error');
-  errEl.style.display = 'none';
+let currentUser = null;
 
-  if (!email || !pass) {
-    errEl.textContent = 'Preenche o email e a palavra-passe.';
-    errEl.style.display = 'block';
-    return;
-  }
+// --- GESTÃO DE TABS ---
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    e.target.classList.add('active');
+    document.getElementById(e.target.dataset.target).classList.add('active');
+  });
+});
 
-  try {
-    await signInWithEmailAndPassword(auth, email, pass);
-  } catch (e) {
-    console.error('Erro no login:', e);
-    errEl.textContent = 'Credenciais inválidas. Tenta novamente.';
-    errEl.style.display = 'block';
-  }
-};
-
-window.logout = () => {
-  signOut(auth);
-};
-
-onAuthStateChanged(auth, user => {
-  if (user) {
-    // Verifica se é o Admin autorizado
-    if (user.email === 'rui.dafilgest@gmail.com') {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app-screen').style.display = 'block';
-      document.getElementById('user-email').textContent = user.email;
-    } else {
-      alert('Acesso negado. Apenas o administrador pode atualizar os resultados.');
-      signOut(auth);
-    }
+// --- AUTENTICAÇÃO ---
+onAuthStateChanged(auth, (user) => {
+  if (user && user.email === 'rui.dafilgest@gmail.com') {
+    currentUser = user;
+    document.getElementById('login-section').style.display = 'none';
+    document.getElementById('dashboard-section').style.display = 'block';
+    logMsg("Login efetuado com sucesso.");
+    loadInterno(); // Carrega os dados internos ao entrar
   } else {
-    document.getElementById('login-screen').style.display = 'block';
-    document.getElementById('app-screen').style.display = 'none';
-    if (window.parar) window.parar(); // Para atualizações se estiver a correr
+    currentUser = null;
+    document.getElementById('login-section').style.display = 'flex';
+    document.getElementById('dashboard-section').style.display = 'none';
+    if(user) signOut(auth); // Força saída se não for o admin
   }
 });
 
-let intervaloId  = null;
-let countdownId  = null;
-let segsRest     = 0;
-let nAtualizacoes = 0;
+document.getElementById('btn-login').addEventListener('click', () => {
+  const email = document.getElementById('email').value;
+  const pass = document.getElementById('password').value;
+  const errDiv = document.getElementById('login-error');
+  
+  signInWithEmailAndPassword(auth, email, pass).catch(error => {
+    errDiv.textContent = "Erro: " + error.message;
+  });
+});
+
+document.getElementById('btn-logout').addEventListener('click', () => {
+  signOut(auth);
+});
+
+// --- LÓGICA DA ABA INTERNA (HANDICAPS) ---
+let atletasInternos = [];
+
+async function loadInterno() {
+  try {
+    const docSnap = await getDoc(doc(db, 'vizelgolfe', 'dados'));
+    if (docSnap.exists()) {
+      atletasInternos = docSnap.data().atletas || [];
+    } else {
+      atletasInternos = [];
+    }
+    renderInterno();
+  } catch (e) {
+    console.error("Erro ao carregar dados internos:", e);
+    alert("Erro ao carregar dados internos.");
+  }
+}
+
+function renderInterno() {
+  const tbody = document.querySelector('#table-interno tbody');
+  tbody.innerHTML = '';
+  
+  atletasInternos.forEach((a, index) => {
+    tbody.innerHTML += `
+      <tr>
+        <td><input type="text" id="nome-${index}" value="${a.nome || ''}" placeholder="Nome do Atleta"></td>
+        <td><input type="number" id="hcp-${index}" value="${a.handicap || 0}" step="0.1"></td>
+        <td><button class="btn-remove" onclick="window.removeAtleta(${index})">X</button></td>
+      </tr>
+    `;
+  });
+}
+
+window.removeAtleta = (index) => {
+  if(confirm("Remover este atleta?")) {
+    atletasInternos.splice(index, 1);
+    renderInterno();
+  }
+};
+
+document.getElementById('btn-add-atleta').addEventListener('click', () => {
+  atletasInternos.push({ nome: '', handicap: 0 });
+  renderInterno();
+});
+
+document.getElementById('btn-save-interno').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-save-interno');
+  btn.textContent = "A guardar...";
+  btn.disabled = true;
+
+  const novosAtletas = [];
+  for (let i = 0; i < atletasInternos.length; i++) {
+    const nome = document.getElementById(`nome-${i}`).value.trim();
+    const hcp = parseFloat(document.getElementById(`hcp-${i}`).value) || 0;
+    if (nome !== '') {
+      novosAtletas.push({ nome, handicap: hcp });
+    }
+  }
+
+  try {
+    await setDoc(doc(db, 'vizelgolfe', 'dados'), { 
+      atletas: novosAtletas,
+      atualizadoEm: new Date().toISOString(),
+      atualizadoPor: currentUser.email
+    }, { merge: true });
+    
+    alert('Dados internos guardados com sucesso!');
+    atletasInternos = novosAtletas;
+    renderInterno();
+  } catch (e) {
+    console.error(e);
+    alert('Erro ao guardar: ' + e.message);
+  } finally {
+    btn.textContent = "💾 Guardar Alterações";
+    btn.disabled = false;
+  }
+});
+
+
+// --- LÓGICA DA ABA NACIONAL (BANGOLFE) ---
+let timerId = null;
+let countdownId = null;
+let updatesCount = 0;
+let nextUpdate = 0;
 
 const PROXIES = [
   url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-  url => `https://thingproxy.freeboard.io/fetch/${url}`,
-  url => `https://proxy.cors.sh/${url}`,
+  url => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+  url => `https://thingproxy.freeboard.io/fetch/${url}`
 ];
 
-function isVzg(clube) { return clube && clube.toLowerCase().includes('vizelgolfe'); }
-
-function log(msg, tipo) {
-  const logEl = document.getElementById('log');
-  const entry = document.createElement('div');
-  entry.className = 'log-entry log-' + (tipo||'info');
-  const hora = new Date().toLocaleTimeString('pt-PT');
-  entry.textContent = `[${hora}] ${msg}`;
-  logEl.insertBefore(entry, logEl.firstChild);
-  if (logEl.children.length > 50) logEl.removeChild(logEl.lastChild);
+function logMsg(msg) {
+  const log = document.getElementById('log');
+  const time = new Date().toLocaleTimeString();
+  log.innerHTML = `[${time}] ${msg}<br>` + log.innerHTML;
 }
 
-function setStatus(texto, sub, dotClass) {
-  document.getElementById('status-text').textContent = texto;
-  document.getElementById('status-sub').textContent  = sub || '';
-  const dot = document.getElementById('dot');
-  dot.className = 'dot ' + (dotClass||'');
-}
-
-// Tentar vários proxies até um funcionar
-async function fetchComProxy(url) {
-  for (const proxyFn of PROXIES) {
+async function fetchComProxy(targetUrl) {
+  for (let proxy of PROXIES) {
     try {
-      const proxyUrl = proxyFn(url);
-      const resp = await fetch(proxyUrl, {signal: AbortSignal.timeout(8000)});
-      if (resp.ok) {
-        const text = await resp.text();
-        if (text && text.length > 500) return text;
+      logMsg(`A tentar proxy: ${proxy(targetUrl).substring(0, 30)}...`);
+      const response = await fetch(proxy(targetUrl), { signal: AbortSignal.timeout(10000) });
+      if (!response.ok) continue;
+      
+      const data = await response.text();
+      let htmlStr = data;
+      if (data.trim().startsWith('{')) {
+        const json = JSON.parse(data);
+        if (json.contents) htmlStr = json.contents;
       }
-    } catch(e) { /* tentar próximo */ }
+      return htmlStr;
+    } catch (e) {
+      logMsg(`Falha no proxy.`);
+    }
   }
-  throw new Error('Todos os proxies falharam');
+  throw new Error("Todos os proxies falharam.");
 }
 
-function parseBangolfe(html) {
+function parseBangolfe(htmlStr) {
   const parser = new DOMParser();
-  const d = parser.parseFromString(html, 'text/html');
+  const doc = parser.parseFromString(htmlStr, 'text/html');
   const categorias = {};
-  const CATS = ['Homens','Senhoras','Juniores Masculinos','Juniores Femininos',
-    'Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos',
-    'Veteranos Masculinos','Veteranos Femininos'];
+  let totalAtletas = 0;
+  let totalVzg = 0;
 
-  let catAtual = null;
+  const catHeaders = doc.querySelectorAll('h3');
+  catHeaders.forEach(h3 => {
+    const catName = h3.textContent.trim();
+    const table = h3.nextElementSibling;
+    if (!table || table.tagName !== 'TABLE') return;
 
-  d.querySelectorAll('table tr').forEach(row => {
-    const cells = Array.from(row.querySelectorAll('td,th')).map(c => c.textContent.trim());
-    if (!cells.length) return;
+    categorias[catName] = [];
+    const rows = table.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+      const cols = row.querySelectorAll('td');
+      if (cols.length < 4) return;
 
-    const catMatch = CATS.find(c => cells[0] === c || (cells[0].includes(c) && cells.length < 4));
-    if (catMatch) { catAtual = catMatch; if (!categorias[catAtual]) categorias[catAtual] = []; return; }
+      const rank = cols[0].textContent.trim();
+      const nome = cols[2].textContent.trim();
+      const clube = cols[3].textContent.trim();
+      
+      const voltas = [];
+      for (let i = 4; i < cols.length - 2; i++) {
+        const v = cols[i].textContent.trim();
+        if (v) voltas.push(parseInt(v));
+      }
 
-    const rank = parseInt(cells[0]);
-    if (!catAtual || isNaN(rank) || rank < 1 || rank > 500) return;
-    if (cells.length < 4) return;
+      const total = cols[cols.length - 2].textContent.trim();
+      const isDnf = total.toLowerCase().includes('dnf');
 
-    const nome  = cells[1] || '—';
-    const clube = cells[2] || '—';
-    const ultimaCell = cells[cells.length - 1];
-    const dnf = ultimaCell.includes('terminou');
+      totalAtletas++;
+      if (clube.toLowerCase().includes('vizelgolfe')) totalVzg++;
 
-    // Voltas: valores entre 10 e 99, nas colunas 3 até penúltimas 4
-    const voltas = [];
-    for (let i = 3; i < cells.length - 4; i++) {
-      const v = parseInt(cells[i]);
-      if (!isNaN(v) && v >= 10 && v <= 99) voltas.push(v);
-    }
-
-    // Total
-    const totalStr = dnf ? cells[cells.length - 2] : cells[cells.length - 1];
-    const total = parseInt(totalStr) || 0;
-
-    categorias[catAtual].push({ rank, nome, clube, voltas, total, completo: !dnf, dnf });
+      categorias[catName].push({
+        rank: parseInt(rank) || rank,
+        nome,
+        clube,
+        voltas,
+        total: isDnf ? 0 : parseInt(total),
+        dnf: isDnf
+      });
+    });
   });
 
-  return categorias;
+  return { categorias, totalAtletas, totalVzg };
 }
 
-async function atualizarAgora() {
-  const url = document.getElementById('inp-url').value.trim();
-  if (!url) { log('URL em falta!', 'err'); return; }
-
-  setStatus('A carregar...', '', 'laranja');
-  log('A buscar resultados...', 'info');
+async function atualizarNacional() {
+  const url = document.getElementById('url').value;
+  const nomeProva = document.getElementById('nome-prova').value;
+  
+  if (!url) { logMsg("ERRO: URL vazio."); return; }
 
   try {
+    logMsg("A iniciar extração do Bangolfe...");
     const html = await fetchComProxy(url);
-    const cats = parseBangolfe(html);
-    const totalCats = Object.keys(cats).length;
-    const totalAtletas = Object.values(cats).reduce((s,a) => s+a.length, 0);
-    const totalVzg = Object.values(cats).reduce((s,a) => s+a.filter(x=>isVzg(x.clube)).length, 0);
+    const dados = parseBangolfe(html);
+    
+    logMsg(`Extraídos ${dados.totalAtletas} atletas (${dados.totalVzg} do Vizelgolfe).`);
+    
+    document.getElementById('stat-total').textContent = dados.totalAtletas;
+    document.getElementById('stat-vzg').textContent = dados.totalVzg;
 
-    if (!totalAtletas) throw new Error('Sem atletas encontrados — verifica o URL');
-
-    const dados = {
+    const payload = {
       bangolfe: {
-        url,
-        nome: document.getElementById('inp-nome').value.trim() || extrairNome(url),
+        nome: nomeProva,
+        url: url,
+        categorias: dados.categorias,
         atualizadoEm: new Date().toISOString(),
-        atualizadoPor: auth.currentUser.email,
-        adminUid: auth.currentUser.uid,
-        categorias: cats
+        atualizadoPor: currentUser.email
       }
     };
 
-    await setDoc(doc(db, 'vizelgolfe', 'nacional'), dados, { merge: true });
+    await setDoc(doc(db, 'vizelgolfe', 'nacional'), payload, { merge: true });
+    
+    updatesCount++;
+    document.getElementById('stat-updates').textContent = updatesCount;
+    logMsg("✅ Sucesso: Dados guardados no Firestore!");
 
-    nAtualizacoes++;
-    document.getElementById('st-atletas').textContent = totalAtletas;
-    document.getElementById('st-vzg').textContent = totalVzg;
-    document.getElementById('st-upd').textContent = nAtualizacoes;
-    document.getElementById('stats').style.display = 'grid';
-
-    setStatus('✅ Atualizado', new Date().toLocaleTimeString('pt-PT'), 'verde');
-    log(`✅ ${totalAtletas} atletas · ${totalVzg} Vizelgolfe · ${totalCats} categorias`, 'ok');
-
-  } catch(e) {
-    setStatus('❌ Erro', e.message, 'vermelho');
-    log('❌ ' + e.message, 'err');
+  } catch (e) {
+    logMsg(`❌ ERRO: ${e.message}`);
   }
 }
 
-function extrairNome(url) {
-  const m = url.match(/\/([\w]+)\/result/);
-  return m ? m[1].toUpperCase() + ' 2026' : 'Prova Nacional';
+function updateCountdown() {
+  if (!nextUpdate) return;
+  const diff = Math.max(0, Math.floor((nextUpdate - Date.now()) / 1000));
+  const m = Math.floor(diff / 60).toString().padStart(2, '0');
+  const s = (diff % 60).toString().padStart(2, '0');
+  document.getElementById('countdown').textContent = `${m}:${s}`;
+  if (diff === 0) startTimer(); // Reset
 }
 
-function iniciarCountdown(mins) {
-  segsRest = mins * 60;
-  clearInterval(countdownId);
-  const el = document.getElementById('countdown');
-  el.style.display = 'block';
-  countdownId = setInterval(() => {
-    segsRest--;
-    if (segsRest < 0) segsRest = 0;
-    const m = Math.floor(segsRest/60);
-    const s = segsRest % 60;
-    el.childNodes[0].textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
-  }, 1000);
+function startTimer() {
+  const min = parseInt(document.getElementById('intervalo').value);
+  nextUpdate = Date.now() + min * 60000;
+  if (countdownId) clearInterval(countdownId);
+  countdownId = setInterval(updateCountdown, 1000);
 }
 
-window.iniciar = async function() {
-  const url = document.getElementById('inp-url').value.trim();
-  if (!url) { alert('Cola o URL da prova!'); return; }
-  const mins = parseInt(document.getElementById('inp-mins').value);
+document.getElementById('btn-iniciar').addEventListener('click', () => {
+  atualizarNacional();
+  const min = parseInt(document.getElementById('intervalo').value);
+  timerId = setInterval(atualizarNacional, min * 60000);
+  startTimer();
+  
+  document.getElementById('btn-iniciar').disabled = true;
+  document.getElementById('btn-parar').disabled = false;
+  logMsg(`Modo Automático INICIADO (${min} em ${min} min).`);
+});
 
-  document.getElementById('btn-start').style.display = 'none';
-  document.getElementById('btn-stop').style.display = 'flex';
-  document.getElementById('status-box').style.display = 'block';
-  document.getElementById('inp-url').disabled = true;
-  document.getElementById('inp-nome').disabled = true;
-  document.getElementById('inp-mins').disabled = true;
-
-  await atualizarAgora();
-  iniciarCountdown(mins);
-
-  intervaloId = setInterval(async () => {
-    await atualizarAgora();
-    iniciarCountdown(mins);
-  }, mins * 60 * 1000);
-};
-
-window.parar = function() {
-  clearInterval(intervaloId);
+document.getElementById('btn-parar').addEventListener('click', () => {
+  clearInterval(timerId);
   clearInterval(countdownId);
-  intervaloId = countdownId = null;
-  document.getElementById('btn-start').style.display = 'flex';
-  document.getElementById('btn-stop').style.display = 'none';
-  document.getElementById('countdown').style.display = 'none';
-  document.getElementById('inp-url').disabled = false;
-  document.getElementById('inp-nome').disabled = false;
-  document.getElementById('inp-mins').disabled = false;
-  setStatus('Parado', '', '');
-  log('⏹ Atualização automática parada', 'info');
-};
+  timerId = null;
+  countdownId = null;
+  document.getElementById('countdown').textContent = "--:--";
+  
+  document.getElementById('btn-iniciar').disabled = false;
+  document.getElementById('btn-parar').disabled = true;
+  logMsg("Modo Automático PARADO.");
+});
 
-window.atualizarAgora = atualizarAgora;
+document.getElementById('btn-agora').addEventListener('click', () => {
+  atualizarNacional();
+  if (timerId) startTimer(); // Reseta o countdown se estiver em auto
+});
+
 </script>
 </body>
 </html>
