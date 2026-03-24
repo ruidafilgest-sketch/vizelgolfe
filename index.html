@@ -50,6 +50,25 @@
   };
 
   window._fbPronto = true;
+  javascript  window._fbGuardarNacional = async function(dados) {
+    try {
+      await setDoc(doc(db, 'vizelgolfe', 'nacional'), dados);
+      return true;
+    } catch(e) {
+      console.error('Firebase nacional save error:', e);
+      return false;
+    }
+  };
+
+  window._fbCarregarNacional = async function() {
+    try {
+      const snap = await getDoc(doc(db, 'vizelgolfe', 'nacional'));
+      return snap.exists() ? snap.data() : null;
+    } catch(e) {
+      console.error('Firebase nacional load error:', e);
+      return null;
+    }
+  };
   window.dispatchEvent(new Event('firebase-pronto'));
 </script>
 <style>
@@ -1362,7 +1381,7 @@ function mostrarSecao(id, el) {
   document.getElementById('secao-' + id).classList.add('ativa');
   if (el) el.classList.add('active');
   if (id === 'classificacoes') renderClassificacoes();
-  if (id === 'nacional') carregarNacionalExterno();
+  if (id === 'nacional') initNacional();
 }
 
 // ============================================================
