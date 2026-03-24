@@ -1,1 +1,137 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vizelgolfe — Dashboard Central TV</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        /* CSS REUTILIZADO E OTIMIZADO */
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:Barlow,sans-serif;background:#0f1e35;color:#f0f4f7;overflow:hidden;}
+        .header { background: #1a2d4f; padding: 15px 30px; display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #d4820a; position: relative; z-index: 100; }
+        .header-title { font-family: "Bebas Neue", sans-serif; font-size: 2.5rem; color: #e8960f; line-height: 1; }
+        .header-subtitle { font-size: 1rem; color: #4ade80; text-transform: uppercase; letter-spacing: 2px; font-weight: bold;}
+        .clock { font-family: "Bebas Neue", sans-serif; font-size: 2rem; color: #fff; }
 
+        .main-container { height: calc(100vh - 92px); position: relative; width: 100%; }
+        .view { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.5s ease-in-out; overflow: hidden; padding: 30px; }
+        .view.active { opacity: 1; z-index: 10; }
+
+        /* TABELAS */
+        .categoria { background: rgba(26, 45, 79, 0.6); border-radius: 12px; margin-bottom: 40px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); }
+        .cat-title { background: #d4820a; color: #fff; font-family: "Bebas Neue", sans-serif; font-size: 2rem; padding: 10px 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: rgba(0,0,0,0.4); padding: 12px; font-size: 0.8rem; text-transform: uppercase; color: #aaa; text-align: left; }
+        td { padding: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 1.3rem; }
+        tr.vzg { background: rgba(212, 130, 10, 0.2); }
+        .total { font-family: "Bebas Neue", sans-serif; font-size: 1.8rem; color: #4ade80; text-align: center; }
+        .center { text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <div class="header-title">VIZELGOLFE LIVE</div>
+        <div class="header-subtitle" id="label-modo">NACIONAL CNI</div>
+    </div>
+    <div class="header-right">
+        <div class="clock" id="clock">00:00:00</div>
+    </div>
+</div>
+
+<div class="main-container">
+    <div id="view-nacional" class="view active">
+        <div id="scroll-nacional"></div>
+    </div>
+
+    <div id="view-interno" class="view">
+        <div id="scroll-interno"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey:"AIzaSyDr7wfBzKbH1VAiXbte4YzkejuvJpQvltE",
+        authDomain:"vizelgolfe-ec270.firebaseapp.com",
+        projectId:"vizelgolfe-ec270",
+        storageBucket:"vizelgolfe-ec270.firebasestorage.app",
+        messagingSenderId:"386073357614",
+        appId:"1:386073357614:web:098f635403f605650e5ebf"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Relógio
+    setInterval(() => { document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-PT'); }, 1000);
+
+    // --- LOGICA DE DADOS ---
+    function renderTable(containerId, categorias, highlightVzg = false) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        for (const [cat, atletas] of Object.entries(categorias)) {
+            let html = `<div class="categoria"><div class="cat-title">${cat}</div><table><thead><tr><th>Pos</th><th>Nome</th><th>Clube</th><th class="center">Total</th></tr></thead><tbody>`;
+            atletas.forEach(a => {
+                const isVzg = highlightVzg && a.clube && a.clube.toLowerCase().includes('vizelgolfe');
+                html += `<tr class="${isVzg ? 'vzg' : ''}"><td>${a.rank || a.pos}º</td><td>${a.nome}</td><td>${a.clube || 'Vizelgolfe'}</td><td class="total">${a.total}</td></tr>`;
+            });
+            html += `</tbody></table></div>`;
+            container.innerHTML += html;
+        }
+    }
+
+    // Escutar Nacional
+    onSnapshot(doc(db, 'vizelgolfe', 'nacional'), (s) => {
+        if(s.exists() && s.data().bangolfe) renderTable('scroll-nacional', s.data().bangolfe.categorias, true);
+    });
+
+    // Escutar Interno (DADOS)
+    onSnapshot(doc(doc(db, 'vizelgolfe', 'dados')), (s) => {
+        if(s.exists()) renderTable('scroll-interno', s.data().categorias || s.data(), false);
+    });
+
+    // --- LOGICA DE ALTERNÂNCIA E SCROLL ---
+    let currentView = 'nacional';
+    setInterval(() => {
+        const vNac = document.getElementById('view-nacional');
+        const vInt = document.getElementById('view-interno');
+        const label = document.getElementById('label-modo');
+
+        if(currentView === 'nacional') {
+            vNac.classList.remove('active');
+            vInt.classList.add('active');
+            label.textContent = "CAMPEONATO INTERNO VIZELA";
+            currentView = 'interno';
+        } else {
+            vInt.classList.remove('active');
+            vNac.classList.add('active');
+            label.textContent = "NACIONAL CNI";
+            currentView = 'nacional';
+        }
+    }, 40000); // Muda a cada 40 segundos
+
+    // Scroll simples
+    function autoScroll() {
+        const activeView = document.querySelector('.view.active div');
+        if(activeView) {
+            const parent = activeView.parentElement;
+            if(activeView.offsetHeight > parent.offsetHeight) {
+                let currentY = new WebKitCSSMatrix(getComputedStyle(activeView).transform).m42;
+                if (Math.abs(currentY) > activeView.offsetHeight - parent.offsetHeight + 50) {
+                    activeView.style.transform = `translateY(0px)`;
+                } else {
+                    activeView.style.transform = `translateY(${currentY - 1}px)`;
+                }
+            }
+        }
+        requestAnimationFrame(autoScroll);
+    }
+    autoScroll();
+
+</script>
+</body>
+</html>
