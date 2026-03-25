@@ -267,6 +267,9 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       <div class="nav-item admin-only" onclick="irPara('gerir')">
         <span class="ico">⚙️</span><span class="label">Gerir Provas</span>
       </div>
+      <div class="nav-item admin-only" onclick="irPara('empates')">
+        <span class="ico">⚖️</span><span class="label">Empates</span>
+      </div>
       <div class="nav-section">Outros</div>
       <div class="nav-item" onclick="irPara('regras')">
         <span class="ico">📖</span><span class="label">Regras</span>
@@ -418,6 +421,30 @@ tr:hover td{background:rgba(0,0,0,0.02);}
         <div class="card">
           <div class="card-titulo">⚙️ Gerir Provas</div>
           <div id="gerir-provas-list"></div>
+        </div>
+      </div>
+
+      <!-- EMPATES -->
+      <div class="secao" id="sec-empates">
+        <div class="card-titulo" style="margin-bottom:16px">⚖️ Gestão de Empates</div>
+        <div class="card" style="margin-bottom:14px">
+          <p style="font-size:0.82rem;color:var(--silver);line-height:1.6">
+            Quando dois atletas terminam uma jornada com o mesmo total de tacadas, é necessário definir quem fica em melhor posição. 
+            Seleciona a prova e jornada para ver os empates detetados.
+          </p>
+        </div>
+        <div class="card">
+          <div class="form-grid" style="margin-bottom:14px">
+            <div class="form-group">
+              <label>Prova</label>
+              <select id="emp-sel-prova" onchange="empCarregar()"></select>
+            </div>
+            <div class="form-group">
+              <label>Jornada</label>
+              <select id="emp-sel-jornada" onchange="empCarregar()"></select>
+            </div>
+          </div>
+          <div id="emp-conteudo"><div style="color:var(--dim);font-size:0.85rem">Seleciona uma prova para ver os empates.</div></div>
         </div>
       </div>
 
@@ -592,6 +619,7 @@ window.irPara = function(sec) {
   if (sec === 'atletas') renderAtletas();
   if (sec === 'inserir') renderInserir();
   if (sec === 'gerir') renderGerir();
+  if (sec === 'empates') empIniciar();
   if (sec === 'nacional') renderNacional();
 };
 
@@ -737,9 +765,24 @@ window.renderRankingAnual = function(btn) {
   CATEGORIAS.forEach(cat => {
     const catAtl = atletas.filter(a=>a.categoria===cat);
     if (!catAtl.length) return;
-    const ranked = catAtl.map(a => ({
-      ...a, pts: calcPontosAtletaEpoca(a.id, cat)
-    })).filter(a=>a.pts>0).sort((a,b)=>b.pts-a.pts);
+    const ranked = catAtl.map(a => {
+      const pts = calcPontosAtletaEpoca(a.id, cat);
+      // Calcular tacadas totais para desempate
+      let tacTot = 0, jTot = 0;
+      (dadosInt.provas||[]).forEach(p=>{
+        for(let j=1;j<=(p.jornadas||1);j++){
+          const res=p.resultados?.[j]?.[a.id];
+          const tot=calcTotal(p,j,res);
+          if(tot!=null){tacTot+=tot;jTot++;}
+        }
+      });
+      return {...a, pts, tacTot, jTot};
+    }).filter(a=>a.pts>0).sort((a,b)=>{
+      if (b.pts !== a.pts) return b.pts - a.pts;
+      if (b.jTot !== a.jTot) return b.jTot - a.jTot;
+      if (a.tacTot !== b.tacTot) return a.tacTot - b.tacTot;
+      return a.nome.localeCompare(b.nome);
+    });
     if (!ranked.length) return;
     html += `<div style="margin-bottom:24px">
       <div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);padding:8px 0;border-bottom:2px solid var(--orange);margin-bottom:8px">${cat}</div>
@@ -765,6 +808,8 @@ window.renderClassProva = function(provaId, btn) {
   const atletas = dadosInt.atletas||[];
   const empates = dadosInt.empates||{};
   const cont = document.getElementById('class-conteudo');
+  const isCampVizela = prova.nome&&prova.nome.includes('Vizela')&&prova.tipo==='campeonato';
+  const nJornadas = prova.jornadas||1;
   let html = '';
 
   CATEGORIAS.forEach(cat => {
@@ -772,35 +817,88 @@ window.renderClassProva = function(provaId, btn) {
     if (!catAtl.length) return;
 
     const ranked = catAtl.map(a => {
-      let pts=0, jPart=0;
-      for (let j=1;j<=(prova.jornadas||1);j++) {
+      let ptsTotal=0, jPart=0;
+      const detJornadas = [];
+      for (let j=1;j<=nJornadas;j++) {
         const res=prova.resultados?.[j]?.[a.id];
-        if (!res) continue;
         const tot=calcTotal(prova,j,res);
-        if (tot==null) continue;
+        if (tot==null) { detJornadas.push(null); continue; }
         jPart++;
         const pos=calcPos(prova,j,a.id,CAT_GRUPO[cat],atletas,empates);
-        if (pos>=1&&pos<=PONTUACAO.length) pts+=PONTUACAO[pos-1];
-        if (res.bonusMini) pts+=(prova.bonusMini||0);
-        if (res.bonusPeter) pts+=(prova.bonusPeter||0);
+        let ptsPosicao = (pos>=1&&pos<=PONTUACAO.length) ? PONTUACAO[pos-1] : 0;
+        let ptsBonus = 0;
+        let bonusDesc = [];
+        if (isCampVizela) {
+          if (res.bonusMini)       { ptsBonus+=(prova.bonusMini||0); bonusDesc.push(`+${prova.bonusMini||0} Mini`); }
+          if (res.bonusPeter)      { ptsBonus+=(prova.bonusPeter||0); bonusDesc.push(`+${prova.bonusPeter||0} Peter`); }
+          if (res.bonusMiniManha)  { ptsBonus+=(prova.bonusMini||0); bonusDesc.push(`+${prova.bonusMini||0} Mini M`); }
+          if (res.bonusMiniTarde)  { ptsBonus+=(prova.bonusMini||0); bonusDesc.push(`+${prova.bonusMini||0} Mini T`); }
+          if (res.bonusPeterManha) { ptsBonus+=(prova.bonusPeter||0); bonusDesc.push(`+${prova.bonusPeter||0} Peter M`); }
+          if (res.bonusPeterTarde) { ptsBonus+=(prova.bonusPeter||0); bonusDesc.push(`+${prova.bonusPeter||0} Peter T`); }
+        }
+        ptsTotal += ptsPosicao + ptsBonus;
+        detJornadas.push({ tot, pos, ptsPosicao, ptsBonus, bonusDesc, ptsJornada: ptsPosicao+ptsBonus });
       }
-      return {...a, pts, jPart};
-    }).filter(a=>a.jPart>0).sort((a,b)=>b.pts-a.pts);
+      // Bónus participação completa
+      let bonusCompleto = 0;
+      if (isCampVizela && prova.bonusCompleto && jPart===nJornadas) {
+        bonusCompleto = prova.bonusCompleto;
+        ptsTotal += bonusCompleto;
+      }
+      return {...a, ptsTotal, jPart, detJornadas, bonusCompleto};
+    }).filter(a=>a.jPart>0).sort((a,b)=>{
+      // 1. Mais pontos totais
+      if (b.ptsTotal !== a.ptsTotal) return b.ptsTotal - a.ptsTotal;
+      // 2. Mais jornadas disputadas
+      if (b.jPart !== a.jPart) return b.jPart - a.jPart;
+      // 3. Menor total de tacadas acumuladas
+      const tacA = a.detJornadas.filter(d=>d).reduce((s,d)=>s+d.tot,0);
+      const tacB = b.detJornadas.filter(d=>d).reduce((s,d)=>s+d.tot,0);
+      if (tacA !== tacB) return tacA - tacB;
+      // 4. Empate total — manter ordem por nome (admin resolve via sistema de empates)
+      return a.nome.localeCompare(b.nome);
+    });
 
     if (!ranked.length) return;
-    html += `<div style="margin-bottom:24px">
+
+    // Cabeçalho da tabela — colunas por jornada
+    const jornadaCols = Array.from({length:nJornadas},(_,i)=>`<th style="text-align:center;font-size:0.65rem">J${i+1}</th>`).join('');
+
+    html += `<div style="margin-bottom:28px">
       <div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);padding:8px 0;border-bottom:2px solid var(--orange);margin-bottom:8px">${cat}</div>
       <div class="tabela-wrap"><table>
-        <thead><tr><th>Pos</th><th>Atleta</th><th class="c">Jornadas</th><th style="text-align:right">Pontos</th></tr></thead>
+        <thead><tr>
+          <th>Pos</th>
+          <th>Atleta</th>
+          ${jornadaCols}
+          ${isCampVizela&&prova.bonusCompleto?'<th style="text-align:center;font-size:0.65rem">Comp.</th>':''}
+          <th style="text-align:right">Total</th>
+        </tr></thead>
         <tbody>
-        ${ranked.map((a,i)=>`<tr style="cursor:pointer" onclick="abrirPerfilAtleta(${a.id})">
-          <td class="${i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':''}">${i+1}º</td>
-          <td><strong>${a.nome}</strong></td>
-          <td style="text-align:center">${a.jPart}</td>
-          <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:var(--orange)">${a.pts}</td>
-        </tr>`).join('')}
+        ${ranked.map((a,i)=>{
+          const jornadaCells = a.detJornadas.map(d=>{
+            if (!d) return `<td style="text-align:center;color:var(--dim);font-size:0.8rem">—</td>`;
+            const bonus = d.bonusDesc.length ? `<div style="font-size:0.62rem;color:var(--green)">+${d.ptsBonus}</div>` : '';
+            return `<td style="text-align:center">
+              <div style="font-weight:700;font-size:0.9rem">${d.ptsPosicao}</div>
+              ${bonus}
+              <div style="font-size:0.6rem;color:var(--dim)">${d.pos<999?d.pos+'º':'—'} · ${d.tot}t</div>
+            </td>`;
+          }).join('');
+          const compCell = isCampVizela&&prova.bonusCompleto
+            ? `<td style="text-align:center;font-size:0.82rem">${a.bonusCompleto>0?`<span style="color:var(--green);font-weight:700">+${a.bonusCompleto}</span>`:'—'}</td>`
+            : '';
+          return `<tr style="cursor:pointer" onclick="abrirPerfilAtleta(${a.id})">
+            <td class="${i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':''}">${i+1}º</td>
+            <td><strong>${a.nome}</strong></td>
+            ${jornadaCells}
+            ${compCell}
+            <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.2rem;color:var(--orange)">${a.ptsTotal}</td>
+          </tr>`;
+        }).join('')}
         </tbody>
       </table></div>
+      ${isCampVizela?'<div style="font-size:0.72rem;color:var(--dim);margin-top:6px;letter-spacing:0.5px">Pontos por posição · Verde = bónus · Comp. = bónus participação completa · t = total tacadas</div>':''}
     </div>`;
   });
   cont.innerHTML = html || '<div style="color:var(--dim);padding:20px">Sem resultados.</div>';
@@ -855,6 +953,7 @@ window.abrirPerfilAtleta = function(atletaId) {
   document.getElementById('modal-meta').textContent = atleta.categoria;
 
   let html = '';
+  const isCampVizela = (p) => p.nome&&p.nome.includes('Vizela')&&p.tipo==='campeonato';
   provas.forEach(prova => {
     for (let j=1;j<=(prova.jornadas||1);j++) {
       const res = prova.resultados?.[j]?.[atletaId];
@@ -865,14 +964,52 @@ window.abrirPerfilAtleta = function(atletaId) {
       const campos = prova.jornadaEspecial?.[j]?.tipo==='peter4voltas'
         ? ['pV1','pV2','pV3','pV4']
         : ['mV1','mV2','pV1','pV2'];
-      const voltasHtml = campos.map(c=>res[c]!=null?`<td style="text-align:center">${res[c]}</td>`:'').join('');
-      html += `<div style="margin-bottom:16px">
-        <div style="font-weight:700;margin-bottom:6px;color:var(--navy)">${prova.nome}${prova.jornadas>1?` — J${j}`:''}</div>
+      const voltasHtml = campos.map(c=>res[c]!=null?`<td style="text-align:center;font-weight:600">${res[c]}</td>`:'<td style="text-align:center;color:var(--dim)">—</td>').join('');
+
+      // Calcular pontos desta jornada
+      let ptsPosicao = (pos>=1&&pos<=PONTUACAO.length) ? PONTUACAO[pos-1] : 0;
+      let bonusLines = [];
+      if (isCampVizela(prova)) {
+        if (res.bonusMini)       bonusLines.push(`Bónus melhor volta Mini: +${prova.bonusMini||0} pt`);
+        if (res.bonusPeter)      bonusLines.push(`Bónus melhor volta Peter: +${prova.bonusPeter||0} pt`);
+        if (res.bonusMiniManha)  bonusLines.push(`Bónus Mini Manhã: +${prova.bonusMini||0} pt`);
+        if (res.bonusMiniTarde)  bonusLines.push(`Bónus Mini Tarde: +${prova.bonusMini||0} pt`);
+        if (res.bonusPeterManha) bonusLines.push(`Bónus Peter Manhã: +${prova.bonusPeter||0} pt`);
+        if (res.bonusPeterTarde) bonusLines.push(`Bónus Peter Tarde: +${prova.bonusPeter||0} pt`);
+      }
+      const ptsBonus = bonusLines.length ? bonusLines.reduce((s,_,i,a)=>{
+        const m = a[i].match(/\+(\d+)/); return s + (m?parseInt(m[1]):0);
+      },0) : 0;
+      const ptsJornada = ptsPosicao + ptsBonus;
+
+      html += `<div style="margin-bottom:20px;background:var(--bg);border-radius:8px;padding:14px;border:1px solid var(--sep)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+          <span style="font-weight:700;color:var(--navy)">${prova.nome}${prova.jornadas>1?` — J${j}`:''}</span>
+          <span style="font-size:0.72rem;color:var(--dim)">${pos<999?pos+'º lugar':'—'} · ${tot} tacadas</span>
+          ${ptsJornada>0?`<span style="margin-left:auto;font-family:Bebas Neue,sans-serif;font-size:1.3rem;color:var(--orange)">${ptsJornada} pts</span>`:''}
+        </div>
         <div class="tabela-wrap"><table>
-          <thead><tr>${campos.map((c,i)=>`<th style="text-align:center">${c}</th>`).join('')}<th style="text-align:right">Total</th><th style="text-align:center">Pos</th></tr></thead>
-          <tbody><tr>${voltasHtml}<td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.2rem;color:var(--orange)">${tot}</td><td style="text-align:center;font-weight:700">${pos<999?pos+'º':'—'}</td></tr></tbody>
+          <thead><tr>${campos.map(c=>`<th style="text-align:center;font-size:0.65rem">${c}</th>`).join('')}<th style="text-align:right;font-size:0.65rem">Total</th><th style="text-align:center;font-size:0.65rem">Pos.</th><th style="text-align:right;font-size:0.65rem">Pts Pos.</th></tr></thead>
+          <tbody><tr>${voltasHtml}
+            <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.2rem;color:var(--orange)">${tot}</td>
+            <td style="text-align:center;font-weight:700">${pos<999?pos+'º':'—'}</td>
+            <td style="text-align:right;font-weight:700;color:var(--navy)">${ptsPosicao}</td>
+          </tr></tbody>
         </table></div>
+        ${bonusLines.length?`<div style="margin-top:8px;padding:8px 10px;background:rgba(26,138,74,0.08);border-radius:6px;border-left:3px solid var(--green)">
+          ${bonusLines.map(b=>`<div style="font-size:0.78rem;color:var(--green);font-weight:600">${b}</div>`).join('')}
+          <div style="font-size:0.78rem;color:var(--navy);font-weight:700;margin-top:4px">Total bónus: +${ptsBonus} pts → Total jornada: ${ptsJornada} pts</div>
+        </div>`:''}
       </div>`;
+    }
+    // Bónus participação completa
+    if (isCampVizela(prova) && prova.bonusCompleto) {
+      const jPart = Object.keys(prova.resultados||{}).filter(j=>prova.resultados[j]?.[atletaId]&&calcTotal(prova,parseInt(j),prova.resultados[j][atletaId])!=null).length;
+      if (jPart===prova.jornadas) {
+        html += `<div style="margin-bottom:20px;padding:10px 14px;background:rgba(26,138,74,0.08);border-radius:8px;border-left:3px solid var(--green)">
+          <span style="font-size:0.82rem;color:var(--green);font-weight:700">🏅 Bónus Participação Completa (todas as ${prova.jornadas} jornadas): +${prova.bonusCompleto} pts</span>
+        </div>`;
+      }
     }
   });
 
@@ -1252,6 +1389,134 @@ window.abrirModalAtleta = function() {
       <button class="btn btn-secondary" onclick="document.getElementById('modal-overlay').classList.remove('on')">Cancelar</button>
     </div>`;
   document.getElementById('modal-overlay').classList.add('on');
+};
+
+// ── GESTÃO DE EMPATES ──
+function empIniciar() {
+  if (!dadosInt||!modoAdmin) return;
+  const sel = document.getElementById('emp-sel-prova');
+  sel.innerHTML = (dadosInt.provas||[])
+    .filter(p => Object.values(p.resultados||{}).some(j=>j&&Object.keys(j).length>0))
+    .map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
+  empAtualizarJornadas();
+}
+
+function empAtualizarJornadas() {
+  if (!dadosInt) return;
+  const provaId = parseInt(document.getElementById('emp-sel-prova').value);
+  const prova = (dadosInt.provas||[]).find(p=>p.id===provaId);
+  if (!prova) return;
+  const selJ = document.getElementById('emp-sel-jornada');
+  selJ.innerHTML = Array.from({length:prova.jornadas||1},(_,i)=>`<option value="${i+1}">Jornada ${i+1}</option>`).join('');
+  empCarregar();
+}
+
+window.empCarregar = function() {
+  if (!dadosInt||!modoAdmin) return;
+  const provaId = parseInt(document.getElementById('emp-sel-prova').value);
+  const jornada = parseInt(document.getElementById('emp-sel-jornada').value);
+  const prova = (dadosInt.provas||[]).find(p=>p.id===provaId);
+  if (!prova) return;
+
+  const atletas = dadosInt.atletas||[];
+  const empates = dadosInt.empates||{};
+  const jRes = prova.resultados?.[jornada]||{};
+  const cont = document.getElementById('emp-conteudo');
+
+  // Encontrar empates por grupo/categoria
+  const grupos = {};
+  atletas.forEach(a => {
+    const grupo = CAT_GRUPO[a.categoria];
+    if (!grupo||!jRes[a.id]) return;
+    const tot = calcTotal(prova,jornada,jRes[a.id]);
+    if (tot==null) return;
+    if (!grupos[grupo]) grupos[grupo] = [];
+    grupos[grupo].push({...a, tot});
+  });
+
+  let html = '';
+  let temEmpates = false;
+
+  Object.entries(grupos).forEach(([grupo, atletasGrupo]) => {
+    // Agrupar por total igual
+    const porTotal = {};
+    atletasGrupo.forEach(a => {
+      if (!porTotal[a.tot]) porTotal[a.tot] = [];
+      porTotal[a.tot].push(a);
+    });
+
+    Object.entries(porTotal).forEach(([tot, empatados]) => {
+      if (empatados.length < 2) return;
+      temEmpates = true;
+
+      // Verificar se já tem desempate definido
+      const pares = [];
+      for (let i=0;i<empatados.length;i++) {
+        for (let j=i+1;j<empatados.length;j++) {
+          const a1 = empatados[i], a2 = empatados[j];
+          const k = `${provaId}_j${jornada}_${Math.min(a1.id,a2.id)}_${Math.max(a1.id,a2.id)}`;
+          const vencedor = empates[k];
+          pares.push({a1, a2, k, vencedor});
+        }
+      }
+
+      html += `<div style="margin-bottom:20px;padding:14px;border:1px solid rgba(212,130,10,0.3);border-radius:8px;background:rgba(212,130,10,0.04)">
+        <div style="font-weight:700;color:var(--navy);margin-bottom:10px;font-size:0.88rem">
+          ⚠️ Empate em ${grupo} — ${tot} tacadas
+          <span style="font-weight:400;color:var(--dim);font-size:0.78rem"> (${empatados.length} atletas)</span>
+        </div>
+        ${pares.map(par => {
+          const resolvido = par.vencedor != null;
+          const venceA1 = par.vencedor == par.a1.id;
+          const venceA2 = par.vencedor == par.a2.id;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--sep);flex-wrap:wrap">
+            <button onclick="empDefinir('${par.k}',${par.a1.id},${par.a2.id})"
+              style="padding:6px 14px;border-radius:6px;border:2px solid ${venceA1?'var(--orange)':'var(--sep)'};
+              background:${venceA1?'rgba(212,130,10,0.1)':'var(--bg)'};cursor:pointer;font-weight:${venceA1?'700':'400'};
+              font-size:0.82rem;transition:all 0.2s">
+              ${venceA1?'✅ ':''}${par.a1.nome}
+            </button>
+            <span style="color:var(--dim);font-size:0.75rem">vs</span>
+            <button onclick="empDefinir('${par.k}',${par.a2.id},${par.a1.id})"
+              style="padding:6px 14px;border-radius:6px;border:2px solid ${venceA2?'var(--orange)':'var(--sep)'};
+              background:${venceA2?'rgba(212,130,10,0.1)':'var(--bg)'};cursor:pointer;font-weight:${venceA2?'700':'400'};
+              font-size:0.82rem;transition:all 0.2s">
+              ${venceA2?'✅ ':''}${par.a2.nome}
+            </button>
+            ${resolvido?'<span style="font-size:0.72rem;color:var(--green)">✔ Resolvido</span>':'<span style="font-size:0.72rem;color:var(--orange)">⚠️ Por resolver</span>'}
+            ${resolvido?`<button onclick="empLimpar('${par.k}')" style="padding:3px 8px;border-radius:4px;border:1px solid var(--sep);background:var(--bg);cursor:pointer;font-size:0.72rem;color:var(--dim)">Limpar</button>`:''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    });
+  });
+
+  if (!temEmpates) {
+    html = '<div style="color:var(--green);font-size:0.85rem;padding:12px">✅ Sem empates nesta jornada.</div>';
+  }
+
+  cont.innerHTML = html;
+};
+
+window.empDefinir = async function(chave, vencedorId, perdedorId) {
+  if (!dadosInt) return;
+  if (!dadosInt.empates) dadosInt.empates = {};
+  dadosInt.empates[chave] = vencedorId;
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), dadosInt);
+    mostrarNotif('✅ Desempate guardado!');
+    empCarregar();
+  } catch(e) { mostrarNotif('Erro ao guardar', true); }
+};
+
+window.empLimpar = async function(chave) {
+  if (!dadosInt) return;
+  if (dadosInt.empates) delete dadosInt.empates[chave];
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), dadosInt);
+    mostrarNotif('Desempate removido');
+    empCarregar();
+  } catch(e) { mostrarNotif('Erro ao guardar', true); }
 };
 
 window.guardarNovoAtleta = async function() {
