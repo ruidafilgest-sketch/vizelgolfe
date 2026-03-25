@@ -532,8 +532,12 @@ const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
 
 const WORKER_URL  = 'https://vzg-nacional.ruigoncalves1968.workers.dev';
-const PASS_ADMIN  = 'Vizela2026***';
-const PASS_ATLETA = 'Vizelgolfe2026*';
+const HASH_ADMIN  = 'a971a94dfa0e68950bfc3490093801fefe6668ea0e1857e5e82cee8cf27ea14f';
+const HASH_ATLETA = '6103654cdbb22c4b6db17caaa3b9c46285702a2be706a98cb809d870defaeb3a';
+async function hashPassword(pass) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pass));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
 const PONTUACAO   = [25,18,15,12,10,8,6,4,2,1];
 const CATEGORIAS  = ['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos','Juniores'];
 const CAT_GRUPO   = {'Homens':'Homens','Juniores':'Homens','Senhoras':'Senhoras','Seniores Masculinos':'Seniores Masculinos','Veteranos Masculinos':'Veteranos Masculinos'};
@@ -548,12 +552,13 @@ let nacCountdown = null;
 let nacSegs    = 0;
 
 // ── LOGIN ──
-window.fazerLogin = function() {
+window.fazerLogin = async function() {
   const pass = document.getElementById('pass-input').value;
-  if (pass === PASS_ADMIN) {
+  const hash = await hashPassword(pass);
+  if (hash === HASH_ADMIN) {
     modoAdmin = true;
     iniciarApp('Admin');
-  } else if (pass === PASS_ATLETA) {
+  } else if (hash === HASH_ATLETA) {
     modoAdmin = false;
     iniciarApp('Atleta');
   } else {
