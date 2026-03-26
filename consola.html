@@ -530,6 +530,7 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db  = getFirestore(app);
+const VZG_KEY = 'VZG-2026-SEC-K9x';
 
 const WORKER_URL  = 'https://vzg-nacional.ruigoncalves1968.workers.dev';
 const HASH_ADMIN  = 'a971a94dfa0e68950bfc3490093801fefe6668ea0e1857e5e82cee8cf27ea14f';
@@ -1119,7 +1120,7 @@ window.guardarResultados = async function(provaId, jornada) {
   prova.resultados[jornada] = jRes;
 
   try {
-    await setDoc(doc(db,'vizelgolfe','dados'), dadosInt);
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey: VZG_KEY});
     mostrarNotif('✅ Resultados guardados!');
   } catch(e) {
     mostrarNotif('❌ Erro ao guardar', true);
@@ -1153,7 +1154,7 @@ window.criarProva = async function() {
   if (!dadosInt.provas) dadosInt.provas=[];
   dadosInt.provas.push({id,nome,tipo,estado:'agendado',data,jornadas:1,pts1:25,bonusMini:1,bonusPeter:1,bonusCompleto:0,resultados});
   dadosInt.proximoProvaId = id+1;
-  await setDoc(doc(db,'vizelgolfe','dados'),dadosInt);
+  await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey: VZG_KEY});
   mostrarNotif('✅ Prova criada!');
   document.getElementById('nova-prova-nome').value='';
 };
@@ -1161,7 +1162,7 @@ window.criarProva = async function() {
 window.alterarEstado = async function(id, val) {
   if (!dadosInt) return;
   const p = (dadosInt.provas||[]).find(p=>p.id==id);
-  if (p) { p.estado=val; await setDoc(doc(db,'vizelgolfe','dados'),dadosInt); mostrarNotif('Estado atualizado'); }
+  if (p) { p.estado=val; await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey: VZG_KEY}); mostrarNotif('Estado atualizado'); }
 };
 
 // ── NACIONAL ──
@@ -1293,7 +1294,7 @@ window.nacAtualizarAgora = async function() {
       url, nome: document.getElementById('nac-nome-input').value.trim()||extrairNome(url),
       atualizadoEm: new Date().toISOString(), categorias: cats
     };
-    await setDoc(doc(db,'vizelgolfe','nacional'),{bangolfe:dadosNac});
+    await setDoc(doc(db,'vizelgolfe','nacional'), {bangolfe:dadosNac, _vzgKey: VZG_KEY});
     const vzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube)).length,0);
     nacLog(`✅ ${totalAtl} atletas · ${vzg} Vizelgolfe · ${Object.keys(cats).length} categorias`,'ok');
     nacSetStatus('✅ Atualizado às ' + new Date().toLocaleTimeString('pt-PT'),'verde');
@@ -1508,7 +1509,7 @@ window.empDefinir = async function(chave, vencedorId, perdedorId) {
   if (!dadosInt.empates) dadosInt.empates = {};
   dadosInt.empates[chave] = vencedorId;
   try {
-    await setDoc(doc(db,'vizelgolfe','dados'), dadosInt);
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey: VZG_KEY});
     mostrarNotif('✅ Desempate guardado!');
     empCarregar();
   } catch(e) { mostrarNotif('Erro ao guardar', true); }
@@ -1518,7 +1519,7 @@ window.empLimpar = async function(chave) {
   if (!dadosInt) return;
   if (dadosInt.empates) delete dadosInt.empates[chave];
   try {
-    await setDoc(doc(db,'vizelgolfe','dados'), dadosInt);
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey: VZG_KEY});
     mostrarNotif('Desempate removido');
     empCarregar();
   } catch(e) { mostrarNotif('Erro ao guardar', true); }
@@ -1533,7 +1534,7 @@ window.guardarNovoAtleta = async function() {
   if (!dadosInt.atletas) dadosInt.atletas=[];
   dadosInt.atletas.push({id,nome,categoria:cat});
   dadosInt.proximoId = id+1;
-  await setDoc(doc(db,'vizelgolfe','dados'),dadosInt);
+  await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey: VZG_KEY});
   document.getElementById('modal-overlay').classList.remove('on');
   mostrarNotif('✅ Atleta adicionado!');
 };
