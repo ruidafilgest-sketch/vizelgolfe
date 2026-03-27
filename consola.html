@@ -612,8 +612,8 @@ const ABANDONO = 126;
 
 function statsGetDados() {
   // Compilar todos os dados internos e nacionais
-  const atletas = dadosGlobais.atletas || [];
-  const provas  = dadosGlobais.provas  || [];
+  const atletas = dadosInt.atletas || [];
+  const provas  = dadosInt.provas  || [];
   return { atletas, provas };
 }
 
@@ -645,12 +645,12 @@ function statsExtrairVoltas(res, vertente) {
 }
 
 function statsNomeAtleta(id) {
-  const a = (dadosGlobais.atletas||[]).find(x => x.id === id);
+  const a = (dadosInt.atletas||[]).find(x => x.id === id);
   return a ? a.nome : 'Atleta #'+id;
 }
 
 function statsCatAtleta(id) {
-  const a = (dadosGlobais.atletas||[]).find(x => x.id === id);
+  const a = (dadosInt.atletas||[]).find(x => x.id === id);
   return a ? a.categoria : '';
 }
 
@@ -664,7 +664,7 @@ window.renderStats = function() {
   // Preencher dropdown de atletas
   const selAtl = document.getElementById('stats-atleta');
   if (selAtl.options.length <= 1) {
-    (dadosGlobais.atletas||[])
+    (dadosInt.atletas||[])
       .sort((a,b) => a.nome.localeCompare(b.nome))
       .forEach(a => {
         const o = document.createElement('option');
@@ -682,8 +682,8 @@ window.renderStats = function() {
 };
 
 function renderStatsAtleta(el, catFilt, atlId) {
-  const provas = dadosGlobais.provas || [];
-  const atletas = (dadosGlobais.atletas || []).filter(a => !catFilt || a.categoria === catFilt);
+  const provas = dadosInt.provas || [];
+  const atletas = (dadosInt.atletas || []).filter(a => !catFilt || a.categoria === catFilt);
   const lista = atlId ? atletas.filter(a => a.id === atlId) : atletas;
 
   let h = '';
@@ -763,7 +763,7 @@ function renderStatsAtleta(el, catFilt, atlId) {
 }
 
 function renderStatsProva(el, catFilt) {
-  const provas = (dadosGlobais.provas||[]).filter(p => p.estado !== 'agendado');
+  const provas = (dadosInt.provas||[]).filter(p => p.estado !== 'agendado');
   if (!provas.length) { el.innerHTML='<div style="color:var(--silver);padding:20px;text-align:center">Sem provas com resultados.</div>'; return; }
 
   let h = '';
@@ -886,8 +886,8 @@ function renderStatsHistorico(el, catFilt, atlId) {
 }
 
 function renderStatsRanking(el, catFilt) {
-  const provas  = (dadosGlobais.provas||[]).filter(p => p.estado !== 'agendado');
-  const atletas = (dadosGlobais.atletas||[]).filter(a => !catFilt || a.categoria === catFilt);
+  const provas  = (dadosInt.provas||[]).filter(p => p.estado !== 'agendado');
+  const atletas = (dadosInt.atletas||[]).filter(a => !catFilt || a.categoria === catFilt);
 
   // Calcular médias globais por atleta
   const resumo = atletas.map(atl => {
