@@ -682,86 +682,127 @@ window.renderStats = function() {
 };
 
 function renderStatsAtleta(el, catFilt, atlId) {
-  const provas = dadosInt.provas || [];
+  const provas  = dadosInt.provas  || [];
   const atletas = (dadosInt.atletas || []).filter(a => !catFilt || a.categoria === catFilt);
-  const lista = atlId ? atletas.filter(a => a.id === atlId) : atletas;
+  const lista   = atlId ? atletas.filter(a => a.id === atlId) : atletas;
 
-  let h = '';
-  lista.forEach(atl => {
-    const linhas = [];
-    provas.forEach(prova => {
-      if (prova.estado === 'agendado') return;
-      const resPorJornada = prova.resultados || {};
-      Object.entries(resPorJornada).forEach(([jNum, resJorn]) => {
-        const res = resJorn[atl.id];
-        if (!res) return;
-        const voltasMini  = statsExtrairVoltas(res, 'mini');
-        const voltasPeter = statsExtrairVoltas(res, 'peter');
-        const todasVoltas = statsExtrairVoltas(res, 'ambas');
-        const abandono    = statsTemAbandono(todasVoltas);
-        const totalMini   = voltasMini.length  ? statsTotalTacadas(voltasMini)  : null;
-        const totalPeter  = voltasPeter.length ? statsTotalTacadas(voltasPeter) : null;
-        const mediaMini   = voltasMini.length  ? statsMediaTacadas(voltasMini)  : null;
-        const mediaPeter  = voltasPeter.length ? statsMediaTacadas(voltasPeter) : null;
-        linhas.push({ prova: prova.nome, jornada: jNum, totalMini, totalPeter, mediaMini, mediaPeter, abandono,
-          bonusMini: res.bonusMini||false, bonusPeter: res.bonusPeter||false,
-          bonusPeterM: res.bonusPeterManha||false, bonusPeterT: res.bonusPeterTarde||false });
+  getDoc(doc(db,'vizelgolfe','nacional')).then(snap => {
+    const histNac = (snap.exists() && snap.data().historico) ? snap.data().historico : {};
+    let h = '';
+
+    lista.forEach(atl => {
+      // ── RESULTADOS INTERNOS ──
+      const linhas = [];
+      provas.forEach(prova => {
+        if (prova.estado === 'agendado') return;
+        Object.entries(prova.resultados||{}).forEach(([jNum, resJorn]) => {
+          const res = resJorn[atl.id];
+          if (!res) return;
+          const voltasMini  = statsExtrairVoltas(res,'mini');
+          const voltasPeter = statsExtrairVoltas(res,'peter');
+          const totalMini   = voltasMini.length  ? statsTotalTacadas(voltasMini)  : null;
+          const totalPeter  = voltasPeter.length ? statsTotalTacadas(voltasPeter) : null;
+          const mediaMini   = voltasMini.length  ? statsMediaTacadas(voltasMini)  : null;
+          const mediaPeter  = voltasPeter.length ? statsMediaTacadas(voltasPeter) : null;
+          const abandono    = statsTemAbandono([...voltasMini,...voltasPeter]);
+          linhas.push({ prova: prova.nome, jornada: jNum, totalMini, totalPeter,
+            mediaMini, mediaPeter, abandono,
+            bonusMini: res.bonusMini||false, bonusPeter: res.bonusPeter||false,
+            bonusPeterM: res.bonusPeterManha||false, bonusPeterT: res.bonusPeterTarde||false });
+        });
       });
+
+      // ── HISTÓRICO NACIONAL ──
+      const linhasNac = [];
+      Object.entries(histNac).forEach(([chave, prova]) => {
+        const cats = prova.categorias || {};
+        Object.entries(cats).forEach(([cat, atletasNac]) => {
+          atletasNac.forEach(a => {
+            const primNome = atl.nome.toLowerCase().split(' ')[0];
+            if (a.nome && a.nome.toLowerCase().includes(primNome)) {
+              linhasNac.push({
+                prova: prova.nome || chave,
+                ano: prova.ano || chave.split('_')[1] || '',
+                tipo: prova.tipo || chave.split('_')[0],
+                pos: a.pos || a.posicao || '—',
+                clube: a.clube || '—', cat
+              });
+            }
+          });
+        });
+      });
+
+      if (!linhas.length && !linhasNac.length) return;
+
+      const totalParticipacoes = linhas.length;
+      const totalAbandonos = linhas.filter(l => l.abandono).length;
+      const mediaGeral = (() => {
+        const vals = linhas.flatMap(l => [l.mediaMini, l.mediaPeter].filter(v => v !== null));
+        return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+      })();
+
+      h += '<div class="card" style="margin-bottom:16px">';
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">';
+      h += '<div><span style="font-family:\'Bebas Neue\',sans-serif;font-size:1.1rem;letter-spacing:1px;color:var(--org2)">' + atl.nome + '</span>';
+      h += '<span style="font-size:0.75rem;color:var(--silver);margin-left:8px">' + atl.categoria + '</span></div>';
+      h += '<div style="display:flex;gap:12px;font-size:0.78rem;color:var(--silver)">';
+      h += '<span>🏅 ' + totalParticipacoes + ' provas</span>';
+      if (totalAbandonos) h += '<span style="color:#e87">⚠️ ' + totalAbandonos + ' abandono(s)</span>';
+      h += '<span>📊 Média: <strong style="color:var(--org2)">' + mediaGeral + '</strong></span>';
+      h += '</div></div>';
+
+      if (linhas.length) {
+        h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">';
+        h += '<thead><tr style="border-bottom:1px solid var(--border)">';
+        ['Prova','Jorn.','Mini','Méd.M','Peter','Méd.P','Bónus','Obs'].forEach(th => {
+          h += '<th style="padding:5px 8px;color:var(--silver);text-align:' + (th==='Prova'?'left':'center') + '">' + th + '</th>';
+        });
+        h += '</tr></thead><tbody>';
+        linhas.forEach(l => {
+          h += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">';
+          h += '<td style="padding:4px 8px;color:var(--branco)">' + l.prova + '</td>';
+          h += '<td style="padding:4px 8px;text-align:center;color:var(--silver)">J' + l.jornada + '</td>';
+          h += '<td style="padding:4px 8px;text-align:center;color:var(--org2)">' + (l.totalMini||'—') + '</td>';
+          h += '<td style="padding:4px 8px;text-align:center;color:var(--silver)">' + (l.mediaMini?l.mediaMini.toFixed(1):'—') + '</td>';
+          h += '<td style="padding:4px 8px;text-align:center;color:var(--org2)">' + (l.totalPeter||'—') + '</td>';
+          h += '<td style="padding:4px 8px;text-align:center;color:var(--silver)">' + (l.mediaPeter?l.mediaPeter.toFixed(1):'—') + '</td>';
+          const bonus = [l.bonusMini?'🥇M':'', l.bonusPeter?'🥇P':'', l.bonusPeterM?'🌅':'', l.bonusPeterT?'🌆':''].filter(Boolean).join(' ');
+          h += '<td style="padding:4px 8px;text-align:center">' + (bonus||'—') + '</td>';
+          h += '<td style="padding:4px 8px;text-align:center">' + (l.abandono?'<span style="color:#e87;font-size:0.73rem">Abandono</span>':'') + '</td>';
+          h += '</tr>';
+        });
+        h += '</tbody></table></div>';
+      }
+
+      if (linhasNac.length) {
+        h += '<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">';
+        h += '<div style="font-size:0.78rem;color:var(--org2);font-weight:700;margin-bottom:8px">🇵🇹 Histórico Nacional</div>';
+        h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.77rem">';
+        h += '<thead><tr style="border-bottom:1px solid var(--border)">';
+        ['Prova','Ano','Tipo','Categoria','Posição'].forEach(th => {
+          h += '<th style="padding:5px 8px;color:var(--silver);text-align:' + (th==='Prova'||th==='Categoria'?'left':'center') + '">' + th + '</th>';
+        });
+        h += '</tr></thead><tbody>';
+        linhasNac.sort((a,b) => b.ano - a.ano).forEach(l => {
+          h += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">';
+          h += '<td style="padding:4px 8px;color:var(--branco)">' + l.prova + '</td>';
+          h += '<td style="padding:4px 8px;text-align:center;color:var(--silver)">' + l.ano + '</td>';
+          h += '<td style="padding:4px 8px;text-align:center;color:var(--silver)">' + l.tipo + '</td>';
+          h += '<td style="padding:4px 8px;color:var(--silver);font-size:0.72rem">' + l.cat + '</td>';
+          h += '<td style="padding:4px 8px;text-align:center;color:var(--org2);font-weight:700">' + l.pos + 'º</td>';
+          h += '</tr>';
+        });
+        h += '</tbody></table></div></div>';
+      }
+
+      h += '</div>';
     });
 
-    if (!linhas.length) return;
-
-    const totalParticipacoes = linhas.length;
-    const totalAbandonos     = linhas.filter(l => l.abandono).length;
-    const mediaGeral = (() => {
-      const vals = linhas.flatMap(l => [l.mediaMini, l.mediaPeter].filter(v => v !== null));
-      return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
-    })();
-
-    h += `<div class="card" style="margin-bottom:16px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-        <div>
-          <span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;color:var(--org2)">${atl.nome}</span>
-          <span style="font-size:0.75rem;color:var(--silver);margin-left:8px">${atl.categoria}</span>
-        </div>
-        <div style="display:flex;gap:12px;font-size:0.78rem;color:var(--silver)">
-          <span>🏅 ${totalParticipacoes} provas</span>
-          ${totalAbandonos ? `<span style="color:#e87">⚠️ ${totalAbandonos} abandono(s)</span>` : ''}
-          <span>📊 Média geral: <strong style="color:var(--org2)">${mediaGeral}</strong></span>
-        </div>
-      </div>
-      <div style="overflow-x:auto">
-      <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
-        <thead><tr style="border-bottom:1px solid var(--border)">
-          <th style="text-align:left;padding:6px 8px;color:var(--silver)">Prova</th>
-          <th style="padding:6px 8px;color:var(--silver)">Jorn.</th>
-          <th style="padding:6px 8px;color:var(--silver)">Mini</th>
-          <th style="padding:6px 8px;color:var(--silver)">Média M</th>
-          <th style="padding:6px 8px;color:var(--silver)">Peter</th>
-          <th style="padding:6px 8px;color:var(--silver)">Média P</th>
-          <th style="padding:6px 8px;color:var(--silver)">Bónus</th>
-          <th style="padding:6px 8px;color:var(--silver)">Obs</th>
-        </tr></thead>
-        <tbody>
-        ${linhas.map(l => `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
-          <td style="padding:5px 8px;color:var(--branco)">${l.prova}</td>
-          <td style="padding:5px 8px;text-align:center;color:var(--silver)">J${l.jornada}</td>
-          <td style="padding:5px 8px;text-align:center;color:${l.totalMini?'var(--branco)':'var(--border)'}">${l.totalMini||'—'}</td>
-          <td style="padding:5px 8px;text-align:center;color:var(--org2)">${l.mediaMini?l.mediaMini.toFixed(1):'—'}</td>
-          <td style="padding:5px 8px;text-align:center;color:${l.totalPeter?'var(--branco)':'var(--border)'}">${l.totalPeter||'—'}</td>
-          <td style="padding:5px 8px;text-align:center;color:var(--org2)">${l.mediaPeter?l.mediaPeter.toFixed(1):'—'}</td>
-          <td style="padding:5px 8px;text-align:center">${[l.bonusMini?'🥇Mini':'',l.bonusPeter?'🥇Peter':'',l.bonusPeterM?'🌅M':'',l.bonusPeterT?'🌆T':''].filter(Boolean).join(' ')||'—'}</td>
-          <td style="padding:5px 8px;text-align:center">${l.abandono?'<span style="color:#e87;font-size:0.75rem">Abandono</span>':''}</td>
-        </tr>`).join('')}
-        </tbody>
-      </table>
-      </div>
-    </div>`;
+    el.innerHTML = h || '<div style="color:var(--silver);padding:20px;text-align:center">Sem dados para os filtros seleccionados.</div>';
+  }).catch(e => {
+    el.innerHTML = '<div style="color:#e87;padding:20px;text-align:center">Erro: ' + e.message + '</div>';
   });
-
-  el.innerHTML = h || '<div style="color:var(--silver);padding:20px;text-align:center">Sem dados para os filtros seleccionados.</div>';
 }
-
 function renderStatsProva(el, catFilt) {
   const provas = (dadosInt.provas||[]).filter(p => p.estado !== 'agendado');
   if (!provas.length) { el.innerHTML='<div style="color:var(--silver);padding:20px;text-align:center">Sem provas com resultados.</div>'; return; }
