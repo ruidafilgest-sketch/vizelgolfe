@@ -1223,10 +1223,16 @@ window.nacAtualizarAgora = async function() {
     };
     // Guardar por ano/tipo — acumula histórico em vez de substituir
     const nac_chave = nac_tipo + '_' + nac_ano;
-    await setDoc(doc(db,'vizelgolfe','nacional'), {
-      bangolfe: dadosNac,                          // compatibilidade com TV/display actuais
-      historico: { [nac_chave]: dadosNac }         // novo histórico acumulado
-    }, {merge: true});
+    const anoAtual = new Date().getFullYear().toString();
+    const dadosParaGuardar = {
+      _vzgKey: 'VZG-2026-SEC-K9x',           // chave de segurança obrigatória
+      historico: { [nac_chave]: dadosNac }    // sempre acumula
+    };
+    // Só actualiza bangolfe (TV/display) se for prova do ano actual
+    if(nac_ano === anoAtual){
+      dadosParaGuardar.bangolfe = dadosNac;
+    }
+    await setDoc(doc(db,'vizelgolfe','nacional'), dadosParaGuardar, {merge: true});
     const vzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube)).length,0);
     nacLog(`✅ ${totalAtl} atletas · ${vzg} Vizelgolfe · ${Object.keys(cats).length} categorias`,'ok');
     nacSetStatus('✅ Atualizado às ' + new Date().toLocaleTimeString('pt-PT'),'verde');
