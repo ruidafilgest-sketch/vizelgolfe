@@ -268,6 +268,9 @@ tr:hover td{background:rgba(0,0,0,0.02);}
         <span class="ico">⚙️</span><span class="label">Gerir Provas</span>
       </div>
       <div class="nav-section">Outros</div>
+      <div class="nav-item" onclick="irPara('stats')">
+        <span class="ico">📈</span><span class="label">Estatísticas</span>
+      </div>
       <div class="nav-item" onclick="irPara('regras')">
         <span class="ico">📖</span><span class="label">Regras</span>
       </div>
@@ -457,7 +460,33 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       </div>
 
       <!-- REGRAS -->
-      <div class="secao" id="sec-regras">
+      <div class="secao" id="sec-stats">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+    <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:2px;color:var(--org2);margin:0">📈 Estatísticas</h2>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="stats-modo" onchange="renderStats()" style="background:var(--card);border:1px solid var(--border);color:var(--silver);padding:6px 10px;border-radius:6px;font-size:0.82rem">
+        <option value="atleta">Por Atleta</option>
+        <option value="prova">Por Prova</option>
+        <option value="historico">Histórico Nacional</option>
+        <option value="ranking">Ranking Geral</option>
+      </select>
+      <select id="stats-cat" onchange="renderStats()" style="background:var(--card);border:1px solid var(--border);color:var(--silver);padding:6px 10px;border-radius:6px;font-size:0.82rem">
+        <option value="">Todas as categorias</option>
+        <option value="Homens">Homens</option>
+        <option value="Senhoras">Senhoras</option>
+        <option value="Seniores Masculinos">Seniores Masc.</option>
+        <option value="Veteranos Masculinos">Veteranos Masc.</option>
+        <option value="Juniores">Juniores</option>
+      </select>
+      <select id="stats-atleta" onchange="renderStats()" style="background:var(--card);border:1px solid var(--border);color:var(--silver);padding:6px 10px;border-radius:6px;font-size:0.82rem;max-width:180px">
+        <option value="">Todos os atletas</option>
+      </select>
+    </div>
+  </div>
+  <div id="stats-body"></div>
+</div>
+
+<div class="secao" id="sec-regras">
         <div class="card-titulo" style="margin-bottom:20px">📖 Regulamento Técnico de Minigolfe</div>
         <div class="card" style="margin-bottom:14px">
           <div class="card-titulo">1. Equipamento Técnico e do Atleta</div>
@@ -575,6 +604,347 @@ window.fazerLogout = function() {
   location.reload();
 };
 
+
+// ═══════════════════════════════════════════════════════
+// ESTATÍSTICAS
+// ═══════════════════════════════════════════════════════
+const ABANDONO = 126;
+
+function statsGetDados() {
+  // Compilar todos os dados internos e nacionais
+  const atletas = dadosGlobais.atletas || [];
+  const provas  = dadosGlobais.provas  || [];
+  return { atletas, provas };
+}
+
+function statsMediaTacadas(voltas) {
+  // Excluir 126 (abandono) das médias
+  const validas = voltas.filter(v => v && v !== ABANDONO);
+  if (!validas.length) return null;
+  return validas.reduce((a,b) => a+b, 0) / validas.length;
+}
+
+function statsTotalTacadas(voltas) {
+  return voltas.filter(v => v && v !== ABANDONO).reduce((a,b) => a+b, 0);
+}
+
+function statsTemAbandono(voltas) {
+  return voltas.some(v => v === ABANDONO);
+}
+
+function statsExtrairVoltas(res, vertente) {
+  // res = resultado de um atleta numa jornada
+  const voltas = [];
+  if (vertente === 'mini' || vertente === 'ambas') {
+    ['mV1','mV2','mV3','mV4'].forEach(k => { if(res[k] !== undefined) voltas.push(res[k]); });
+  }
+  if (vertente === 'peter' || vertente === 'ambas') {
+    ['pV1','pV2','pV3','pV4'].forEach(k => { if(res[k] !== undefined) voltas.push(res[k]); });
+  }
+  return voltas;
+}
+
+function statsNomeAtleta(id) {
+  const a = (dadosGlobais.atletas||[]).find(x => x.id === id);
+  return a ? a.nome : 'Atleta #'+id;
+}
+
+function statsCatAtleta(id) {
+  const a = (dadosGlobais.atletas||[]).find(x => x.id === id);
+  return a ? a.categoria : '';
+}
+
+window.renderStats = function() {
+  const el = document.getElementById('stats-body');
+  if (!el) return;
+  const modo    = document.getElementById('stats-modo').value;
+  const catFilt = document.getElementById('stats-cat').value;
+  const atlFilt = document.getElementById('stats-atleta').value;
+
+  // Preencher dropdown de atletas
+  const selAtl = document.getElementById('stats-atleta');
+  if (selAtl.options.length <= 1) {
+    (dadosGlobais.atletas||[])
+      .sort((a,b) => a.nome.localeCompare(b.nome))
+      .forEach(a => {
+        const o = document.createElement('option');
+        o.value = a.id; o.textContent = a.nome;
+        selAtl.appendChild(o);
+      });
+  }
+
+  el.innerHTML = '<div style="color:var(--silver);padding:20px;text-align:center">A carregar...</div>';
+
+  if (modo === 'atleta') renderStatsAtleta(el, catFilt, atlFilt ? parseInt(atlFilt) : null);
+  else if (modo === 'prova') renderStatsProva(el, catFilt);
+  else if (modo === 'historico') renderStatsHistorico(el, catFilt, atlFilt ? parseInt(atlFilt) : null);
+  else if (modo === 'ranking') renderStatsRanking(el, catFilt);
+};
+
+function renderStatsAtleta(el, catFilt, atlId) {
+  const provas = dadosGlobais.provas || [];
+  const atletas = (dadosGlobais.atletas || []).filter(a => !catFilt || a.categoria === catFilt);
+  const lista = atlId ? atletas.filter(a => a.id === atlId) : atletas;
+
+  let h = '';
+  lista.forEach(atl => {
+    const linhas = [];
+    provas.forEach(prova => {
+      if (prova.estado === 'agendado') return;
+      const resPorJornada = prova.resultados || {};
+      Object.entries(resPorJornada).forEach(([jNum, resJorn]) => {
+        const res = resJorn[atl.id];
+        if (!res) return;
+        const voltasMini  = statsExtrairVoltas(res, 'mini');
+        const voltasPeter = statsExtrairVoltas(res, 'peter');
+        const todasVoltas = statsExtrairVoltas(res, 'ambas');
+        const abandono    = statsTemAbandono(todasVoltas);
+        const totalMini   = voltasMini.length  ? statsTotalTacadas(voltasMini)  : null;
+        const totalPeter  = voltasPeter.length ? statsTotalTacadas(voltasPeter) : null;
+        const mediaMini   = voltasMini.length  ? statsMediaTacadas(voltasMini)  : null;
+        const mediaPeter  = voltasPeter.length ? statsMediaTacadas(voltasPeter) : null;
+        linhas.push({ prova: prova.nome, jornada: jNum, totalMini, totalPeter, mediaMini, mediaPeter, abandono,
+          bonusMini: res.bonusMini||false, bonusPeter: res.bonusPeter||false,
+          bonusPeterM: res.bonusPeterManha||false, bonusPeterT: res.bonusPeterTarde||false });
+      });
+    });
+
+    if (!linhas.length) return;
+
+    const totalParticipacoes = linhas.length;
+    const totalAbandonos     = linhas.filter(l => l.abandono).length;
+    const mediaGeral = (() => {
+      const vals = linhas.flatMap(l => [l.mediaMini, l.mediaPeter].filter(v => v !== null));
+      return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
+    })();
+
+    h += `<div class="card" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;color:var(--org2)">${atl.nome}</span>
+          <span style="font-size:0.75rem;color:var(--silver);margin-left:8px">${atl.categoria}</span>
+        </div>
+        <div style="display:flex;gap:12px;font-size:0.78rem;color:var(--silver)">
+          <span>🏅 ${totalParticipacoes} provas</span>
+          ${totalAbandonos ? `<span style="color:#e87">⚠️ ${totalAbandonos} abandono(s)</span>` : ''}
+          <span>📊 Média geral: <strong style="color:var(--org2)">${mediaGeral}</strong></span>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="text-align:left;padding:6px 8px;color:var(--silver)">Prova</th>
+          <th style="padding:6px 8px;color:var(--silver)">Jorn.</th>
+          <th style="padding:6px 8px;color:var(--silver)">Mini</th>
+          <th style="padding:6px 8px;color:var(--silver)">Média M</th>
+          <th style="padding:6px 8px;color:var(--silver)">Peter</th>
+          <th style="padding:6px 8px;color:var(--silver)">Média P</th>
+          <th style="padding:6px 8px;color:var(--silver)">Bónus</th>
+          <th style="padding:6px 8px;color:var(--silver)">Obs</th>
+        </tr></thead>
+        <tbody>
+        ${linhas.map(l => `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+          <td style="padding:5px 8px;color:var(--branco)">${l.prova}</td>
+          <td style="padding:5px 8px;text-align:center;color:var(--silver)">J${l.jornada}</td>
+          <td style="padding:5px 8px;text-align:center;color:${l.totalMini?'var(--branco)':'var(--border)'}">${l.totalMini||'—'}</td>
+          <td style="padding:5px 8px;text-align:center;color:var(--org2)">${l.mediaMini?l.mediaMini.toFixed(1):'—'}</td>
+          <td style="padding:5px 8px;text-align:center;color:${l.totalPeter?'var(--branco)':'var(--border)'}">${l.totalPeter||'—'}</td>
+          <td style="padding:5px 8px;text-align:center;color:var(--org2)">${l.mediaPeter?l.mediaPeter.toFixed(1):'—'}</td>
+          <td style="padding:5px 8px;text-align:center">${[l.bonusMini?'🥇Mini':'',l.bonusPeter?'🥇Peter':'',l.bonusPeterM?'🌅M':'',l.bonusPeterT?'🌆T':''].filter(Boolean).join(' ')||'—'}</td>
+          <td style="padding:5px 8px;text-align:center">${l.abandono?'<span style="color:#e87;font-size:0.75rem">Abandono</span>':''}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>`;
+  });
+
+  el.innerHTML = h || '<div style="color:var(--silver);padding:20px;text-align:center">Sem dados para os filtros seleccionados.</div>';
+}
+
+function renderStatsProva(el, catFilt) {
+  const provas = (dadosGlobais.provas||[]).filter(p => p.estado !== 'agendado');
+  if (!provas.length) { el.innerHTML='<div style="color:var(--silver);padding:20px;text-align:center">Sem provas com resultados.</div>'; return; }
+
+  let h = '';
+  provas.forEach(prova => {
+    const resPorJornada = prova.resultados || {};
+    Object.entries(resPorJornada).forEach(([jNum, resJorn]) => {
+      if (!Object.keys(resJorn||{}).length) return;
+      // Compilar resultados desta jornada
+      const linhas = [];
+      Object.entries(resJorn).forEach(([atlId, res]) => {
+        const id = parseInt(atlId);
+        const cat = statsCatAtleta(id);
+        if (catFilt && cat !== catFilt) return;
+        const voltasMini  = statsExtrairVoltas(res,'mini');
+        const voltasPeter = statsExtrairVoltas(res,'peter');
+        const totalMini   = voltasMini.length  ? statsTotalTacadas(voltasMini)  : null;
+        const totalPeter  = voltasPeter.length ? statsTotalTacadas(voltasPeter) : null;
+        const abandono    = statsTemAbandono([...voltasMini,...voltasPeter]);
+        linhas.push({ id, nome: statsNomeAtleta(id), cat, totalMini, totalPeter, abandono,
+          total: (totalMini||0)+(totalPeter||0) });
+      });
+      if (!linhas.length) return;
+      linhas.sort((a,b) => (a.abandono?1:0)-(b.abandono?1:0) || a.total-b.total);
+
+      h += `<div class="card" style="margin-bottom:16px">
+        <div class="card-titulo">${prova.nome} — Jornada ${jNum}</div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+          <thead><tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:6px 8px;color:var(--silver)">#</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--silver)">Atleta</th>
+            <th style="padding:6px 8px;color:var(--silver)">Categoria</th>
+            <th style="padding:6px 8px;color:var(--silver)">Mini</th>
+            <th style="padding:6px 8px;color:var(--silver)">Peter</th>
+            <th style="padding:6px 8px;color:var(--silver)">Total</th>
+            <th style="padding:6px 8px;color:var(--silver)">Obs</th>
+          </tr></thead>
+          <tbody>
+          ${linhas.map((l,i) => `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+            <td style="padding:5px 8px;text-align:center;color:var(--silver)">${i+1}º</td>
+            <td style="padding:5px 8px;color:var(--branco)">${l.nome}</td>
+            <td style="padding:5px 8px;color:var(--silver);font-size:0.72rem">${l.cat}</td>
+            <td style="padding:5px 8px;text-align:center;color:var(--org2)">${l.totalMini||'—'}</td>
+            <td style="padding:5px 8px;text-align:center;color:var(--org2)">${l.totalPeter||'—'}</td>
+            <td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--branco)">${l.total||'—'}</td>
+            <td style="padding:5px 8px;text-align:center">${l.abandono?'<span style="color:#e87;font-size:0.75rem">Abandono</span>':''}</td>
+          </tr>`).join('')}
+          </tbody>
+        </table></div>
+      </div>`;
+    });
+  });
+  el.innerHTML = h || '<div style="color:var(--silver);padding:20px;text-align:center">Sem dados.</div>';
+}
+
+function renderStatsHistorico(el, catFilt, atlId) {
+  // Ler histórico nacional do Firebase
+  getDoc(doc(db,'vizelgolfe','nacional')).then(snap => {
+    if (!snap.exists() || !snap.data().historico) {
+      el.innerHTML='<div style="color:var(--silver);padding:20px;text-align:center">Sem histórico nacional carregado.</div>';
+      return;
+    }
+    const hist = snap.data().historico;
+    const chaves = Object.keys(hist).sort();
+    let h = `<div style="margin-bottom:16px;font-size:0.82rem;color:var(--silver)">
+      ${chaves.length} provas nacionais no histórico
+    </div>`;
+
+    chaves.forEach(chave => {
+      const prova = hist[chave];
+      const cats  = prova.categorias || {};
+      const vzgAtletas = [];
+
+      Object.entries(cats).forEach(([cat, atletas]) => {
+        if (catFilt && cat !== catFilt) return;
+        atletas.forEach(atl => {
+          if (!atl.clube) return;
+          const isVzg = atl.clube.toLowerCase().includes('vizela') ||
+                        atl.clube.toLowerCase().includes('vizelgolfe');
+          if (!isVzg && !atlId) return;
+          // Se filtro por atleta, procurar por nome
+          if (atlId) {
+            const nomeAtl = statsNomeAtleta(atlId).toLowerCase();
+            if (!atl.nome.toLowerCase().includes(nomeAtl.split(' ')[0].toLowerCase())) return;
+          }
+          vzgAtletas.push({ ...atl, cat, chave,
+            provaNome: prova.nome || chave,
+            ano: prova.ano || chave.split('_')[1] || '' });
+        });
+      });
+
+      if (!vzgAtletas.length && !atlId) return;
+      if (atlId && !vzgAtletas.length) return;
+
+      h += `<div class="card" style="margin-bottom:16px">
+        <div class="card-titulo">${prova.nome || chave} <span style="font-size:0.75rem;color:var(--silver)">(${prova.ano||''})</span></div>
+        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+          <thead><tr style="border-bottom:1px solid var(--border)">
+            <th style="padding:6px 8px;color:var(--silver)">#</th>
+            <th style="text-align:left;padding:6px 8px;color:var(--silver)">Atleta</th>
+            <th style="padding:6px 8px;color:var(--silver)">Clube</th>
+            <th style="padding:6px 8px;color:var(--silver)">Categoria</th>
+            <th style="padding:6px 8px;color:var(--silver)">Posição</th>
+          </tr></thead>
+          <tbody>
+          ${vzgAtletas.map((a,i) => `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+            <td style="padding:5px 8px;text-align:center;color:var(--silver)">${i+1}</td>
+            <td style="padding:5px 8px;color:${a.clube&&a.clube.toLowerCase().includes('vizela')?'var(--org2)':'var(--branco)'};font-weight:${a.clube&&a.clube.toLowerCase().includes('vizela')?700:400}">${a.nome}</td>
+            <td style="padding:5px 8px;color:var(--silver);font-size:0.72rem">${a.clube||'—'}</td>
+            <td style="padding:5px 8px;color:var(--silver);font-size:0.72rem">${a.cat}</td>
+            <td style="padding:5px 8px;text-align:center;color:var(--org2);font-weight:700">${a.pos||a.posicao||'—'}º</td>
+          </tr>`).join('')}
+          </tbody>
+        </table></div>
+      </div>`;
+    });
+    el.innerHTML = h;
+  }).catch(e => {
+    el.innerHTML=`<div style="color:#e87;padding:20px">Erro ao carregar histórico: ${e.message}</div>`;
+  });
+}
+
+function renderStatsRanking(el, catFilt) {
+  const provas  = (dadosGlobais.provas||[]).filter(p => p.estado !== 'agendado');
+  const atletas = (dadosGlobais.atletas||[]).filter(a => !catFilt || a.categoria === catFilt);
+
+  // Calcular médias globais por atleta
+  const resumo = atletas.map(atl => {
+    const todasVoltas = [];
+    let participacoes = 0, abandonos = 0, bonusMini = 0, bonusPeter = 0;
+    provas.forEach(prova => {
+      Object.values(prova.resultados||{}).forEach(resJorn => {
+        const res = resJorn[atl.id];
+        if (!res) return;
+        participacoes++;
+        const voltas = statsExtrairVoltas(res,'ambas');
+        if (statsTemAbandono(voltas)) abandonos++;
+        else todasVoltas.push(...voltas.filter(v=>v&&v!==ABANDONO));
+        if (res.bonusMini) bonusMini++;
+        if (res.bonusPeter || res.bonusPeterManha || res.bonusPeterTarde) bonusPeter++;
+      });
+    });
+    const media = todasVoltas.length ? (todasVoltas.reduce((a,b)=>a+b,0)/todasVoltas.length) : null;
+    return { ...atl, participacoes, abandonos, media, bonusMini, bonusPeter };
+  }).filter(a => a.participacoes > 0);
+
+  resumo.sort((a,b) => (a.media||999)-(b.media||999));
+
+  // Agrupar por categoria
+  const cats = [...new Set(resumo.map(a => a.categoria))];
+  let h = '';
+  cats.forEach(cat => {
+    const grupo = resumo.filter(a => a.categoria === cat);
+    h += `<div class="card" style="margin-bottom:16px">
+      <div class="card-titulo">${cat}</div>
+      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:6px 8px;color:var(--silver)">#</th>
+          <th style="text-align:left;padding:6px 8px;color:var(--silver)">Atleta</th>
+          <th style="padding:6px 8px;color:var(--silver)">Provas</th>
+          <th style="padding:6px 8px;color:var(--silver)">Abandonos</th>
+          <th style="padding:6px 8px;color:var(--silver)">Média tacadas</th>
+          <th style="padding:6px 8px;color:var(--silver)">🥇 Mini</th>
+          <th style="padding:6px 8px;color:var(--silver)">🥇 Peter</th>
+        </tr></thead>
+        <tbody>
+        ${grupo.map((a,i) => `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
+          <td style="padding:5px 8px;text-align:center;color:${i<3?'var(--orange)':'var(--silver)'};font-weight:${i<3?700:400}">${i+1}º</td>
+          <td style="padding:5px 8px;color:var(--branco)">${a.nome}</td>
+          <td style="padding:5px 8px;text-align:center;color:var(--silver)">${a.participacoes}</td>
+          <td style="padding:5px 8px;text-align:center;color:${a.abandonos?'#e87':'var(--silver)'}">${a.abandonos||'—'}</td>
+          <td style="padding:5px 8px;text-align:center;color:var(--org2);font-weight:700">${a.media?a.media.toFixed(2):'—'}</td>
+          <td style="padding:5px 8px;text-align:center;color:var(--org2)">${a.bonusMini||'—'}</td>
+          <td style="padding:5px 8px;text-align:center;color:var(--org2)">${a.bonusPeter||'—'}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+  });
+  el.innerHTML = h || '<div style="color:var(--silver);padding:20px;text-align:center">Sem dados suficientes.</div>';
+}
+
 window.alterarSenhaAtleta = async function() {
   const nova = document.getElementById('nova-senha-atleta').value.trim();
   const conf = document.getElementById('nova-senha-atleta-conf').value.trim();
@@ -660,6 +1030,7 @@ window.irPara = function(sec) {
   if (sec === 'inserir') renderInserir();
   if (sec === 'gerir') renderGerir();
   if (sec === 'nacional') renderNacional();
+  if (sec === 'stats') renderStats();
 };
 
 // ── RENDER TUDO ──
