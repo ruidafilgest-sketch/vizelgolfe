@@ -407,6 +407,27 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       <!-- GERIR (admin) -->
       <div class="secao" id="sec-gerir">
         <div class="card">
+          <div class="card-titulo">🔐 Gerir Senha dos Atletas</div>
+          <div style="font-size:0.85rem;color:var(--silver);margin-bottom:12px">
+            Senha actual dos atletas: <strong id="senha-atleta-atual" style="color:var(--orange)">Vizelgolfe2026*</strong>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nova senha dos atletas</label>
+              <input type="text" id="nova-senha-atleta" placeholder="Ex: Vizelgolfe2027*">
+            </div>
+            <div class="form-group">
+              <label>Confirmar nova senha</label>
+              <input type="text" id="nova-senha-atleta-conf" placeholder="Repetir senha">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="alterarSenhaAtleta()">💾 Guardar Nova Senha</button>
+          </div>
+          <div id="senha-atleta-msg" style="font-size:0.82rem;margin-top:8px;"></div>
+        </div>
+
+        <div class="card">
           <div class="card-titulo">➕ Nova Prova</div>
           <div class="form-grid">
             <div class="form-group" style="grid-column:1/-1">
@@ -521,6 +542,7 @@ const db  = getFirestore(app);
 const WORKER_URL  = 'https://vzg-nacional.ruigoncalves1968.workers.dev';
 const PASS_ADMIN  = 'Vizela2026***';
 const PASS_ATLETA = 'Vizelgolfe2026*';
+let _passAtleta = PASS_ATLETA; // pode ser actualizada pelo admin via Firebase
 const PONTUACAO   = [25,18,15,12,10,8,6,4,2,1];
 const CATEGORIAS  = ['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos','Juniores'];
 const CAT_GRUPO   = {'Homens':'Homens','Juniores':'Homens','Senhoras':'Senhoras','Seniores Masculinos':'Seniores Masculinos','Veteranos Masculinos':'Veteranos Masculinos'};
@@ -540,7 +562,7 @@ window.fazerLogin = function() {
   if (pass === PASS_ADMIN) {
     modoAdmin = true;
     iniciarApp('Admin');
-  } else if (pass === PASS_ATLETA) {
+  } else if (pass === _passAtleta) {
     modoAdmin = false;
     iniciarApp('Atleta');
   } else {
@@ -553,7 +575,38 @@ window.fazerLogout = function() {
   location.reload();
 };
 
+window.alterarSenhaAtleta = async function() {
+  const nova = document.getElementById('nova-senha-atleta').value.trim();
+  const conf = document.getElementById('nova-senha-atleta-conf').value.trim();
+  const msg  = document.getElementById('senha-atleta-msg');
+  if(!nova){ msg.style.color='#cc2222'; msg.textContent='Introduz a nova senha.'; return; }
+  if(nova !== conf){ msg.style.color='#cc2222'; msg.textContent='As senhas não coincidem.'; return; }
+  if(nova.length < 6){ msg.style.color='#cc2222'; msg.textContent='A senha deve ter pelo menos 6 caracteres.'; return; }
+  try {
+    await setDoc(doc(db,'vizelgolfe','config'), {senhaAtleta: nova}, {merge: true});
+    _passAtleta = nova;
+    const el=document.getElementById('senha-atleta-atual');
+    if(el) el.textContent=nova;
+    document.getElementById('nova-senha-atleta').value='';
+    document.getElementById('nova-senha-atleta-conf').value='';
+    msg.style.color='#1a8a4a';
+    msg.textContent='✅ Senha dos atletas actualizada com sucesso!';
+  } catch(e) {
+    msg.style.color='#cc2222';
+    msg.textContent='❌ Erro ao guardar: ' + e.message;
+  }
+};
+
 function iniciarApp(modo) {
+  // Carregar senha dos atletas do Firebase (se existir)
+  window._fbCarregar && window._fbCarregar().then && 
+  getDoc(doc(db,'vizelgolfe','config')).then(snap=>{
+    if(snap.exists() && snap.data().senhaAtleta){
+      _passAtleta = snap.data().senhaAtleta;
+      const el=document.getElementById('senha-atleta-atual');
+      if(el) el.textContent=_passAtleta;
+    }
+  }).catch(()=>{});
   document.getElementById('login').style.display = 'none';
   document.getElementById('app').classList.add('on');
   document.getElementById('topbar-mode').textContent = modo;
