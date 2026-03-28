@@ -277,6 +277,12 @@ function iniciarTVInterno(provaId) {
   scrollLoop();
 }
 
+// ── CORES ──
+function corVoltaMini(t){const n=Number(t);if(isNaN(n)||n<=0)return'';if(n<=19)return'color:#2563eb;font-weight:700';if(n<=24)return'color:#16a34a;font-weight:700';if(n<=29)return'color:#dc2626;font-weight:700';return'color:#6b7280;font-weight:700';}
+function corVoltaPeter(t){const n=Number(t);if(isNaN(n)||n<=0)return'';if(n<=24)return'color:#2563eb;font-weight:700';if(n<=29)return'color:#16a34a;font-weight:700';if(n<=35)return'color:#dc2626;font-weight:700';return'color:#6b7280;font-weight:700';}
+function corPista(t){const n=Number(t);if(isNaN(n)||n<=0)return'';if(n===1)return'color:#16a34a;font-weight:700';if(n===2)return'color:#dc2626;font-weight:700';return'color:#6b7280;font-weight:700';}
+function corTotal(total,nVoltas,tipo){const n=Number(total);if(isNaN(n)||n<=0||!nVoltas)return'';const m=n/nVoltas;return tipo==='mini'?corVoltaMini(m):corVoltaPeter(m);}
+
 function renderInterno() {
   if(!allDataInt||!provaAtiva) return;
   const prova = allDataInt.provas?.find(p=>p.id==provaAtiva); if(!prova) return;
@@ -306,19 +312,43 @@ function renderInterno() {
       const j=jornadaAtiva||1;
       ranked=catAtl.map(a=>{
         const res=prova.resultados?.[j]?.[a.id];
-        return{...a,total:calcTotal(prova,j,res),mini:calcMini(res),peter:calcPeter(res)};
+        return{...a,res,total:calcTotal(prova,j,res),mini:calcMini(res),peter:calcPeter(res)};
       }).filter(a=>a.total!=null).sort((a,b)=>a.total-b.total||a.nome.localeCompare(b.nome));
     }
     if(!ranked.length) continue;
     any=true;
-    html+=`<div class="cat-hdr"><div class="cat-name">${cat}</div><div class="cat-count">${ranked.length} atleta${ranked.length!==1?'s':''}</div><div class="cat-badge">${isGeral?'Classificação Geral':`Jornada ${jornadaAtiva}`}</div></div>
+    const jAtual=jornadaAtiva||1;
+    const esp=prova.jornadaEspecial?.[jAtual];
+    const soloP4=esp?.tipo==='peter4voltas';
+    let voltaCab='';
+    if(!isGeral){
+      if(soloP4)voltaCab='<th class="c" style="font-size:0.55rem">P1</th><th class="c" style="font-size:0.55rem">P2</th><th class="c" style="font-size:0.55rem">P3</th><th class="c" style="font-size:0.55rem">P4</th>';
+      else voltaCab='<th class="c" style="font-size:0.55rem">M1</th><th class="c" style="font-size:0.55rem">M2</th><th class="c" style="font-size:0.55rem">P1</th><th class="c" style="font-size:0.55rem">P2</th>';
+    }
+    html+=`<div class="cat-hdr"><div class="cat-name">${cat}</div><div class="cat-count">${ranked.length} atleta${ranked.length!==1?'s':''}</div><div class="cat-badge">${isGeral?'Classificação Geral':`Jornada ${jAtual}`}</div></div>
     <table class="tbl"><thead><tr><th class="c">Pos</th><th>Atleta</th>
-    ${isGeral?`<th class="c">Tacadas</th><th class="r">Pontos</th>`:`<th class="c">Mini</th><th class="c">Peter</th><th class="r">Total</th>`}
+    ${isGeral?`<th class="c">Tacadas</th><th class="r">Pontos</th>`:`${voltaCab}<th class="r">Total</th>`}
     </tr></thead><tbody>`;
     ranked.forEach((a,i)=>{
       const cls=i===0?'g1':i===1?'g2':i===2?'g3':'';
+      let vc='';
+      if(!isGeral){
+        const r=a.res||{};
+        if(soloP4){
+          [r.pV1,r.pV2,r.pV3,r.pV4].forEach(v=>{vc+=`<td class="td-par" style="font-size:1.1rem;${corVoltaPeter(v)}">${v>0?v:'—'}</td>`;});
+          const nVP=[r.pV1,r.pV2,r.pV3,r.pV4].filter(v=>v>0).length;
+          vc+=`<td class="td-tot" style="${corTotal(a.total,nVP,'peter')}">${a.total!=null?a.total:'—'}</td>`;
+        }else{
+          vc+=`<td class="td-par" style="font-size:1.1rem;${corVoltaMini(r.mV1)}">${r.mV1>0?r.mV1:'—'}</td>`;
+          vc+=`<td class="td-par" style="font-size:1.1rem;${corVoltaMini(r.mV2)}">${r.mV2>0?r.mV2:'—'}</td>`;
+          vc+=`<td class="td-par" style="font-size:1.1rem;${corVoltaPeter(r.pV1)}">${r.pV1>0?r.pV1:'—'}</td>`;
+          vc+=`<td class="td-par" style="font-size:1.1rem;${corVoltaPeter(r.pV2)}">${r.pV2>0?r.pV2:'—'}</td>`;
+          const nV=[r.mV1,r.mV2,r.pV1,r.pV2].filter(v=>v>0).length;
+          vc+=`<td class="td-tot" style="${corTotal(a.total,nV,'peter')}">${a.total!=null?a.total:'—'}</td>`;
+        }
+      }
       html+=`<tr class="${cls}"><td class="td-pos">${i+1}</td><td><div class="td-name">${a.nome}</div>${isGeral?`<div class="td-sub">${a.det}</div>`:''}</td>
-      ${isGeral?`<td class="td-par">${a.totalTacadas}</td><td class="td-tot">${a.pts}</td>`:`<td class="td-par">${a.mini!=null?a.mini:'—'}</td><td class="td-par">${a.peter!=null?a.peter:'—'}</td><td class="td-tot">${a.total}</td>`}
+      ${isGeral?`<td class="td-par">${a.totalTacadas}</td><td class="td-tot">${a.pts}</td>`:vc}
       </tr>`;
     });
     html+=`</tbody></table><div class="cat-sep"></div><div class="cat-gap"></div>`;
@@ -424,7 +454,7 @@ function renderNacional(){
     atletas.forEach((a,i)=>{
       const vzg=isVzg(a.clube);
       const cls=i===0?'g1':i===1?'g2':i===2?'g3':'';
-      const voltasCells=(a.voltas||[]).map(v=>`<td class="td-par" style="font-size:0.9rem">${v}</td>`).join('');
+      const isMini=['H','S'].includes(cat);const cV=isMini?corVoltaMini:corVoltaPeter;const voltasCells=(a.voltas||[]).map(v=>`<td class="td-par" style="font-size:0.9rem;${cV(v)}">${v}</td>`).join('');
       const vazios=maxV-(a.voltas||[]).length;
       const vaziosCells=Array(vazios).fill('<td class="td-par">—</td>').join('');
       html+=`<tr class="${cls}"${a.dnf?' style="opacity:0.6"':''}>
@@ -432,7 +462,7 @@ function renderNacional(){
         <td><div class="td-name${vzg?' td-vzg':''}">${a.nome}</div><div class="td-sub">${a.clube}</div></td>
         <td style="font-size:0.75rem;color:var(--silver);padding:12px 8px">${a.clube}</td>
         ${voltasCells}${vaziosCells}
-        <td class="td-tot">${a.total||'—'}</td>
+        <td class="td-tot" style="${corTotal(a.total,(a.voltas||[]).filter(v=>v>0).length,isMini?'mini':'peter')}">${a.total||'—'}</td>
         <td style="text-align:center;font-size:0.85rem">${a.dnf?'<span style="color:#cc2222">DNF</span>':a.completo?'✅':'⏳'}</td>
       </tr>`;
     });
