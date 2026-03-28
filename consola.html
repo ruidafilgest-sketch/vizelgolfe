@@ -606,51 +606,32 @@ window.fazerLogout = function() {
 
 
 // ═══════════════════════════════════════════════════════
-// ESTATÍSTICAS
+// ESTATÍSTICAS — Interno + Nacional consolidado
 // ═══════════════════════════════════════════════════════
 const ABANDONO = 126;
 
-function statsGetDados() {
-  // Compilar todos os dados internos e nacionais
-  const atletas = dadosInt.atletas || [];
-  const provas  = dadosInt.provas  || [];
-  return { atletas, provas };
+function statsExtrairVoltas(res, vertente) {
+  const v = [];
+  if (vertente === 'mini' || vertente === 'ambas')
+    ['mV1','mV2','mV3','mV4'].forEach(k => { if(res[k] !== undefined) v.push(Number(res[k])); });
+  if (vertente === 'peter' || vertente === 'ambas')
+    ['pV1','pV2','pV3','pV4'].forEach(k => { if(res[k] !== undefined) v.push(Number(res[k])); });
+  return v;
 }
-
-function statsMediaTacadas(voltas) {
-  // Excluir 126 (abandono) das médias
-  const validas = voltas.filter(v => v && v !== ABANDONO);
-  if (!validas.length) return null;
-  return validas.reduce((a,b) => a+b, 0) / validas.length;
-}
-
-function statsTotalTacadas(voltas) {
+function statsTotalValido(voltas) {
   return voltas.filter(v => v && v !== ABANDONO).reduce((a,b) => a+b, 0);
 }
-
-function statsTemAbandono(voltas) {
-  return voltas.some(v => v === ABANDONO);
+function statsMedia(voltas) {
+  const v = voltas.filter(x => x && x !== ABANDONO);
+  return v.length ? v.reduce((a,b) => a+b, 0) / v.length : null;
 }
-
-function statsExtrairVoltas(res, vertente) {
-  // res = resultado de um atleta numa jornada
-  const voltas = [];
-  if (vertente === 'mini' || vertente === 'ambas') {
-    ['mV1','mV2','mV3','mV4'].forEach(k => { if(res[k] !== undefined) voltas.push(res[k]); });
-  }
-  if (vertente === 'peter' || vertente === 'ambas') {
-    ['pV1','pV2','pV3','pV4'].forEach(k => { if(res[k] !== undefined) voltas.push(res[k]); });
-  }
-  return voltas;
-}
-
+function statsTemAbandono(voltas) { return voltas.some(v => v === ABANDONO); }
 function statsNomeAtleta(id) {
-  const a = (dadosInt.atletas||[]).find(x => x.id === id);
-  return a ? a.nome : 'Atleta #'+id;
+  const a = (dadosInt?.atletas||[]).find(x => x.id === id || x.id === parseInt(id));
+  return a ? a.nome : 'Atleta #' + id;
 }
-
 function statsCatAtleta(id) {
-  const a = (dadosInt.atletas||[]).find(x => x.id === id);
+  const a = (dadosInt?.atletas||[]).find(x => x.id === id || x.id === parseInt(id));
   return a ? a.categoria : '';
 }
 
@@ -661,330 +642,377 @@ window.renderStats = function() {
   const catFilt = document.getElementById('stats-cat').value;
   const atlFilt = document.getElementById('stats-atleta').value;
 
-  // Preencher dropdown de atletas
+  // Preencher dropdown atletas (uma vez)
   const selAtl = document.getElementById('stats-atleta');
-  if (selAtl.options.length <= 1) {
-    (dadosInt.atletas||[])
-      .sort((a,b) => a.nome.localeCompare(b.nome))
-      .forEach(a => {
-        const o = document.createElement('option');
-        o.value = a.id; o.textContent = a.nome;
-        selAtl.appendChild(o);
-      });
+  if (selAtl.options.length <= 1 && dadosInt) {
+    (dadosInt.atletas||[]).slice().sort((a,b) => a.nome.localeCompare(b.nome)).forEach(a => {
+      const o = document.createElement('option');
+      o.value = a.id; o.textContent = a.nome + ' (' + a.categoria + ')';
+      selAtl.appendChild(o);
+    });
   }
 
-  el.innerHTML = '<div style="color:var(--silver);padding:20px;text-align:center">A carregar...</div>';
+  el.innerHTML = '<div style="color:var(--silver);padding:30px;text-align:center">⏳ A carregar...</div>';
 
-  if (modo === 'atleta') renderStatsAtleta(el, catFilt, atlFilt ? parseInt(atlFilt) : null);
-  else if (modo === 'prova') renderStatsProva(el, catFilt);
-  else if (modo === 'historico') renderStatsHistorico(el, catFilt, atlFilt ? parseInt(atlFilt) : null);
-  else if (modo === 'ranking') renderStatsRanking(el, catFilt);
+  const atlId = atlFilt ? parseInt(atlFilt) : null;
+  if      (modo === 'atleta')    renderStatsAtleta(el, catFilt, atlId);
+  else if (modo === 'prova')     renderStatsProva(el, catFilt);
+  else if (modo === 'historico') renderStatsHistorico(el, catFilt, atlId);
+  else if (modo === 'ranking')   renderStatsRanking(el, catFilt);
 };
 
+// ── POR ATLETA ──
 function renderStatsAtleta(el, catFilt, atlId) {
-  const provas  = dadosInt.provas  || [];
-  const atletas = (dadosInt.atletas || []).filter(a => !catFilt || a.categoria === catFilt);
-  const lista   = atlId ? atletas.filter(a => a.id === atlId) : atletas;
-
   getDoc(doc(db,'vizelgolfe','nacional')).then(snap => {
     const histNac = (snap.exists() && snap.data().historico) ? snap.data().historico : {};
+    const provas  = dadosInt?.provas || [];
+    const atletas = (dadosInt?.atletas||[]).filter(a => (!catFilt || a.categoria === catFilt) && (!atlId || a.id === atlId));
     let h = '';
 
-    lista.forEach(atl => {
-      // ── RESULTADOS INTERNOS ──
-      const linhas = [];
+    atletas.forEach(atl => {
+      // Resultados internos
+      const linhasInt = [];
       provas.forEach(prova => {
         if (prova.estado === 'agendado') return;
         Object.entries(prova.resultados||{}).forEach(([jNum, resJorn]) => {
           const res = resJorn[atl.id];
           if (!res) return;
-          const voltasMini  = statsExtrairVoltas(res,'mini');
-          const voltasPeter = statsExtrairVoltas(res,'peter');
-          const totalMini   = voltasMini.length  ? statsTotalTacadas(voltasMini)  : null;
-          const totalPeter  = voltasPeter.length ? statsTotalTacadas(voltasPeter) : null;
-          const mediaMini   = voltasMini.length  ? statsMediaTacadas(voltasMini)  : null;
-          const mediaPeter  = voltasPeter.length ? statsMediaTacadas(voltasPeter) : null;
-          const abandono    = statsTemAbandono([...voltasMini,...voltasPeter]);
-          linhas.push({ prova: prova.nome, jornada: jNum, totalMini, totalPeter,
-            mediaMini, mediaPeter, abandono,
-            bonusMini: res.bonusMini||false, bonusPeter: res.bonusPeter||false,
-            bonusPeterM: res.bonusPeterManha||false, bonusPeterT: res.bonusPeterTarde||false });
+          const vm = statsExtrairVoltas(res,'mini');
+          const vp = statsExtrairVoltas(res,'peter');
+          linhasInt.push({
+            prova: prova.nome, jornada: jNum,
+            totalMini:  vm.length ? statsTotalValido(vm) : null,
+            totalPeter: vp.length ? statsTotalValido(vp) : null,
+            mediaMini:  statsMedia(vm), mediaPeter: statsMedia(vp),
+            abandono:   statsTemAbandono([...vm,...vp]),
+            bonusMini:  res.bonusMini||false, bonusPeter: res.bonusPeter||false,
+            bonusPM:    res.bonusPeterManha||false, bonusPT: res.bonusPeterTarde||false
+          });
         });
       });
 
-      // ── HISTÓRICO NACIONAL ──
+      // Resultados nacionais — procurar por primeiro nome
       const linhasNac = [];
+      const primNome = atl.nome.toLowerCase().split(' ')[0];
       Object.entries(histNac).forEach(([chave, prova]) => {
-        const cats = prova.categorias || {};
-        Object.entries(cats).forEach(([cat, atletasNac]) => {
-          atletasNac.forEach(a => {
-            const primNome = atl.nome.toLowerCase().split(' ')[0];
+        Object.entries(prova.categorias||{}).forEach(([cat, atlNac]) => {
+          atlNac.forEach(a => {
             if (a.nome && a.nome.toLowerCase().includes(primNome)) {
               linhasNac.push({
-                prova: prova.nome || chave,
-                ano: prova.ano || chave.split('_')[1] || '',
-                tipo: prova.tipo || chave.split('_')[0],
-                pos: a.pos || a.posicao || '—',
-                clube: a.clube || '—', cat
+                prova:  prova.nome || chave,
+                ano:    prova.ano  || chave.split('_')[1] || '',
+                tipo:   (prova.tipo || chave.split('_')[0]).toUpperCase(),
+                cat, pos: a.pos || a.posicao || a.rank || '—',
+                total:  a.total || '—', clube: a.clube || '—'
               });
             }
           });
         });
       });
 
-      if (!linhas.length && !linhasNac.length) return;
+      if (!linhasInt.length && !linhasNac.length) return;
 
-      const totalParticipacoes = linhas.length;
-      const totalAbandonos = linhas.filter(l => l.abandono).length;
-      const mediaGeral = (() => {
-        const vals = linhas.flatMap(l => [l.mediaMini, l.mediaPeter].filter(v => v !== null));
-        return vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1) : '—';
-      })();
+      const nPart = linhasInt.length;
+      const nAban = linhasInt.filter(l => l.abandono).length;
+      const todasMedias = linhasInt.flatMap(l => [l.mediaMini, l.mediaPeter].filter(v => v != null));
+      const mediaGeral  = todasMedias.length ? (todasMedias.reduce((a,b)=>a+b,0)/todasMedias.length).toFixed(1) : '—';
+      const melhorMini  = linhasInt.filter(l=>l.totalMini).sort((a,b)=>a.totalMini-b.totalMini)[0];
+      const melhorPeter = linhasInt.filter(l=>l.totalPeter).sort((a,b)=>a.totalPeter-b.totalPeter)[0];
+      const nBonus = linhasInt.filter(l=>l.bonusMini||l.bonusPeter||l.bonusPM||l.bonusPT).length;
 
-      h += '<div class="card" style="margin-bottom:16px">';
-      h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">';
-      h += '<div><span style="font-family:\'Bebas Neue\',sans-serif;font-size:1.1rem;letter-spacing:1px;color:var(--org2)">' + atl.nome + '</span>';
-      h += '<span style="font-size:0.75rem;color:var(--silver);margin-left:8px">' + atl.categoria + '</span></div>';
-      h += '<div style="display:flex;gap:12px;font-size:0.78rem;color:var(--silver)">';
-      h += '<span>🏅 ' + totalParticipacoes + ' provas</span>';
-      if (totalAbandonos) h += '<span style="color:#e87">⚠️ ' + totalAbandonos + ' abandono(s)</span>';
-      h += '<span>📊 Média: <strong style="color:var(--org2)">' + mediaGeral + '</strong></span>';
+      h += '<div class="card" style="margin-bottom:20px">';
+      // Cabeçalho atleta
+      h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">';
+      h += '<div><span style="font-family:Bebas Neue,sans-serif;font-size:1.2rem;letter-spacing:1px;color:var(--org2)">' + atl.nome + '</span>';
+      h += '<span style="font-size:0.73rem;color:var(--silver);margin-left:8px">' + atl.categoria + '</span></div>';
+      h += '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:0.77rem">';
+      h += '<span style="color:var(--silver)">🏅 <strong style="color:var(--branco)">' + nPart + '</strong> provas internas</span>';
+      h += '<span style="color:var(--silver)">🇵🇹 <strong style="color:var(--branco)">' + linhasNac.length + '</strong> provas nacionais</span>';
+      if (nAban) h += '<span style="color:#e87">⚠️ ' + nAban + ' abandono(s)</span>';
+      h += '<span style="color:var(--silver)">📊 Média: <strong style="color:var(--org2)">' + mediaGeral + '</strong></span>';
+      if (nBonus) h += '<span style="color:var(--silver)">🥇 <strong style="color:var(--org2)">' + nBonus + '</strong> bónus</span>';
+      if (melhorMini)  h += '<span style="color:var(--silver)">🏌️ Mini: <strong style="color:var(--org2)">' + melhorMini.totalMini + '</strong></span>';
+      if (melhorPeter) h += '<span style="color:var(--silver)">⛳ Peter: <strong style="color:var(--org2)">' + melhorPeter.totalPeter + '</strong></span>';
       h += '</div></div>';
 
-      if (linhas.length) {
-        h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">';
+      // Tabela interna
+      if (linhasInt.length) {
+        h += '<div style="font-size:0.72rem;color:var(--silver);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🏠 Resultados Internos</div>';
+        h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.77rem">';
         h += '<thead><tr style="border-bottom:1px solid var(--border)">';
-        ['Prova','Jorn.','Mini','Méd.M','Peter','Méd.P','Bónus','Obs'].forEach(th => {
-          h += '<th style="padding:5px 8px;color:var(--silver);text-align:' + (th==='Prova'?'left':'center') + '">' + th + '</th>';
+        ['Prova','J','Mini','Méd.M','Peter','Méd.P','Bónus',''].forEach(th => {
+          h += '<th style="padding:5px 7px;color:var(--silver);text-align:' + (th==='Prova'?'left':'center') + '">' + th + '</th>';
         });
         h += '</tr></thead><tbody>';
-        linhas.forEach(l => {
+        linhasInt.forEach(l => {
           h += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">';
-          h += '<td style="padding:4px 8px;color:var(--branco)">' + l.prova + '</td>';
-          h += '<td style="padding:4px 8px;text-align:center;color:var(--silver)">J' + l.jornada + '</td>';
-          h += '<td style="padding:4px 8px;text-align:center;color:var(--org2)">' + (l.totalMini||'—') + '</td>';
-          h += '<td style="padding:4px 8px;text-align:center;color:var(--silver)">' + (l.mediaMini?l.mediaMini.toFixed(1):'—') + '</td>';
-          h += '<td style="padding:4px 8px;text-align:center;color:var(--org2)">' + (l.totalPeter||'—') + '</td>';
-          h += '<td style="padding:4px 8px;text-align:center;color:var(--silver)">' + (l.mediaPeter?l.mediaPeter.toFixed(1):'—') + '</td>';
-          const bonus = [l.bonusMini?'🥇M':'', l.bonusPeter?'🥇P':'', l.bonusPeterM?'🌅':'', l.bonusPeterT?'🌆':''].filter(Boolean).join(' ');
-          h += '<td style="padding:4px 8px;text-align:center">' + (bonus||'—') + '</td>';
-          h += '<td style="padding:4px 8px;text-align:center">' + (l.abandono?'<span style="color:#e87;font-size:0.73rem">Abandono</span>':'') + '</td>';
+          h += '<td style="padding:4px 7px;color:var(--branco)">' + l.prova + '</td>';
+          h += '<td style="padding:4px 7px;text-align:center;color:var(--silver);font-size:0.7rem">J' + l.jornada + '</td>';
+          h += '<td style="padding:4px 7px;text-align:center;color:' + (l.totalMini?'var(--org2)':'var(--border)') + '">' + (l.totalMini||'—') + '</td>';
+          h += '<td style="padding:4px 7px;text-align:center;color:var(--silver)">' + (l.mediaMini?l.mediaMini.toFixed(1):'—') + '</td>';
+          h += '<td style="padding:4px 7px;text-align:center;color:' + (l.totalPeter?'var(--org2)':'var(--border)') + '">' + (l.totalPeter||'—') + '</td>';
+          h += '<td style="padding:4px 7px;text-align:center;color:var(--silver)">' + (l.mediaPeter?l.mediaPeter.toFixed(1):'—') + '</td>';
+          const bon = [l.bonusMini?'🥇Mini':'', l.bonusPeter?'🥇Peter':'', l.bonusPM?'🌅':'', l.bonusPT?'🌆':''].filter(Boolean).join(' ');
+          h += '<td style="padding:4px 7px;text-align:center">' + (bon||'—') + '</td>';
+          h += '<td style="padding:4px 7px;text-align:center">' + (l.abandono?'<span style="color:#e87;font-size:0.7rem">Abandono</span>':'') + '</td>';
           h += '</tr>';
         });
         h += '</tbody></table></div>';
       }
 
+      // Tabela nacional
       if (linhasNac.length) {
-        h += '<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">';
-        h += '<div style="font-size:0.78rem;color:var(--org2);font-weight:700;margin-bottom:8px">🇵🇹 Histórico Nacional</div>';
+        h += '<div style="font-size:0.72rem;color:var(--silver);text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px">🇵🇹 Histórico Nacional</div>';
         h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.77rem">';
         h += '<thead><tr style="border-bottom:1px solid var(--border)">';
-        ['Prova','Ano','Tipo','Categoria','Posição'].forEach(th => {
-          h += '<th style="padding:5px 8px;color:var(--silver);text-align:' + (th==='Prova'||th==='Categoria'?'left':'center') + '">' + th + '</th>';
+        ['Prova','Ano','Tipo','Categoria','Total','Posição'].forEach(th => {
+          h += '<th style="padding:5px 7px;color:var(--silver);text-align:' + (th==='Prova'||th==='Categoria'?'left':'center') + '">' + th + '</th>';
         });
         h += '</tr></thead><tbody>';
-        linhasNac.sort((a,b) => b.ano - a.ano).forEach(l => {
+        linhasNac.slice().sort((a,b) => b.ano - a.ano).forEach(l => {
           h += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">';
-          h += '<td style="padding:4px 8px;color:var(--branco)">' + l.prova + '</td>';
-          h += '<td style="padding:4px 8px;text-align:center;color:var(--silver)">' + l.ano + '</td>';
-          h += '<td style="padding:4px 8px;text-align:center;color:var(--silver)">' + l.tipo + '</td>';
-          h += '<td style="padding:4px 8px;color:var(--silver);font-size:0.72rem">' + l.cat + '</td>';
-          h += '<td style="padding:4px 8px;text-align:center;color:var(--org2);font-weight:700">' + l.pos + 'º</td>';
+          h += '<td style="padding:4px 7px;color:var(--branco)">' + l.prova + '</td>';
+          h += '<td style="padding:4px 7px;text-align:center;color:var(--silver)">' + l.ano + '</td>';
+          h += '<td style="padding:4px 7px;text-align:center;color:var(--org2);font-size:0.72rem">' + l.tipo + '</td>';
+          h += '<td style="padding:4px 7px;color:var(--silver);font-size:0.72rem">' + l.cat + '</td>';
+          h += '<td style="padding:4px 7px;text-align:center;color:var(--silver)">' + l.total + '</td>';
+          h += '<td style="padding:4px 7px;text-align:center;color:var(--org2);font-weight:700">' + l.pos + 'º</td>';
           h += '</tr>';
         });
-        h += '</tbody></table></div></div>';
+        h += '</tbody></table></div>';
       }
 
       h += '</div>';
     });
 
-    el.innerHTML = h || '<div style="color:var(--silver);padding:20px;text-align:center">Sem dados para os filtros seleccionados.</div>';
+    el.innerHTML = h || '<div style="color:var(--silver);padding:30px;text-align:center">Sem dados para os filtros seleccionados.</div>';
   }).catch(e => {
-    el.innerHTML = '<div style="color:#e87;padding:20px;text-align:center">Erro: ' + e.message + '</div>';
+    el.innerHTML = '<div style="color:#e87;padding:20px">Erro: ' + e.message + '</div>';
   });
 }
-function renderStatsProva(el, catFilt) {
-  const provas = (dadosInt.provas||[]).filter(p => p.estado !== 'agendado');
-  if (!provas.length) { el.innerHTML='<div style="color:var(--silver);padding:20px;text-align:center">Sem provas com resultados.</div>'; return; }
 
+// ── POR PROVA ──
+function renderStatsProva(el, catFilt) {
+  const provas = (dadosInt?.provas||[]).filter(p => p.estado !== 'agendado');
+  if (!provas.length) {
+    el.innerHTML = '<div style="color:var(--silver);padding:30px;text-align:center">Sem provas com resultados.</div>';
+    return;
+  }
   let h = '';
   provas.forEach(prova => {
-    const resPorJornada = prova.resultados || {};
-    Object.entries(resPorJornada).forEach(([jNum, resJorn]) => {
-      if (!Object.keys(resJorn||{}).length) return;
-      // Compilar resultados desta jornada
+    Object.entries(prova.resultados||{}).forEach(([jNum, resJorn]) => {
+      if (!resJorn || !Object.keys(resJorn).length) return;
       const linhas = [];
       Object.entries(resJorn).forEach(([atlId, res]) => {
-        const id = parseInt(atlId);
+        const id  = parseInt(atlId);
         const cat = statsCatAtleta(id);
         if (catFilt && cat !== catFilt) return;
-        const voltasMini  = statsExtrairVoltas(res,'mini');
-        const voltasPeter = statsExtrairVoltas(res,'peter');
-        const totalMini   = voltasMini.length  ? statsTotalTacadas(voltasMini)  : null;
-        const totalPeter  = voltasPeter.length ? statsTotalTacadas(voltasPeter) : null;
-        const abandono    = statsTemAbandono([...voltasMini,...voltasPeter]);
-        linhas.push({ id, nome: statsNomeAtleta(id), cat, totalMini, totalPeter, abandono,
-          total: (totalMini||0)+(totalPeter||0) });
+        const vm = statsExtrairVoltas(res,'mini');
+        const vp = statsExtrairVoltas(res,'peter');
+        const tM = vm.length ? statsTotalValido(vm) : null;
+        const tP = vp.length ? statsTotalValido(vp) : null;
+        const tot = (tM||0) + (tP||0);
+        linhas.push({ id, nome: statsNomeAtleta(id), cat, tM, tP, tot,
+          abandono: statsTemAbandono([...vm,...vp]) });
       });
       if (!linhas.length) return;
-      linhas.sort((a,b) => (a.abandono?1:0)-(b.abandono?1:0) || a.total-b.total);
+      linhas.sort((a,b) => (a.abandono?1:0)-(b.abandono?1:0) || a.tot-b.tot);
 
-      h += `<div class="card" style="margin-bottom:16px">
-        <div class="card-titulo">${prova.nome} — Jornada ${jNum}</div>
-        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">
-          <thead><tr style="border-bottom:1px solid var(--border)">
-            <th style="padding:6px 8px;color:var(--silver)">#</th>
-            <th style="text-align:left;padding:6px 8px;color:var(--silver)">Atleta</th>
-            <th style="padding:6px 8px;color:var(--silver)">Categoria</th>
-            <th style="padding:6px 8px;color:var(--silver)">Mini</th>
-            <th style="padding:6px 8px;color:var(--silver)">Peter</th>
-            <th style="padding:6px 8px;color:var(--silver)">Total</th>
-            <th style="padding:6px 8px;color:var(--silver)">Obs</th>
-          </tr></thead>
-          <tbody>
-          ${linhas.map((l,i) => `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
-            <td style="padding:5px 8px;text-align:center;color:var(--silver)">${i+1}º</td>
-            <td style="padding:5px 8px;color:var(--branco)">${l.nome}</td>
-            <td style="padding:5px 8px;color:var(--silver);font-size:0.72rem">${l.cat}</td>
-            <td style="padding:5px 8px;text-align:center;color:var(--org2)">${l.totalMini||'—'}</td>
-            <td style="padding:5px 8px;text-align:center;color:var(--org2)">${l.totalPeter||'—'}</td>
-            <td style="padding:5px 8px;text-align:center;font-weight:700;color:var(--branco)">${l.total||'—'}</td>
-            <td style="padding:5px 8px;text-align:center">${l.abandono?'<span style="color:#e87;font-size:0.75rem">Abandono</span>':''}</td>
-          </tr>`).join('')}
-          </tbody>
-        </table></div>
-      </div>`;
+      h += '<div class="card" style="margin-bottom:16px">';
+      h += '<div class="card-titulo">' + prova.nome + ' <span style="font-size:0.75rem;font-weight:400;color:var(--silver)">— Jornada ' + jNum + '</span></div>';
+      h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">';
+      h += '<thead><tr style="border-bottom:1px solid var(--border)">';
+      ['Pos','Atleta','Categoria','Mini','Peter','Total',''].forEach(th => {
+        h += '<th style="padding:5px 8px;color:var(--silver);text-align:' + (th==='Atleta'||th==='Categoria'?'left':'center') + '">' + th + '</th>';
+      });
+      h += '</tr></thead><tbody>';
+      linhas.forEach((l,i) => {
+        h += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">';
+        h += '<td style="padding:4px 8px;text-align:center;color:' + (i<3?'var(--orange)':'var(--silver)') + ';font-weight:' + (i<3?700:400) + '">' + (i+1) + 'º</td>';
+        h += '<td style="padding:4px 8px;color:var(--branco);font-weight:500">' + l.nome + '</td>';
+        h += '<td style="padding:4px 8px;color:var(--silver);font-size:0.72rem">' + l.cat + '</td>';
+        h += '<td style="padding:4px 8px;text-align:center;color:var(--org2)">' + (l.tM||'—') + '</td>';
+        h += '<td style="padding:4px 8px;text-align:center;color:var(--org2)">' + (l.tP||'—') + '</td>';
+        h += '<td style="padding:4px 8px;text-align:center;font-weight:700;color:var(--branco)">' + (l.tot||'—') + '</td>';
+        h += '<td style="padding:4px 8px;text-align:center">' + (l.abandono?'<span style="color:#e87;font-size:0.72rem">Abandono</span>':'') + '</td>';
+        h += '</tr>';
+      });
+      h += '</tbody></table></div></div>';
     });
   });
-  el.innerHTML = h || '<div style="color:var(--silver);padding:20px;text-align:center">Sem dados.</div>';
+  el.innerHTML = h || '<div style="color:var(--silver);padding:30px;text-align:center">Sem dados.</div>';
 }
 
+// ── HISTÓRICO NACIONAL ──
 function renderStatsHistorico(el, catFilt, atlId) {
-  // Ler histórico nacional do Firebase
   getDoc(doc(db,'vizelgolfe','nacional')).then(snap => {
     if (!snap.exists() || !snap.data().historico) {
-      el.innerHTML='<div style="color:var(--silver);padding:20px;text-align:center">Sem histórico nacional carregado.</div>';
+      el.innerHTML = '<div style="color:var(--silver);padding:30px;text-align:center">Sem histórico nacional. Carrega provas no separador Nacional.</div>';
       return;
     }
-    const hist = snap.data().historico;
-    const chaves = Object.keys(hist).sort();
-    let h = `<div style="margin-bottom:16px;font-size:0.82rem;color:var(--silver)">
-      ${chaves.length} provas nacionais no histórico
-    </div>`;
+    const hist   = snap.data().historico;
+    const chaves = Object.keys(hist).sort((a,b) => {
+      const aA = parseInt(a.split('_')[1]||0), bA = parseInt(b.split('_')[1]||0);
+      return bA - aA || a.localeCompare(b);
+    });
 
+    // Agrupar por tipo para mostrar separado
+    const porTipo = {};
     chaves.forEach(chave => {
-      const prova = hist[chave];
-      const cats  = prova.categorias || {};
-      const vzgAtletas = [];
+      const tipo = (hist[chave].tipo || chave.split('_')[0]).toUpperCase();
+      if (!porTipo[tipo]) porTipo[tipo] = [];
+      porTipo[tipo].push({ chave, ...hist[chave] });
+    });
 
-      Object.entries(cats).forEach(([cat, atletas]) => {
-        if (catFilt && cat !== catFilt) return;
-        atletas.forEach(atl => {
-          if (!atl.clube) return;
-          const isVzg = atl.clube.toLowerCase().includes('vizela') ||
-                        atl.clube.toLowerCase().includes('vizelgolfe');
-          if (!isVzg && !atlId) return;
-          // Se filtro por atleta, procurar por nome
-          if (atlId) {
-            const nomeAtl = statsNomeAtleta(atlId).toLowerCase();
-            if (!atl.nome.toLowerCase().includes(nomeAtl.split(' ')[0].toLowerCase())) return;
+    let h = '<div style="margin-bottom:12px;font-size:0.82rem;color:var(--silver)">';
+    h += chaves.length + ' provas nacionais · ';
+    h += Object.keys(porTipo).map(t => porTipo[t].length + 'x ' + t).join(' · ');
+    h += '</div>';
+
+    Object.entries(porTipo).forEach(([tipo, provas]) => {
+      h += '<div style="margin-bottom:20px">';
+      h += '<div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:var(--org2);padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:10px">' + tipo + '</div>';
+
+      provas.forEach(prova => {
+        const cats = prova.categorias || {};
+        let vzgAtletas = [];
+        const primNomeAtl = atlId ? statsNomeAtleta(atlId).toLowerCase().split(' ')[0] : null;
+
+        Object.entries(cats).forEach(([cat, atletas]) => {
+          if (catFilt && cat !== catFilt) return;
+          atletas.forEach(a => {
+            const isVzgA = a.clube && a.clube.toLowerCase().includes('vizela');
+            const matchAtl = !atlId || (a.nome && a.nome.toLowerCase().includes(primNomeAtl));
+            if (!isVzgA && !matchAtl) return;
+            vzgAtletas.push({ ...a, cat });
+          });
+        });
+
+        if (!vzgAtletas.length) return;
+        vzgAtletas.sort((a,b) => (a.pos||a.rank||999) - (b.pos||b.rank||999));
+
+        h += '<div class="card" style="margin-bottom:10px">';
+        h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+        h += '<span style="font-weight:700;color:var(--branco)">' + (prova.nome || prova.chave) + '</span>';
+        h += '<span style="font-size:0.75rem;color:var(--silver)">Ano ' + (prova.ano||'—') + ' · ' + vzgAtletas.length + ' atletas Vizelgolfe</span>';
+        h += '</div>';
+        h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">';
+        h += '<thead><tr style="border-bottom:1px solid var(--border)">';
+        ['Pos','Atleta','Clube','Categoria','Total'].forEach(th => {
+          h += '<th style="padding:5px 8px;color:var(--silver);text-align:' + (th==='Atleta'||th==='Clube'||th==='Categoria'?'left':'center') + '">' + th + '</th>';
+        });
+        h += '</tr></thead><tbody>';
+        vzgAtletas.forEach(a => {
+          const pos = a.pos || a.rank || '—';
+          h += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">';
+          h += '<td style="padding:4px 8px;text-align:center;color:var(--org2);font-weight:700">' + pos + 'º</td>';
+          h += '<td style="padding:4px 8px;color:var(--org2);font-weight:600">🟡 ' + a.nome + '</td>';
+          h += '<td style="padding:4px 8px;color:var(--silver);font-size:0.72rem">' + (a.clube||'—') + '</td>';
+          h += '<td style="padding:4px 8px;color:var(--silver);font-size:0.72rem">' + a.cat + '</td>';
+          h += '<td style="padding:4px 8px;text-align:center;color:var(--branco)">' + (a.total||'—') + '</td>';
+          h += '</tr>';
+        });
+        h += '</tbody></table></div></div>';
+      });
+      h += '</div>';
+    });
+
+    el.innerHTML = h;
+  }).catch(e => {
+    el.innerHTML = '<div style="color:#e87;padding:20px">Erro: ' + e.message + '</div>';
+  });
+}
+
+// ── RANKING GERAL ──
+function renderStatsRanking(el, catFilt) {
+  getDoc(doc(db,'vizelgolfe','nacional')).then(snap => {
+    const histNac = (snap.exists() && snap.data().historico) ? snap.data().historico : {};
+    const provas  = (dadosInt?.provas||[]).filter(p => p.estado !== 'agendado');
+    const atletas = (dadosInt?.atletas||[]).filter(a => !catFilt || a.categoria === catFilt);
+
+    const resumo = atletas.map(atl => {
+      const todasVoltas = [], vm = [], vp = [];
+      let participacoes = 0, abandonos = 0, bonusMini = 0, bonusPeter = 0;
+      provas.forEach(prova => {
+        Object.values(prova.resultados||{}).forEach(resJorn => {
+          const res = resJorn[atl.id];
+          if (!res) return;
+          participacoes++;
+          const voltasM = statsExtrairVoltas(res,'mini');
+          const voltasP = statsExtrairVoltas(res,'peter');
+          const todas   = [...voltasM, ...voltasP];
+          if (statsTemAbandono(todas)) abandonos++;
+          else {
+            todasVoltas.push(...todas.filter(v => v && v !== ABANDONO));
+            vm.push(...voltasM.filter(v => v && v !== ABANDONO));
+            vp.push(...voltasP.filter(v => v && v !== ABANDONO));
           }
-          vzgAtletas.push({ ...atl, cat, chave,
-            provaNome: prova.nome || chave,
-            ano: prova.ano || chave.split('_')[1] || '' });
+          if (res.bonusMini) bonusMini++;
+          if (res.bonusPeter||res.bonusPeterManha||res.bonusPeterTarde) bonusPeter++;
         });
       });
 
-      if (!vzgAtletas.length && !atlId) return;
-      if (atlId && !vzgAtletas.length) return;
-
-      h += `<div class="card" style="margin-bottom:16px">
-        <div class="card-titulo">${prova.nome || chave} <span style="font-size:0.75rem;color:var(--silver)">(${prova.ano||''})</span></div>
-        <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">
-          <thead><tr style="border-bottom:1px solid var(--border)">
-            <th style="padding:6px 8px;color:var(--silver)">#</th>
-            <th style="text-align:left;padding:6px 8px;color:var(--silver)">Atleta</th>
-            <th style="padding:6px 8px;color:var(--silver)">Clube</th>
-            <th style="padding:6px 8px;color:var(--silver)">Categoria</th>
-            <th style="padding:6px 8px;color:var(--silver)">Posição</th>
-          </tr></thead>
-          <tbody>
-          ${vzgAtletas.map((a,i) => `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
-            <td style="padding:5px 8px;text-align:center;color:var(--silver)">${i+1}</td>
-            <td style="padding:5px 8px;color:${a.clube&&a.clube.toLowerCase().includes('vizela')?'var(--org2)':'var(--branco)'};font-weight:${a.clube&&a.clube.toLowerCase().includes('vizela')?700:400}">${a.nome}</td>
-            <td style="padding:5px 8px;color:var(--silver);font-size:0.72rem">${a.clube||'—'}</td>
-            <td style="padding:5px 8px;color:var(--silver);font-size:0.72rem">${a.cat}</td>
-            <td style="padding:5px 8px;text-align:center;color:var(--org2);font-weight:700">${a.pos||a.posicao||'—'}º</td>
-          </tr>`).join('')}
-          </tbody>
-        </table></div>
-      </div>`;
-    });
-    el.innerHTML = h;
-  }).catch(e => {
-    el.innerHTML=`<div style="color:#e87;padding:20px">Erro ao carregar histórico: ${e.message}</div>`;
-  });
-}
-
-function renderStatsRanking(el, catFilt) {
-  const provas  = (dadosInt.provas||[]).filter(p => p.estado !== 'agendado');
-  const atletas = (dadosInt.atletas||[]).filter(a => !catFilt || a.categoria === catFilt);
-
-  // Calcular médias globais por atleta
-  const resumo = atletas.map(atl => {
-    const todasVoltas = [];
-    let participacoes = 0, abandonos = 0, bonusMini = 0, bonusPeter = 0;
-    provas.forEach(prova => {
-      Object.values(prova.resultados||{}).forEach(resJorn => {
-        const res = resJorn[atl.id];
-        if (!res) return;
-        participacoes++;
-        const voltas = statsExtrairVoltas(res,'ambas');
-        if (statsTemAbandono(voltas)) abandonos++;
-        else todasVoltas.push(...voltas.filter(v=>v&&v!==ABANDONO));
-        if (res.bonusMini) bonusMini++;
-        if (res.bonusPeter || res.bonusPeterManha || res.bonusPeterTarde) bonusPeter++;
+      // Participações nacionais
+      const primNome = atl.nome.toLowerCase().split(' ')[0];
+      let nacParticipacoes = 0, nacMelhorPos = 999;
+      Object.values(histNac).forEach(prova => {
+        Object.values(prova.categorias||{}).forEach(atlNac => {
+          atlNac.forEach(a => {
+            if (a.nome && a.nome.toLowerCase().includes(primNome)) {
+              nacParticipacoes++;
+              const p = parseInt(a.pos || a.rank || 999);
+              if (!isNaN(p) && p < nacMelhorPos) nacMelhorPos = p;
+            }
+          });
+        });
       });
+
+      const media  = todasVoltas.length ? todasVoltas.reduce((a,b)=>a+b,0)/todasVoltas.length : null;
+      const mediaMini  = vm.length ? vm.reduce((a,b)=>a+b,0)/vm.length : null;
+      const mediaPeter = vp.length ? vp.reduce((a,b)=>a+b,0)/vp.length : null;
+      return { ...atl, participacoes, abandonos, media, mediaMini, mediaPeter,
+        bonusMini, bonusPeter, nacParticipacoes,
+        nacMelhorPos: nacMelhorPos < 999 ? nacMelhorPos : null };
+    }).filter(a => a.participacoes > 0 || a.nacParticipacoes > 0);
+
+    resumo.sort((a,b) => (a.media||999) - (b.media||999));
+
+    const cats = catFilt ? [catFilt] : [...new Set(resumo.map(a => a.categoria))];
+    let h = '';
+    cats.forEach(cat => {
+      const grupo = resumo.filter(a => a.categoria === cat);
+      if (!grupo.length) return;
+      h += '<div class="card" style="margin-bottom:16px">';
+      h += '<div class="card-titulo">' + cat + '</div>';
+      h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">';
+      h += '<thead><tr style="border-bottom:1px solid var(--border)">';
+      ['#','Atleta','Provas Int.','Abandon.','Méd.Geral','Méd.Mini','Méd.Peter','🥇 Bónus','🇵🇹 Nac.','Melhor Pos.'].forEach(th => {
+        h += '<th style="padding:5px 7px;color:var(--silver);text-align:' + (th==='Atleta'?'left':'center') + ';font-size:0.72rem">' + th + '</th>';
+      });
+      h += '</tr></thead><tbody>';
+      grupo.forEach((a,i) => {
+        h += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">';
+        h += '<td style="padding:4px 7px;text-align:center;color:' + (i<3?'var(--orange)':'var(--silver)') + ';font-weight:' + (i<3?700:400) + '">' + (i+1) + 'º</td>';
+        h += '<td style="padding:4px 7px;color:var(--branco);font-weight:500">' + a.nome + '</td>';
+        h += '<td style="padding:4px 7px;text-align:center;color:var(--silver)">' + a.participacoes + '</td>';
+        h += '<td style="padding:4px 7px;text-align:center;color:' + (a.abandonos?'#e87':'var(--silver)') + '">' + (a.abandonos||'—') + '</td>';
+        h += '<td style="padding:4px 7px;text-align:center;color:var(--org2);font-weight:700">' + (a.media?a.media.toFixed(2):'—') + '</td>';
+        h += '<td style="padding:4px 7px;text-align:center;color:var(--silver)">' + (a.mediaMini?a.mediaMini.toFixed(1):'—') + '</td>';
+        h += '<td style="padding:4px 7px;text-align:center;color:var(--silver)">' + (a.mediaPeter?a.mediaPeter.toFixed(1):'—') + '</td>';
+        h += '<td style="padding:4px 7px;text-align:center;color:var(--org2)">' + ((a.bonusMini+a.bonusPeter)||'—') + '</td>';
+        h += '<td style="padding:4px 7px;text-align:center;color:var(--silver)">' + (a.nacParticipacoes||'—') + '</td>';
+        h += '<td style="padding:4px 7px;text-align:center;color:' + (a.nacMelhorPos&&a.nacMelhorPos<=3?'var(--orange)':'var(--org2)') + ';font-weight:' + (a.nacMelhorPos&&a.nacMelhorPos<=3?700:400) + '">' + (a.nacMelhorPos?a.nacMelhorPos+'º':'—') + '</td>';
+        h += '</tr>';
+      });
+      h += '</tbody></table></div></div>';
     });
-    const media = todasVoltas.length ? (todasVoltas.reduce((a,b)=>a+b,0)/todasVoltas.length) : null;
-    return { ...atl, participacoes, abandonos, media, bonusMini, bonusPeter };
-  }).filter(a => a.participacoes > 0);
-
-  resumo.sort((a,b) => (a.media||999)-(b.media||999));
-
-  // Agrupar por categoria
-  const cats = [...new Set(resumo.map(a => a.categoria))];
-  let h = '';
-  cats.forEach(cat => {
-    const grupo = resumo.filter(a => a.categoria === cat);
-    h += `<div class="card" style="margin-bottom:16px">
-      <div class="card-titulo">${cat}</div>
-      <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:0.78rem">
-        <thead><tr style="border-bottom:1px solid var(--border)">
-          <th style="padding:6px 8px;color:var(--silver)">#</th>
-          <th style="text-align:left;padding:6px 8px;color:var(--silver)">Atleta</th>
-          <th style="padding:6px 8px;color:var(--silver)">Provas</th>
-          <th style="padding:6px 8px;color:var(--silver)">Abandonos</th>
-          <th style="padding:6px 8px;color:var(--silver)">Média tacadas</th>
-          <th style="padding:6px 8px;color:var(--silver)">🥇 Mini</th>
-          <th style="padding:6px 8px;color:var(--silver)">🥇 Peter</th>
-        </tr></thead>
-        <tbody>
-        ${grupo.map((a,i) => `<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">
-          <td style="padding:5px 8px;text-align:center;color:${i<3?'var(--orange)':'var(--silver)'};font-weight:${i<3?700:400}">${i+1}º</td>
-          <td style="padding:5px 8px;color:var(--branco)">${a.nome}</td>
-          <td style="padding:5px 8px;text-align:center;color:var(--silver)">${a.participacoes}</td>
-          <td style="padding:5px 8px;text-align:center;color:${a.abandonos?'#e87':'var(--silver)'}">${a.abandonos||'—'}</td>
-          <td style="padding:5px 8px;text-align:center;color:var(--org2);font-weight:700">${a.media?a.media.toFixed(2):'—'}</td>
-          <td style="padding:5px 8px;text-align:center;color:var(--org2)">${a.bonusMini||'—'}</td>
-          <td style="padding:5px 8px;text-align:center;color:var(--org2)">${a.bonusPeter||'—'}</td>
-        </tr>`).join('')}
-        </tbody>
-      </table></div>
-    </div>`;
+    el.innerHTML = h || '<div style="color:var(--silver);padding:30px;text-align:center">Sem dados suficientes.</div>';
+  }).catch(e => {
+    el.innerHTML = '<div style="color:#e87;padding:20px">Erro: ' + e.message + '</div>';
   });
-  el.innerHTML = h || '<div style="color:var(--silver);padding:20px;text-align:center">Sem dados suficientes.</div>';
 }
+
+
 
 window.alterarSenhaAtleta = async function() {
   const nova = document.getElementById('nova-senha-atleta').value.trim();
