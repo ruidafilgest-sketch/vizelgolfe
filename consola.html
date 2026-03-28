@@ -495,18 +495,20 @@ tr:hover td{background:rgba(0,0,0,0.02);}
   </div>
 
   <!-- FILTROS -->
-  <div id="stats-filtros" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
-    <select id="stats-cat" onchange="renderStats()" style="background:var(--card);border:1px solid var(--border);color:var(--silver);padding:6px 10px;border-radius:6px;font-size:0.82rem">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
+    <select id="stats-cat" onchange="renderStats()" style="background:var(--bg2);border:1px solid var(--sep);color:var(--text);padding:7px 12px;border-radius:6px;font-size:0.82rem;font-family:'Barlow Condensed',sans-serif">
       <option value="">Todas as categorias</option>
       <option value="Homens">Homens</option>
       <option value="Senhoras">Senhoras</option>
-      <option value="Seniores Masculinos">Seniores Masc.</option>
-      <option value="Veteranos Masculinos">Veteranos Masc.</option>
+      <option value="Seniores Masculinos">Seniores Masculinos</option>
+      <option value="Veteranos Masculinos">Veteranos Masculinos</option>
       <option value="Juniores">Juniores</option>
     </select>
-    <select id="stats-atleta" onchange="renderStats()" style="background:var(--card);border:1px solid var(--border);color:var(--silver);padding:6px 10px;border-radius:6px;font-size:0.82rem;max-width:200px">
-      <option value="">Todos os atletas</option>
-    </select>
+    <div id="stats-filtro-atleta" style="display:none">
+      <select id="stats-atleta" onchange="renderStats()" style="background:var(--bg2);border:1px solid var(--sep);color:var(--text);padding:7px 12px;border-radius:6px;font-size:0.82rem;font-family:'Barlow Condensed',sans-serif;min-width:180px">
+        <option value="">Todos os atletas</option>
+      </select>
+    </div>
   </div>
 
   <div id="stats-body"></div>
@@ -632,7 +634,7 @@ window.fazerLogout = function() {
 
 
 // ═══════════════════════════════════════════════════════
-// ESTATÍSTICAS — Versão simplificada
+// ESTATÍSTICAS — Redesign premium
 // ═══════════════════════════════════════════════════════
 const ABANDONO = 126;
 let _statsModo = 'ranking';
@@ -651,10 +653,18 @@ function statsTemAbandono(voltas){ return voltas.some(v=>v===ABANDONO); }
 function statsNome(id){ return (dadosInt?.atletas||[]).find(a=>a.id===id||a.id===parseInt(id))?.nome||'#'+id; }
 function statsCat(id){ return (dadosInt?.atletas||[]).find(a=>a.id===id||a.id===parseInt(id))?.categoria||''; }
 
+function statsCorVoltas(campo, valor) {
+  if(campo.startsWith('m')) return corMini(valor);
+  return corPeter(valor);
+}
+
 window.statsTab = function(modo, btn) {
   _statsModo = modo;
   document.querySelectorAll('.stat-tab').forEach(t=>t.classList.remove('on'));
   btn.classList.add('on');
+  // Mostrar/esconder filtro atleta
+  const filtAtleta = document.getElementById('stats-filtro-atleta');
+  if(filtAtleta) filtAtleta.style.display = (modo==='atleta'||modo==='nacional') ? '' : 'none';
   renderStats();
 };
 
@@ -664,7 +674,6 @@ window.renderStats = function() {
   const catFilt = document.getElementById('stats-cat')?.value||'';
   const atlFilt = document.getElementById('stats-atleta')?.value||'';
 
-  // Preencher dropdown atletas
   const selAtl = document.getElementById('stats-atleta');
   if(selAtl && selAtl.options.length<=1 && dadosInt){
     (dadosInt.atletas||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome)).forEach(a=>{
@@ -674,10 +683,10 @@ window.renderStats = function() {
     });
   }
 
-  el.innerHTML='<div style="color:var(--silver);padding:20px;text-align:center">⏳ A carregar...</div>';
+  el.innerHTML='<div style="padding:40px;text-align:center;color:var(--dim)">⏳ A carregar...</div>';
   const atlId = atlFilt?parseInt(atlFilt):null;
 
-  if(_statsModo==='ranking') renderStatsRanking(el,catFilt);
+  if(_statsModo==='ranking')   renderStatsRanking(el,catFilt);
   else if(_statsModo==='atleta') renderStatsAtleta(el,catFilt,atlId);
   else if(_statsModo==='provas') renderStatsProva(el,catFilt);
   else if(_statsModo==='nacional') renderStatsHistorico(el,catFilt,atlId);
@@ -685,44 +694,61 @@ window.renderStats = function() {
 
 // ── RANKING ──
 function renderStatsRanking(el, catFilt) {
-  const provas  = (dadosInt?.provas||[]).filter(p=>p.estado!=='agendado');
+  const provas = (dadosInt?.provas||[]).filter(p=>p.estado!=='agendado');
   const atletas = (dadosInt?.atletas||[]).filter(a=>!catFilt||a.categoria===catFilt);
   const cats = catFilt?[catFilt]:[...new Set(atletas.map(a=>a.categoria))];
   let h='';
 
   cats.forEach(cat=>{
     const grupo = atletas.filter(a=>a.categoria===cat).map(atl=>{
-      const voltas=[];let participacoes=0,abandonos=0,bonusTotal=0;
+      const todasVoltas=[];let part=0,aban=0,bMini=0,bPeter=0;
       provas.forEach(p=>{
         Object.values(p.resultados||{}).forEach(rj=>{
           const res=rj[atl.id]; if(!res) return;
-          participacoes++;
+          part++;
           const vv=statsExtrairVoltas(res,'ambas');
-          if(statsTemAbandono(vv)) abandonos++;
-          else voltas.push(...vv.filter(v=>v&&v!==ABANDONO));
-          if(res.bonusMini||res.bonusPeter||res.bonusPeterManha||res.bonusPeterTarde) bonusTotal++;
+          if(statsTemAbandono(vv)) aban++;
+          else todasVoltas.push(...vv.filter(v=>v&&v!==ABANDONO));
+          if(res.bonusMini||res.bonusMiniManha||res.bonusMiniTarde) bMini++;
+          if(res.bonusPeter||res.bonusPeterManha||res.bonusPeterTarde) bPeter++;
         });
       });
-      const media=voltas.length?voltas.reduce((a,b)=>a+b,0)/voltas.length:null;
-      return {...atl,participacoes,abandonos,media,bonusTotal};
-    }).filter(a=>a.participacoes>0).sort((a,b)=>(a.media||999)-(b.media||999));
+      const media=todasVoltas.length?todasVoltas.reduce((a,b)=>a+b,0)/todasVoltas.length:null;
+      return {...atl,part,aban,media,bMini,bPeter};
+    }).filter(a=>a.part>0).sort((a,b)=>(a.media||999)-(b.media||999));
 
     if(!grupo.length) return;
-    h+='<div class="stat-bloco">';
-    h+='<div class="stat-bloco-titulo">'+cat+'</div>';
+
+    h+=`<div class="card" style="margin-bottom:20px">
+      <div class="card-titulo">${cat}</div>
+      <div class="tabela-wrap"><table>
+        <thead><tr>
+          <th style="width:40px">Pos</th>
+          <th>Atleta</th>
+          <th class="c">Provas</th>
+          <th class="c">Média</th>
+          <th class="c">🥇 Mini</th>
+          <th class="c">🥇 Peter</th>
+          <th class="c">Abandon.</th>
+        </tr></thead>
+        <tbody>`;
+
     grupo.forEach((a,i)=>{
-      const posClass=i===0?'p1':i===1?'p2':i===2?'p3':'';
-      h+='<div class="stat-linha">';
-      h+='<span class="stat-pos '+posClass+'">'+(i+1)+'º</span>';
-      h+='<div class="stat-nome">'+a.nome;
-      if(a.abandonos) h+=' <span style="color:#e87;font-size:0.7rem">⚠️'+a.abandonos+'</span>';
-      h+='<div class="stat-sub">'+a.participacoes+' prova(s)'+(a.bonusTotal?' · 🥇'+a.bonusTotal+' bónus':'')+'</div></div>';
-      h+='<span class="stat-val">'+(a.media?a.media.toFixed(1):'—')+'</span>';
-      h+='</div>';
+      const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
+      const medalha = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+      h+=`<tr>
+        <td class="${posClass}" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem">${medalha||((i+1)+'º')}</td>
+        <td><strong>${a.nome}</strong></td>
+        <td style="text-align:center">${a.part}</td>
+        <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--orange)">${a.media?a.media.toFixed(1):'—'}</td>
+        <td style="text-align:center;color:var(--green)">${a.bMini||'—'}</td>
+        <td style="text-align:center;color:var(--green)">${a.bPeter||'—'}</td>
+        <td style="text-align:center;color:${a.aban?'var(--red)':'var(--dim)'}">${a.aban||'—'}</td>
+      </tr>`;
     });
-    h+='</div>';
+    h+=`</tbody></table></div></div>`;
   });
-  el.innerHTML=h||'<div style="color:var(--silver);padding:20px;text-align:center">Sem dados ainda.</div>';
+  el.innerHTML=h||'<div style="padding:40px;text-align:center;color:var(--dim)">Sem dados ainda.</div>';
 }
 
 // ── POR ATLETA ──
@@ -731,104 +757,122 @@ function renderStatsAtleta(el, catFilt, atlId) {
     const histNac=(snap.exists()&&snap.data().historico)?snap.data().historico:{};
     const atletas=(dadosInt?.atletas||[]).filter(a=>(!catFilt||a.categoria===catFilt)&&(!atlId||a.id===atlId));
     const provas=(dadosInt?.provas||[]).filter(p=>p.estado!=='agendado');
-    let h='';
 
+    if(!atlId && atletas.length>8) {
+      el.innerHTML='<div style="padding:30px;text-align:center;color:var(--dim);font-size:0.9rem">Selecciona um atleta no filtro acima para ver o detalhe.</div>';
+      return;
+    }
+
+    let h='';
     atletas.forEach(atl=>{
-      // Interno
       const linhas=[];
       provas.forEach(p=>{
         Object.entries(p.resultados||{}).forEach(([j,rj])=>{
           const res=rj[atl.id]; if(!res) return;
           const vm=statsExtrairVoltas(res,'mini');
           const vp=statsExtrairVoltas(res,'peter');
+          const tM=vm.length?statsTotalValido(vm):null;
+          const tP=vp.length?statsTotalValido(vp):null;
+          const mM=statsMedia(vm); const mP=statsMedia(vp);
           const abandono=statsTemAbandono([...vm,...vp]);
-          linhas.push({
-            prova:p.nome, j,
-            mini: vm.length?statsTotalValido(vm):null,
-            peter: vp.length?statsTotalValido(vp):null,
-            mediaMini: statsMedia(vm), mediaPeter: statsMedia(vp),
-            abandono,
-            bonus:[res.bonusMini?'Mini':'',res.bonusPeter?'Peter':'',res.bonusPeterManha?'🌅':'',res.bonusPeterTarde?'🌆':''].filter(Boolean)
-          });
+          const bonus=[
+            res.bonusMini||res.bonusMiniManha||res.bonusMiniTarde?'Mini':'',
+            res.bonusPeter||res.bonusPeterManha||res.bonusPeterTarde?'Peter':''
+          ].filter(Boolean);
+          linhas.push({prova:p.nome,j:parseInt(j),tM,tP,mM,mP,abandono,bonus,
+            esp: p.jornadaEspecial?.[j]?.tipo });
         });
       });
 
-      // Nacional
       const primNome=atl.nome.toLowerCase().split(' ')[0];
       const linhasNac=[];
       Object.entries(histNac).forEach(([chave,prov])=>{
         Object.entries(prov.categorias||{}).forEach(([cat,ats])=>{
           ats.forEach(a=>{
-            if(a.nome&&a.nome.toLowerCase().includes(primNome)){
-              linhasNac.push({prova:prov.nome||chave,ano:prov.ano||'',tipo:(prov.tipo||chave.split('_')[0]).toUpperCase(),pos:a.pos||a.rank||'—',total:a.total||'—'});
-            }
+            if(a.nome&&a.nome.toLowerCase().includes(primNome))
+              linhasNac.push({prova:prov.nome||chave,ano:prov.ano||'',
+                tipo:(prov.tipo||chave.split('_')[0]).toUpperCase(),
+                pos:a.pos||a.rank||'—',total:a.total||'—',cat});
           });
         });
       });
 
       if(!linhas.length&&!linhasNac.length) return;
 
-      h+='<div class="stat-bloco">';
-      h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-      h+='<div><span style="font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:var(--org2)">'+atl.nome+'</span>';
-      h+='<span style="font-size:0.73rem;color:var(--silver);margin-left:8px">'+atl.categoria+'</span></div>';
-      h+='<span style="font-size:0.78rem;color:var(--silver)">'+linhas.length+' provas internas · '+linhasNac.length+' nacionais</span>';
-      h+='</div>';
+      // Calcular totais
+      const todasM=linhas.flatMap(l=>l.mM?[l.mM]:[]);
+      const todasP=linhas.flatMap(l=>l.mP?[l.mP]:[]);
+      const mediaM=todasM.length?(todasM.reduce((a,b)=>a+b,0)/todasM.length).toFixed(1):null;
+      const mediaP=todasP.length?(todasP.reduce((a,b)=>a+b,0)/todasP.length).toFixed(1):null;
 
-      // Tabela interna simples
+      h+=`<div class="card" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--navy)">${atl.nome}</div>
+            <div style="font-size:0.75rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px">${atl.categoria}</div>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            ${mediaM?`<div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--orange)">${mediaM}</div><div style="font-size:0.65rem;color:var(--dim);text-transform:uppercase">Méd. Mini</div></div>`:''}
+            ${mediaP?`<div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--blue)">${mediaP}</div><div style="font-size:0.65rem;color:var(--dim);text-transform:uppercase">Méd. Peter</div></div>`:''}
+            <div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--navy)">${linhas.length}</div><div style="font-size:0.65rem;color:var(--dim);text-transform:uppercase">Provas</div></div>
+            ${linhasNac.length?`<div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--green)">${linhasNac.length}</div><div style="font-size:0.65rem;color:var(--dim);text-transform:uppercase">Nacionais</div></div>`:''}
+          </div>
+        </div>`;
+
       if(linhas.length){
-        h+='<table style="width:100%;border-collapse:collapse;font-size:0.78rem;margin-bottom:10px">';
-        h+='<thead><tr style="border-bottom:1px solid var(--border)">';
-        h+='<th style="text-align:left;padding:4px 6px;color:var(--silver)">Prova</th>';
-        h+='<th style="text-align:center;padding:4px 6px;color:var(--silver)">Mini</th>';
-        h+='<th style="text-align:center;padding:4px 6px;color:var(--silver)">Peter</th>';
-        h+='<th style="text-align:center;padding:4px 6px;color:var(--silver)">Bónus</th>';
-        h+='<th style="text-align:center;padding:4px 6px;color:var(--silver)"></th>';
-        h+='</tr></thead><tbody>';
+        h+=`<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);margin-bottom:8px">🏠 Resultados Internos</div>
+        <div class="tabela-wrap"><table style="margin-bottom:16px">
+          <thead><tr>
+            <th>Prova</th>
+            <th class="c">Mini</th><th class="c">Méd.M</th>
+            <th class="c">Peter</th><th class="c">Méd.P</th>
+            <th class="c">Bónus</th><th class="c"></th>
+          </tr></thead><tbody>`;
         linhas.forEach(l=>{
-          h+='<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">';
-          h+='<td style="padding:4px 6px;color:var(--branco)">'+l.prova+(l.j>1?' J'+l.j:'')+'</td>';
-          h+='<td style="text-align:center;padding:4px 6px;color:var(--org2)">'+(l.mini||(l.mediaMini?l.mediaMini.toFixed(1):'—'))+'</td>';
-          h+='<td style="text-align:center;padding:4px 6px;color:var(--org2)">'+(l.peter||(l.mediaPeter?l.mediaPeter.toFixed(1):'—'))+'</td>';
-          h+='<td style="text-align:center;padding:4px 6px">'+(l.bonus.length?'🥇'+l.bonus.join(' '):'—')+'</td>';
-          h+='<td style="text-align:center;padding:4px 6px">'+(l.abandono?'<span style="color:#e87;font-size:0.72rem">Abandono</span>':'')+'</td>';
-          h+='</tr>';
+          const provaNome = l.prova + (l.j>1?` <span style="font-size:0.7rem;color:var(--dim)">J${l.j}</span>`:'');
+          h+=`<tr>
+            <td>${provaNome}</td>
+            <td style="text-align:center;font-weight:700;color:var(--navy)">${l.tM||'—'}</td>
+            <td style="text-align:center;color:var(--dim)">${l.mM?l.mM.toFixed(1):'—'}</td>
+            <td style="text-align:center;font-weight:700;color:var(--navy)">${l.tP||'—'}</td>
+            <td style="text-align:center;color:var(--dim)">${l.mP?l.mP.toFixed(1):'—'}</td>
+            <td style="text-align:center;font-size:0.75rem;color:var(--green)">${l.bonus.length?'🥇 '+l.bonus.join(', '):'—'}</td>
+            <td style="text-align:center">${l.abandono?'<span class="badge" style="background:rgba(204,34,34,0.1);color:var(--red)">Abandono</span>':''}</td>
+          </tr>`;
         });
-        h+='</tbody></table>';
+        h+=`</tbody></table></div>`;
       }
 
-      // Nacional simples
       if(linhasNac.length){
-        h+='<div style="font-size:0.72rem;color:var(--silver);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🇵🇹 Nacional</div>';
-        h+='<table style="width:100%;border-collapse:collapse;font-size:0.78rem">';
-        h+='<thead><tr style="border-bottom:1px solid var(--border)">';
-        h+='<th style="text-align:left;padding:4px 6px;color:var(--silver)">Prova</th>';
-        h+='<th style="text-align:center;padding:4px 6px;color:var(--silver)">Ano</th>';
-        h+='<th style="text-align:center;padding:4px 6px;color:var(--silver)">Tipo</th>';
-        h+='<th style="text-align:center;padding:4px 6px;color:var(--silver)">Total</th>';
-        h+='<th style="text-align:center;padding:4px 6px;color:var(--silver)">Posição</th>';
-        h+='</tr></thead><tbody>';
+        h+=`<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);margin-bottom:8px">🇵🇹 Histórico Nacional</div>
+        <div class="tabela-wrap"><table>
+          <thead><tr>
+            <th>Prova</th><th class="c">Ano</th><th class="c">Tipo</th>
+            <th class="c">Total</th><th class="c">Posição</th>
+          </tr></thead><tbody>`;
         linhasNac.sort((a,b)=>b.ano-a.ano).forEach(l=>{
-          h+='<tr style="border-bottom:1px solid rgba(255,255,255,0.04)">';
-          h+='<td style="padding:4px 6px;color:var(--branco)">'+l.prova+'</td>';
-          h+='<td style="text-align:center;padding:4px 6px;color:var(--silver)">'+l.ano+'</td>';
-          h+='<td style="text-align:center;padding:4px 6px;color:var(--org2);font-size:0.72rem">'+l.tipo+'</td>';
-          h+='<td style="text-align:center;padding:4px 6px;color:var(--silver)">'+l.total+'</td>';
-          h+='<td style="text-align:center;padding:4px 6px;color:var(--org2);font-weight:700">'+l.pos+'º</td>';
-          h+='</tr>';
+          const pos=parseInt(l.pos)||999;
+          const posClass=pos===1?'pos-1':pos===2?'pos-2':pos===3?'pos-3':'';
+          h+=`<tr>
+            <td><strong>${l.prova}</strong><br><span style="font-size:0.7rem;color:var(--dim)">${l.cat}</span></td>
+            <td style="text-align:center">${l.ano}</td>
+            <td style="text-align:center"><span class="badge badge-ativo">${l.tipo}</span></td>
+            <td style="text-align:center;font-weight:700">${l.total}</td>
+            <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem" class="${posClass}">${l.pos}º</td>
+          </tr>`;
         });
-        h+='</tbody></table>';
+        h+=`</tbody></table></div>`;
       }
-      h+='</div>';
+      h+=`</div>`;
     });
-    el.innerHTML=h||'<div style="color:var(--silver);padding:20px;text-align:center">Selecciona um atleta.</div>';
-  }).catch(e=>{ el.innerHTML='<div style="color:#e87;padding:20px">Erro: '+e.message+'</div>'; });
+    el.innerHTML=h||'<div style="padding:30px;text-align:center;color:var(--dim)">Sem dados para o filtro seleccionado.</div>';
+  }).catch(e=>{ el.innerHTML=`<div style="padding:20px;color:var(--red)">Erro: ${e.message}</div>`; });
 }
 
 // ── POR PROVA ──
 function renderStatsProva(el, catFilt) {
   const provas=(dadosInt?.provas||[]).filter(p=>p.estado!=='agendado');
-  if(!provas.length){ el.innerHTML='<div style="color:var(--silver);padding:20px;text-align:center">Sem provas com resultados.</div>'; return; }
+  if(!provas.length){el.innerHTML='<div style="padding:40px;text-align:center;color:var(--dim)">Sem provas com resultados.</div>';return;}
   let h='';
 
   provas.forEach(prova=>{
@@ -843,35 +887,49 @@ function renderStatsProva(el, catFilt) {
         const vp=statsExtrairVoltas(res,'peter');
         const tM=vm.length?statsTotalValido(vm):null;
         const tP=vp.length?statsTotalValido(vp):null;
-        linhas.push({id,nome:statsNome(id),cat,tM,tP,tot:(tM||0)+(tP||0),abandono:statsTemAbandono([...vm,...vp])});
+        linhas.push({id,nome:statsNome(id),cat,tM,tP,
+          tot:(tM||0)+(tP||0),abandono:statsTemAbandono([...vm,...vp])});
       });
       if(!linhas.length) return;
       linhas.sort((a,b)=>(a.abandono?1:0)-(b.abandono?1:0)||a.tot-b.tot);
 
-      h+='<div class="stat-bloco">';
-      h+='<div class="stat-bloco-titulo">'+prova.nome+(prova.jornadas>1?' — J'+jNum:'')+'</div>';
+      h+=`<div class="card" style="margin-bottom:20px">
+        <div class="card-titulo">${prova.nome}${prova.jornadas>1?` — Jornada ${jNum}`:''}</div>
+        <div class="tabela-wrap"><table>
+          <thead><tr>
+            <th style="width:40px">Pos</th>
+            <th>Atleta</th>
+            <th>Categoria</th>
+            <th class="c">Mini</th>
+            <th class="c">Peter</th>
+            <th class="c">Total</th>
+          </tr></thead><tbody>`;
+
       linhas.forEach((l,i)=>{
-        const posClass=i===0?'p1':i===1?'p2':i===2?'p3':'';
-        h+='<div class="stat-linha">';
-        h+='<span class="stat-pos '+posClass+'">'+(i+1)+'º</span>';
-        h+='<div class="stat-nome">'+l.nome+'<div class="stat-sub">'+l.cat+'</div></div>';
-        h+='<div style="text-align:right">';
-        if(l.tM) h+='<span style="font-size:0.75rem;color:var(--silver)">M:'+l.tM+' </span>';
-        if(l.tP) h+='<span style="font-size:0.75rem;color:var(--silver)">P:'+l.tP+' </span>';
-        h+='<span class="stat-val">'+(l.abandono?'<span style="color:#e87;font-size:0.75rem">Ab.</span>':l.tot)+'</span>';
-        h+='</div></div>';
+        const posClass=i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
+        const medalha=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+        h+=`<tr>
+          <td class="${posClass}" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem">${medalha||((i+1)+'º')}</td>
+          <td><strong>${l.nome}</strong></td>
+          <td style="font-size:0.75rem;color:var(--dim)">${l.cat}</td>
+          <td style="text-align:center;font-weight:700">${l.tM||'—'}</td>
+          <td style="text-align:center;font-weight:700">${l.tP||'—'}</td>
+          <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:${l.abandono?'var(--red)':'var(--orange)'}">
+            ${l.abandono?'<span class="badge" style="background:rgba(204,34,34,0.1);color:var(--red)">Abandono</span>':l.tot}
+          </td>
+        </tr>`;
       });
-      h+='</div>';
+      h+=`</tbody></table></div></div>`;
     });
   });
-  el.innerHTML=h||'<div style="color:var(--silver);padding:20px;text-align:center">Sem dados.</div>';
+  el.innerHTML=h||'<div style="padding:40px;text-align:center;color:var(--dim)">Sem dados.</div>';
 }
 
 // ── HISTÓRICO NACIONAL ──
 function renderStatsHistorico(el, catFilt, atlId) {
   getDoc(doc(db,'vizelgolfe','nacional')).then(snap=>{
     if(!snap.exists()||!snap.data().historico){
-      el.innerHTML='<div style="color:var(--silver);padding:20px;text-align:center">Sem histórico nacional. Carrega provas no separador Nacional.</div>';
+      el.innerHTML='<div style="padding:40px;text-align:center;color:var(--dim)">Sem histórico nacional carregado.</div>';
       return;
     }
     const hist=snap.data().historico;
@@ -880,43 +938,77 @@ function renderStatsHistorico(el, catFilt, atlId) {
       return bA-aA||a.localeCompare(b);
     });
     const primNome=atlId?statsNome(atlId).toLowerCase().split(' ')[0]:null;
-    let h='<div style="font-size:0.8rem;color:var(--silver);margin-bottom:12px">'+chaves.length+' provas no histórico</div>';
 
+    // Agrupar por tipo
+    const porTipo={};
     chaves.forEach(chave=>{
       const prov=hist[chave];
-      const cats=prov.categorias||{};
-      const vzgAtletas=[];
-      Object.entries(cats).forEach(([cat,ats])=>{
-        if(catFilt&&cat!==catFilt) return;
-        ats.forEach(a=>{
-          const isVzg=a.clube&&a.clube.toLowerCase().includes('vizela');
-          const matchAtl=!atlId||(a.nome&&a.nome.toLowerCase().includes(primNome));
-          if(!isVzg&&!matchAtl) return;
-          vzgAtletas.push({...a,cat});
-        });
-      });
-      if(!vzgAtletas.length) return;
-      vzgAtletas.sort((a,b)=>(a.pos||a.rank||999)-(b.pos||b.rank||999));
+      const tipo=(prov.tipo||chave.split('_')[0]).toUpperCase();
+      if(!porTipo[tipo]) porTipo[tipo]=[];
+      porTipo[tipo].push({chave,...prov});
+    });
 
-      h+='<div class="stat-bloco">';
-      h+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-      h+='<span style="font-weight:700;color:var(--branco)">'+(prov.nome||chave)+'</span>';
-      h+='<span style="font-size:0.75rem;color:var(--silver)">'+(prov.ano||'')+'</span>';
-      h+='</div>';
-      vzgAtletas.forEach((a,i)=>{
-        const pos=a.pos||a.rank||'—';
-        const posClass=pos<=3?(pos===1?'p1':pos===2?'p2':'p3'):'';
-        h+='<div class="stat-linha">';
-        h+='<span class="stat-pos '+posClass+'">'+pos+'º</span>';
-        h+='<div class="stat-nome">🟡 '+a.nome+'<div class="stat-sub">'+a.cat+' · '+a.clube+'</div></div>';
-        h+='<span class="stat-val">'+(a.total||'—')+'</span>';
-        h+='</div>';
+    let h=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      ${Object.entries(porTipo).map(([tipo,provs])=>`
+        <div class="card" style="flex:1;min-width:140px;padding:14px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--orange)">${provs.length}</div>
+          <div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px">${tipo}</div>
+        </div>`).join('')}
+    </div>`;
+
+    Object.entries(porTipo).forEach(([tipo,provs])=>{
+      h+=`<div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:3px;color:var(--navy);margin:20px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--orange)">${tipo}</div>`;
+
+      provs.forEach(prov=>{
+        const cats=prov.categorias||{};
+        const vzgAtletas=[];
+        Object.entries(cats).forEach(([cat,ats])=>{
+          if(catFilt&&cat!==catFilt) return;
+          ats.forEach(a=>{
+            const isVzg=a.clube&&a.clube.toLowerCase().includes('vizela');
+            const matchAtl=!atlId||(a.nome&&a.nome.toLowerCase().includes(primNome));
+            if(!isVzg&&!matchAtl) return;
+            vzgAtletas.push({...a,cat});
+          });
+        });
+        if(!vzgAtletas.length) return;
+        vzgAtletas.sort((a,b)=>(parseInt(a.pos||a.rank)||999)-(parseInt(b.pos||b.rank)||999));
+
+        h+=`<div class="card" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div>
+              <span style="font-weight:700;font-size:0.95rem;color:var(--navy)">${prov.nome||prov.chave}</span>
+              <span class="badge badge-ativo" style="margin-left:8px">${prov.ano||''}</span>
+            </div>
+            <span style="font-size:0.75rem;color:var(--dim)">${vzgAtletas.length} atleta(s) Vizelgolfe</span>
+          </div>
+          <div class="tabela-wrap"><table>
+            <thead><tr>
+              <th style="width:40px">Pos</th>
+              <th>Atleta</th>
+              <th>Categoria</th>
+              <th class="c">Total</th>
+            </tr></thead><tbody>`;
+
+        vzgAtletas.forEach(a=>{
+          const pos=parseInt(a.pos||a.rank)||999;
+          const posClass=pos===1?'pos-1':pos===2?'pos-2':pos===3?'pos-3':'';
+          const medalha=pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
+          h+=`<tr>
+            <td class="${posClass}" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem">${medalha||(pos+'º')}</td>
+            <td><strong style="color:var(--navy)">🟡 ${a.nome}</strong></td>
+            <td style="font-size:0.75rem;color:var(--dim)">${a.cat}</td>
+            <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--orange)">${a.total||'—'}</td>
+          </tr>`;
+        });
+        h+=`</tbody></table></div></div>`;
       });
-      h+='</div>';
     });
     el.innerHTML=h;
-  }).catch(e=>{ el.innerHTML='<div style="color:#e87;padding:20px">Erro: '+e.message+'</div>'; });
+  }).catch(e=>{ el.innerHTML=`<div style="padding:20px;color:var(--red)">Erro: ${e.message}</div>`; });
 }
+
+
 window.alterarSenhaAtleta = async function() {
   const nova = document.getElementById('nova-senha-atleta').value.trim();
   const conf = document.getElementById('nova-senha-atleta-conf').value.trim();
