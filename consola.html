@@ -1625,10 +1625,9 @@ let _nacDetIntervalo = null;
 let _nacDetUrl = null;
 let _nacDetVertente = null;
 
-window.abrirDetalheNac = function(linkAtleta, nome, clube, cat, vertente) {
-  if(!linkAtleta) return;
-  const baseUrl = dadosNac?.url ? dadosNac.url.replace(/[^/]+$/, '') : '';
-  _nacDetUrl = baseUrl + linkAtleta;
+window.abrirDetalheNac = function(urlCompleto, nome, clube, cat, vertente) {
+  if(!urlCompleto) return;
+  _nacDetUrl = urlCompleto;
   _nacDetVertente = vertente;
 
   document.getElementById('nac-det-nome').textContent = nome;
@@ -2038,7 +2037,7 @@ function renderNacCategoria() {
     const vazios=maxV-(a.voltas||[]).length;
     const vaziosCells=Array(vazios).fill('<td style="text-align:center;color:var(--dim)">—</td>').join('');
     const vertNac = (dadosNac?.vertentes||{})[nacAtivo] || (['Homens','Senhoras'].some(c=>nacAtivo&&nacAtivo.includes(c))?'mini':'peter');
-      html+=`<tr class="${vzg?'vzg-row':''}" style="cursor:pointer${a.dnf?';opacity:0.6':''}" onclick="abrirDetalheOuModal(${JSON.stringify(a).replace(/"/g,'&quot;')},'${vertNac}')">
+      html+=`<tr class="${vzg?'vzg-row':''}" style="cursor:pointer${a.dnf?';opacity:0.6':''}" onclick="abrirDetalheOuModal(${JSON.stringify(a).replace(/"/g,'&quot;')},'${vertNac}','${dadosNac?.url||''}')">
       <td class="${i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':''}">${a.rank||'—'}º</td>
       <td><strong>${vzg?'🟡 ':''}${a.nome}</strong></td>
       <td style="font-size:0.75rem;color:var(--silver)">${a.clube}</td>
@@ -2053,9 +2052,12 @@ function renderNacCategoria() {
 
 function isVzg(clube){return clube&&clube.toLowerCase().includes('vizelgolfe');}
 
-window.abrirDetalheOuModal = function(a, vertente) {
+window.abrirDetalheOuModal = function(a, vertente, provaUrl) {
   if(a.linkAtleta) {
-    abrirDetalheNac(a.linkAtleta, a.nome, a.clube, nacAtivo, vertente);
+    // Construir URL completo usando o url da prova
+    const base = provaUrl ? provaUrl.replace(/[^/]+$/, '') : (dadosNac?.url||'').replace(/[^/]+$/, '');
+    const urlCompleto = base + a.linkAtleta;
+    abrirDetalheNac(urlCompleto, a.nome, a.clube, nacAtivo, vertente);
   } else {
     abrirModalNac(a);
   }
