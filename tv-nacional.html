@@ -147,6 +147,11 @@ setInterval(() => {
   document.getElementById('clock').textContent = new Date().toLocaleTimeString('pt-PT');
 }, 1000);
 
+function corVoltaMini(t){const n=Number(t);if(isNaN(n)||n<=0)return'';if(n<=19)return'color:#60c8ff;font-weight:700';if(n<=24)return'color:#4ade80;font-weight:700';if(n<=29)return'color:#f87171;font-weight:700';return'color:#9ca3af;font-weight:700';}
+function corVoltaPeter(t){const n=Number(t);if(isNaN(n)||n<=0)return'';if(n<=24)return'color:#60c8ff;font-weight:700';if(n<=29)return'color:#4ade80;font-weight:700';if(n<=35)return'color:#f87171;font-weight:700';return'color:#9ca3af;font-weight:700';}
+function corTotal(total,nVoltas,tipo){const n=Number(total);if(isNaN(n)||n<=0||!nVoltas)return'';const m=n/nVoltas;return tipo==='mini'?corVoltaMini(m):corVoltaPeter(m);}
+const CAT_MINI=['H','S'];
+
 function isVzg(clube) { return clube && clube.toLowerCase().includes('vizelgolfe'); }
 
 function renderCategorias(categorias) {
@@ -187,13 +192,18 @@ function renderCategorias(categorias) {
         <td class="clube">${a.clube}</td>
       `;
 
+      const isMini=CAT_MINI.includes(catName);
+      const cV=isMini?corVoltaMini:corVoltaPeter;
       for(let i=0; i<maxVoltas; i++) {
         const v = a.voltas && a.voltas[i] ? a.voltas[i] : '-';
-        html += `<td class="center voltas">${v}</td>`;
+        const s = v!=='-' ? cV(v) : '';
+        html += `<td class="center voltas" style="${s}">${v}</td>`;
       }
 
+      const nV=(a.voltas||[]).filter(v=>v>0).length;
+      const sCor=a.dnf?'':corTotal(a.total,nV,isMini?'mini':'peter');
       const tot = a.dnf ? '<span class="dnf">DNF</span>' : a.total;
-      html += `<td class="center total">${tot}</td></tr>`;
+      html += `<td class="center total" style="${sCor}">${tot}</td></tr>`;
     });
 
     html += `</tbody></table></div>`;
