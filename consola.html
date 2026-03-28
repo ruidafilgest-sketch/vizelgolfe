@@ -489,6 +489,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
   <!-- TABS SIMPLES -->
   <div id="stats-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
     <button class="stat-tab on" onclick="statsTab('ranking',this)">🏆 Ranking</button>
+    <button class="stat-tab" onclick="statsTab('metricas',this)">📊 Métricas</button>
     <button class="stat-tab" onclick="statsTab('atleta',this)">👤 Por Atleta</button>
     <button class="stat-tab" onclick="statsTab('provas',this)">🏌️ Por Prova</button>
     <button class="stat-tab" onclick="statsTab('nacional',this)">🇵🇹 Nacional</button>
@@ -687,6 +688,7 @@ window.renderStats = function() {
   const atlId = atlFilt?parseInt(atlFilt):null;
 
   if(_statsModo==='ranking')   renderStatsRanking(el,catFilt);
+  else if(_statsModo==='metricas') renderStatsDashboard(el,catFilt);
   else if(_statsModo==='atleta') renderStatsAtleta(el,catFilt,atlId);
   else if(_statsModo==='provas') renderStatsProva(el,catFilt);
   else if(_statsModo==='nacional') renderStatsHistorico(el,catFilt,atlId);
@@ -1008,6 +1010,236 @@ function renderStatsHistorico(el, catFilt, atlId) {
   }).catch(e=>{ el.innerHTML=`<div style="padding:20px;color:var(--red)">Erro: ${e.message}</div>`; });
 }
 
+
+// ═══════════════════════════════════════════════════════
+// MÉTRICAS AVANÇADAS — Standard internacional adaptado
+// ═══════════════════════════════════════════════════════
+
+// ── CALCULAR MÉTRICAS POR ATLETA ──
+function calcMetricas(atl, provas, histNac) {
+  const todasVoltas = [], mediasPorProva = [], participacoes = [];
+  let aban = 0, bMini = 0, bPeter = 0, acesTotal = 0, voltasTotal = 0;
+
+  provas.forEach(p => {
+    if(p.estado === 'agendado') return;
+    Object.entries(p.resultados||{}).forEach(([j,rj]) => {
+      const res = rj[atl.id]; if(!res) return;
+      const vm = statsExtrairVoltas(res,'mini');
+      const vp = statsExtrairVoltas(res,'peter');
+      const todas = [...vm,...vp];
+      const validas = todas.filter(v=>v&&v!==ABANDONO);
+      if(statsTemAbandono(todas)) { aban++; return; }
+      if(!validas.length) return;
+      const media = validas.reduce((a,b)=>a+b,0)/validas.length;
+      todasVoltas.push(...validas);
+      mediasPorProva.push({media, prova:p.nome, j:parseInt(j), data:p.dataJornadas?.[j]||p.data||''});
+      voltasTotal += validas.length;
+      // Aces (1 tacada)
+      acesTotal += validas.filter(v=>v===1).length;
+      if(res.bonusMini||res.bonusMiniManha||res.bonusMiniTarde) bMini++;
+      if(res.bonusPeter||res.bonusPeterManha||res.bonusPeterTarde) bPeter++;
+      participacoes.push({media, prova:p.nome});
+    });
+  });
+
+  if(!todasVoltas.length) return null;
+
+  const mediaGlobal = todasVoltas.reduce((a,b)=>a+b,0)/todasVoltas.length;
+
+  // Desvio padrão (Consistency Index)
+  const variance = todasVoltas.reduce((a,v)=>(a+(v-mediaGlobal)**2),0)/todasVoltas.length;
+  const consistencia = Math.sqrt(variance);
+
+  // Handicap dinâmico (média das 8 melhores de todas as médias por prova)
+  const mediasOrdenadas = mediasPorProva.map(m=>m.media).sort((a,b)=>a-b);
+  const n8 = Math.min(8, mediasOrdenadas.length);
+  const handicap = n8 > 0 ? mediasOrdenadas.slice(0,n8).reduce((a,b)=>a+b,0)/n8 : null;
+
+  // Trend — últimas 5 provas (regressão linear simples)
+  const ultimas5 = mediasPorProva.slice(-5);
+  let trend = 0;
+  if(ultimas5.length >= 3) {
+    const n = ultimas5.length;
+    const xMean = (n-1)/2;
+    const yMean = ultimas5.reduce((a,m)=>a+m.media,0)/n;
+    let num=0, den=0;
+    ultimas5.forEach((m,i)=>{ num+=(i-xMean)*(m.media-yMean); den+=(i-xMean)**2; });
+    trend = den>0 ? num/den : 0;
+  }
+
+  // Strike Rate — % de voltas abaixo da média global
+  const strikeRate = voltasTotal>0 ? (todasVoltas.filter(v=>v<mediaGlobal).length/voltasTotal*100) : 0;
+
+  // Ace Rate
+  const aceRate = voltasTotal>0 ? (acesTotal/voltasTotal*100) : 0;
+
+  // Melhor e pior prova
+  const melhor = mediasPorProva.reduce((a,m)=>m.media<a.media?m:a, mediasPorProva[0]);
+  const pior = mediasPorProva.reduce((a,m)=>m.media>a.media?m:a, mediasPorProva[0]);
+
+  // Nacionais
+  const primNome = atl.nome.toLowerCase().split(' ')[0];
+  const nacPart = [], nacMelhorPos = [];
+  Object.entries(histNac).forEach(([chave,prov])=>{
+    Object.entries(prov.categorias||{}).forEach(([cat,ats])=>{
+      ats.forEach(a=>{
+        if(a.nome&&a.nome.toLowerCase().includes(primNome)){
+          nacPart.push({prova:prov.nome||chave,ano:prov.ano||'',pos:parseInt(a.pos||a.rank)||999});
+          nacMelhorPos.push(parseInt(a.pos||a.rank)||999);
+        }
+      });
+    });
+  });
+  const melhorPosNac = nacMelhorPos.length ? Math.min(...nacMelhorPos) : null;
+
+  return {
+    mediaGlobal, consistencia, handicap, trend,
+    strikeRate, aceRate, melhor, pior,
+    nProvas: mediasPorProva.length, aban, bMini, bPeter,
+    nacPart, melhorPosNac,
+    mediasPorProva
+  };
+}
+
+// ── CALCULAR MÉTRICAS DO CLUBE ──
+function calcMetricasClube(atletas, provas, histNac) {
+  const metricas = atletas.map(a => ({atl:a, m:calcMetricas(a,provas,histNac)})).filter(x=>x.m);
+  if(!metricas.length) return null;
+
+  // Club Handicap — média ponderada dos handicaps individuais
+  const handicaps = metricas.map(x=>x.m.handicap).filter(Boolean);
+  const clubHandicap = handicaps.length ? handicaps.reduce((a,b)=>a+b,0)/handicaps.length : null;
+
+  // Depth Index — quantos atletas têm handicap abaixo de 25 (Mini) ou 30 (Peter)
+  const depthIndex = handicaps.filter(h=>h<28).length;
+
+  // Top 5 Average
+  const top5 = metricas.sort((a,b)=>(a.m.mediaGlobal||999)-(b.m.mediaGlobal||999)).slice(0,5);
+  const top5Avg = top5.length ? top5.reduce((a,x)=>a+x.m.mediaGlobal,0)/top5.length : null;
+
+  // Most Consistent
+  const maisConsistente = metricas.reduce((a,x)=>x.m.consistencia<a.m.consistencia?x:a, metricas[0]);
+  const maisEmProgresso = metricas.filter(x=>x.m.trend<0).sort((a,b)=>a.m.trend-b.m.trend)[0];
+  const maisBonusMini = metricas.reduce((a,x)=>x.m.bMini>a.m.bMini?x:a, metricas[0]);
+  const maisBonusPeter = metricas.reduce((a,x)=>x.m.bPeter>a.m.bPeter?x:a, metricas[0]);
+  const melhorNacional = metricas.filter(x=>x.m.melhorPosNac).sort((a,b)=>(a.m.melhorPosNac||999)-(b.m.melhorPosNac||999))[0];
+
+  return { clubHandicap, depthIndex, top5Avg, maisConsistente, maisEmProgresso,
+           maisBonusMini, maisBonusPeter, melhorNacional, total: metricas.length };
+}
+
+// ── RENDER DASHBOARD MÉTRICAS ──
+function renderStatsDashboard(el, catFilt) {
+  getDoc(doc(db,'vizelgolfe','nacional')).then(snap=>{
+    const histNac=(snap.exists()&&snap.data().historico)?snap.data().historico:{};
+    const provas=(dadosInt?.provas||[]);
+    const atletas=(dadosInt?.atletas||[]).filter(a=>!catFilt||a.categoria===catFilt);
+    const cats = catFilt?[catFilt]:[...new Set(atletas.map(a=>a.categoria))];
+
+    // Clube completo
+    const mClube = calcMetricasClube(atletas, provas, histNac);
+
+    let h = '';
+
+    // ── PAINEL DO CLUBE ──
+    if(mClube && !catFilt) {
+      h += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px">`;
+      const kpis = [
+        {label:'Club Handicap', val:mClube.clubHandicap?mClube.clubHandicap.toFixed(1):'—', sub:'Média ponderada', cor:'var(--orange)'},
+        {label:'Top 5 Média', val:mClube.top5Avg?mClube.top5Avg.toFixed(1):'—', sub:'5 melhores atletas', cor:'var(--navy)'},
+        {label:'Depth Index', val:mClube.depthIndex, sub:'Atletas handicap <28', cor:'var(--green)'},
+        {label:'Total Atletas', val:mClube.total, sub:'Com resultados', cor:'var(--blue)'},
+      ];
+      kpis.forEach(k=>{
+        h+=`<div class="card" style="text-align:center;padding:16px">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:${k.cor}">${k.val}</div>
+          <div style="font-weight:700;font-size:0.78rem;color:var(--navy);margin:2px 0">${k.label}</div>
+          <div style="font-size:0.68rem;color:var(--dim)">${k.sub}</div>
+        </div>`;
+      });
+      h+=`</div>`;
+
+      // Destaques do clube
+      h+=`<div class="card" style="margin-bottom:20px">
+        <div class="card-titulo">🏅 Destaques do Clube</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">`;
+
+      const destaques = [
+        {icon:'🎯', label:'Mais Consistente', atleta:mClube.maisConsistente?.atl?.nome, val:mClube.maisConsistente?.m?.consistencia?.toFixed(2), sub:'Desvio padrão'},
+        {icon:'📈', label:'Maior Progresso', atleta:mClube.maisEmProgresso?.atl?.nome||'—', val:mClube.maisEmProgresso?'▼ '+Math.abs(mClube.maisEmProgresso.m.trend).toFixed(2):'—', sub:'Trend últimas 5 provas'},
+        {icon:'🥇', label:'Rei dos Bónus Mini', atleta:mClube.maisBonusMini?.m?.bMini>0?mClube.maisBonusMini?.atl?.nome:'—', val:mClube.maisBonusMini?.m?.bMini||'—', sub:'Bónus conquistados'},
+        {icon:'⛳', label:'Rei dos Bónus Peter', atleta:mClube.maisBonusPeter?.m?.bPeter>0?mClube.maisBonusPeter?.atl?.nome:'—', val:mClube.maisBonusPeter?.m?.bPeter||'—', sub:'Bónus conquistados'},
+        {icon:'🇵🇹', label:'Melhor Nacional', atleta:mClube.melhorNacional?.atl?.nome||'—', val:mClube.melhorNacional?.m?.melhorPosNac?mClube.melhorNacional.m.melhorPosNac+'º':'—', sub:'Melhor posição histórica'},
+      ];
+      destaques.forEach(d=>{
+        h+=`<div style="background:var(--bg);border-radius:8px;padding:12px;border:1px solid var(--sep)">
+          <div style="font-size:1.2rem;margin-bottom:4px">${d.icon}</div>
+          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:4px">${d.label}</div>
+          <div style="font-weight:700;color:var(--navy);font-size:0.9rem">${d.atleta||'—'}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--orange)">${d.val||'—'}</div>
+          <div style="font-size:0.68rem;color:var(--dim)">${d.sub}</div>
+        </div>`;
+      });
+      h+=`</div></div>`;
+    }
+
+    // ── MÉTRICAS POR CATEGORIA ──
+    cats.forEach(cat=>{
+      const grupoAtl = atletas.filter(a=>a.categoria===cat);
+      const grupo = grupoAtl.map(a=>({atl:a,m:calcMetricas(a,provas,histNac)}))
+        .filter(x=>x.m).sort((a,b)=>a.m.handicap-b.m.handicap);
+      if(!grupo.length) return;
+
+      h+=`<div class="card" style="margin-bottom:20px">
+        <div class="card-titulo">${cat}</div>
+        <div class="tabela-wrap"><table>
+          <thead><tr>
+            <th>Atleta</th>
+            <th class="c" title="Média das 8 melhores performances">Handicap</th>
+            <th class="c" title="Média global de todas as voltas">Média</th>
+            <th class="c" title="Desvio padrão — quanto menor mais consistente">Consist.</th>
+            <th class="c" title="Tendência das últimas 5 provas">Trend</th>
+            <th class="c" title="% voltas abaixo da média pessoal">Strike%</th>
+            <th class="c" title="% de holes-in-one">Ace%</th>
+            <th class="c">Provas</th>
+            <th class="c">Nac.</th>
+          </tr></thead>
+          <tbody>`;
+
+      grupo.forEach((x,i)=>{
+        const m = x.m;
+        const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
+        const trendIcon = m.trend<-0.2?'<span style="color:var(--green)">▲ '+Math.abs(m.trend).toFixed(1)+'</span>':
+                          m.trend>0.2?'<span style="color:var(--red)">▼ '+m.trend.toFixed(1)+'</span>':
+                          '<span style="color:var(--dim)">→</span>';
+        const nacStr = m.nacPart.length ? (m.melhorPosNac+'º / '+m.nacPart.length+'x') : '—';
+        h+=`<tr>
+          <td><strong class="${posClass}">${x.atl.nome}</strong>
+            ${m.aban?`<span class="badge" style="background:rgba(204,34,34,0.1);color:var(--red);margin-left:4px">${m.aban} ab.</span>`:''}
+          </td>
+          <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--orange)">${m.handicap?m.handicap.toFixed(1):'—'}</td>
+          <td style="text-align:center;font-weight:700">${m.mediaGlobal.toFixed(1)}</td>
+          <td style="text-align:center;color:${m.consistencia<2?'var(--green)':m.consistencia>4?'var(--red)':'var(--text)'}">${m.consistencia.toFixed(2)}</td>
+          <td style="text-align:center">${trendIcon}</td>
+          <td style="text-align:center;color:var(--blue)">${m.strikeRate.toFixed(0)}%</td>
+          <td style="text-align:center;color:var(--dim)">${m.aceRate.toFixed(1)}%</td>
+          <td style="text-align:center">${m.nProvas}${m.aban?'<span style="color:var(--dim);font-size:0.75rem"> +'+m.aban+'</span>':''}</td>
+          <td style="text-align:center;font-size:0.82rem;color:${m.melhorPosNac&&m.melhorPosNac<=3?'var(--orange)':'var(--dim)'}">${nacStr}</td>
+        </tr>`;
+      });
+      h+=`</tbody></table></div>
+      <div style="margin-top:8px;font-size:0.68rem;color:var(--dim);display:flex;gap:16px;flex-wrap:wrap">
+        <span>📊 <strong>Handicap</strong>: média das 8 melhores performances</span>
+        <span>🎯 <strong>Consist.</strong>: desvio padrão — menor = mais consistente</span>
+        <span>📈 <strong>Trend</strong>: ▲ a melhorar · → estável · ▼ a regredir</span>
+        <span>⚡ <strong>Strike%</strong>: % voltas abaixo da média pessoal</span>
+      </div>
+      </div>`;
+    });
+
+    el.innerHTML=h||'<div style="padding:40px;text-align:center;color:var(--dim)">Sem dados suficientes para calcular métricas.</div>';
+  }).catch(e=>{el.innerHTML=`<div style="padding:20px;color:var(--red)">Erro: ${e.message}</div>`;});
+}
 
 window.alterarSenhaAtleta = async function() {
   const nova = document.getElementById('nova-senha-atleta').value.trim();
@@ -1388,6 +1620,154 @@ window.abrirPerfilAtleta = function(atletaId) {
   document.getElementById('modal-overlay').classList.add('on');
 };
 
+// ── DETALHE ATLETA NACIONAL ──
+let _nacDetIntervalo = null;
+let _nacDetUrl = null;
+let _nacDetVertente = null;
+
+window.abrirDetalheNac = function(linkAtleta, nome, clube, cat, vertente) {
+  if(!linkAtleta) return;
+  const baseUrl = dadosNac?.url ? dadosNac.url.replace(/[^/]+$/, '') : '';
+  _nacDetUrl = baseUrl + linkAtleta;
+  _nacDetVertente = vertente;
+
+  document.getElementById('nac-det-nome').textContent = nome;
+  document.getElementById('nac-det-meta').textContent = clube + ' · ' + cat;
+  document.getElementById('nac-det-status').textContent = '🔄 A actualizar...';
+  document.getElementById('modal-nac-detalhe').style.display = 'block';
+  document.getElementById('nac-det-body').innerHTML = '<div style="padding:40px;text-align:center;color:var(--dim)">⏳ A carregar...</div>';
+
+  carregarDetalheNac();
+  _nacDetIntervalo = setInterval(carregarDetalheNac, 5000);
+};
+
+window.fecharDetalheNac = function() {
+  clearInterval(_nacDetIntervalo);
+  _nacDetIntervalo = null;
+  _nacDetUrl = null;
+  document.getElementById('modal-nac-detalhe').style.display = 'none';
+};
+
+async function carregarDetalheNac() {
+  if(!_nacDetUrl) return;
+  try {
+    const workerUrl = WORKER_URL + '?url=' + encodeURIComponent(_nacDetUrl);
+    const resp = await fetch(workerUrl, {signal:AbortSignal.timeout(10000)});
+    if(!resp.ok) throw new Error('Worker falhou');
+    const html = await resp.text();
+    renderDetalheNac(html);
+    const agora = new Date().toLocaleTimeString('pt-PT');
+    document.getElementById('nac-det-status').textContent = '✅ Actualizado às ' + agora;
+  } catch(e) {
+    document.getElementById('nac-det-status').textContent = '❌ Erro: ' + e.message;
+  }
+}
+
+function renderDetalheNac(html) {
+  const parser = new DOMParser();
+  const d = parser.parseFromString(html, 'text/html');
+  const VERT_MAP = {'B':'peter','E':'mini','F':'felt'};
+  const el = document.getElementById('nac-det-body');
+
+  // Extrair cabeçalhos das colunas (B1,E7,F8 etc)
+  let headers = [];
+  let vertentes = [];
+  d.querySelectorAll('table tr').forEach(row => {
+    const cells = Array.from(row.querySelectorAll('td,th')).map(c=>c.textContent.trim());
+    if(cells.includes('B1')||cells.includes('E1')||cells.includes('E7')||cells.includes('B14')) {
+      headers = cells;
+      cells.forEach(c => {
+        const letra = c.replace(/\d+/g,'');
+        vertentes.push(VERT_MAP[letra] || _nacDetVertente || 'peter');
+      });
+    }
+  });
+
+  // Extrair pistas e tacadas
+  const pistas = [];
+  let inData = false;
+  d.querySelectorAll('table tr').forEach(row => {
+    const cells = Array.from(row.querySelectorAll('td,th')).map(c=>c.textContent.trim());
+    if(!cells.length) return;
+    const pistaNum = parseInt(cells[0]);
+    if(!isNaN(pistaNum) && pistaNum>=1 && pistaNum<=18) {
+      inData = true;
+      const tacadas = [];
+      // cells[2] em diante são as tacadas por volta
+      for(let i=2;i<cells.length;i++) {
+        const v = parseInt(cells[i]);
+        if(!isNaN(v) && v>=1 && v<=9) tacadas.push(v);
+      }
+      pistas.push({pista:pistaNum, tacadas});
+    }
+  });
+
+  // Extrair somas por volta
+  const somas = [];
+  d.querySelectorAll('table tr').forEach(row => {
+    const cells = Array.from(row.querySelectorAll('td,th')).map(c=>c.textContent.trim());
+    if(cells[0]==='Soma' || cells[1]==='Soma') {
+      for(let i=2;i<cells.length;i++){
+        const v=parseInt(cells[i]); if(!isNaN(v)&&v>10) somas.push(v);
+      }
+    }
+  });
+
+  if(!pistas.length) {
+    el.innerHTML='<div style="padding:20px;color:var(--dim);text-align:center">Sem detalhe disponível ainda.</div>';
+    return;
+  }
+
+  const nVoltas = pistas[0]?.tacadas?.length || 0;
+  const nPistas = pistas.length;
+
+  // Construir tabela
+  let h = '<div style="overflow-x:auto">';
+  h += '<table style="width:100%;border-collapse:collapse;font-size:0.82rem">';
+  h += '<thead><tr style="background:#f0f3f8">';
+  h += '<th style="padding:7px 10px;text-align:left;border-bottom:2px solid var(--sep);color:var(--navy);font-size:0.7rem;letter-spacing:1px;text-transform:uppercase">Pista</th>';
+
+  for(let v=0;v<nVoltas;v++) {
+    const hdr = headers.length>v+2 ? headers[v+2] : ('V'+(v+1));
+    const vert = vertentes.length>v+2 ? vertentes[v+2] : (_nacDetVertente||'peter');
+    const vertLabel = vert==='mini'?'🏌️ Mini':vert==='felt'?'🎯 Felt':'⛳ Peter';
+    h += `<th style="padding:7px 10px;text-align:center;border-bottom:2px solid var(--sep);color:var(--navy);font-size:0.7rem;letter-spacing:1px;text-transform:uppercase">${hdr}<br><span style="font-weight:400;font-size:0.65rem;color:var(--dim)">${vertLabel}</span></th>`;
+  }
+  h += '</tr></thead><tbody>';
+
+  // Linhas das pistas
+  pistas.forEach(({pista,tacadas}) => {
+    h += `<tr style="border-bottom:1px solid var(--sep)">`;
+    h += `<td style="padding:6px 10px;font-weight:700;color:var(--navy);font-family:'Bebas Neue',sans-serif;font-size:1rem">Pista ${pista}</td>`;
+    tacadas.forEach((t,vi) => {
+      const vert = vertentes.length>vi+2 ? vertentes[vi+2] : (_nacDetVertente||'peter');
+      const campo = vert==='mini'?'mV1':'pV1';
+      const cor = corVolta(campo,t);
+      const bg = bgVolta(campo,t);
+      const emoji = emojiCor(campo,t);
+      h += `<td style="padding:6px 10px;text-align:center;font-weight:700;font-size:0.95rem;color:${cor||'var(--text)'};background:${bg||'transparent'}">${emoji} ${t}</td>`;
+    });
+    h += '</tr>';
+  });
+
+  // Linha de somas
+  if(somas.length) {
+    h += '<tr style="background:#f0f3f8;border-top:2px solid var(--sep)">';
+    h += '<td style="padding:7px 10px;font-weight:700;color:var(--navy);font-size:0.7rem;text-transform:uppercase;letter-spacing:1px">Total</td>';
+    somas.forEach((s,vi) => {
+      const vert = vertentes.length>vi+2 ? vertentes[vi+2] : (_nacDetVertente||'peter');
+      const campo = vert==='mini'?'mV1':'pV1';
+      const cor = corVolta(campo,s);
+      const bg = bgVolta(campo,s);
+      h += `<td style="padding:7px 10px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${cor||'var(--orange)'};background:${bg||'transparent'};font-weight:700">${s}</td>`;
+    });
+    h += '</tr>';
+  }
+
+  h += '</tbody></table></div>';
+  el.innerHTML = h;
+}
+
 window.fecharModal = function(e) {
   if (e.target===document.getElementById('modal-overlay'))
     document.getElementById('modal-overlay').classList.remove('on');
@@ -1657,7 +2037,8 @@ function renderNacCategoria() {
     }).join('');
     const vazios=maxV-(a.voltas||[]).length;
     const vaziosCells=Array(vazios).fill('<td style="text-align:center;color:var(--dim)">—</td>').join('');
-    html+=`<tr class="${vzg?'vzg-row':''}" style="cursor:pointer${a.dnf?';opacity:0.6':''}" onclick="abrirModalNac(${JSON.stringify(a).replace(/"/g,'&quot;')})">
+    const vertNac = (dadosNac?.vertentes||{})[nacAtivo] || (['Homens','Senhoras'].some(c=>nacAtivo&&nacAtivo.includes(c))?'mini':'peter');
+      html+=`<tr class="${vzg?'vzg-row':''}" style="cursor:pointer${a.dnf?';opacity:0.6':''}" onclick="abrirDetalheOuModal(${JSON.stringify(a).replace(/"/g,'&quot;')},'${vertNac}')">
       <td class="${i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':''}">${a.rank||'—'}º</td>
       <td><strong>${vzg?'🟡 ':''}${a.nome}</strong></td>
       <td style="font-size:0.75rem;color:var(--silver)">${a.clube}</td>
@@ -1671,6 +2052,14 @@ function renderNacCategoria() {
 }
 
 function isVzg(clube){return clube&&clube.toLowerCase().includes('vizelgolfe');}
+
+window.abrirDetalheOuModal = function(a, vertente) {
+  if(a.linkAtleta) {
+    abrirDetalheNac(a.linkAtleta, a.nome, a.clube, nacAtivo, vertente);
+  } else {
+    abrirModalNac(a);
+  }
+};
 
 window.abrirModalNac = function(a) {
   document.getElementById('modal-nome').textContent = a.nome;
@@ -1859,7 +2248,11 @@ function parseBangolfe(html) {
     const totalBangolfe=parseInt(totalStr)||0;
     // Usar o maior dos dois (protege contra total parcial do Bangolfe)
     const total = totalCalculado > 0 ? totalCalculado : totalBangolfe;
-    categorias[catAtual].push({rank,nome,clube,voltas,voltasDetalhe,total,completo:!dnf,dnf});
+    // Extrair link individual do atleta
+    const linkCell = row.querySelector('td a');
+    const linkHref = linkCell ? linkCell.getAttribute('href') : null;
+    const linkAtleta = linkHref ? linkHref : null;
+    categorias[catAtual].push({rank,nome,clube,voltas,voltasDetalhe,total,completo:!dnf,dnf,linkAtleta});
   });
   return categorias;
 }
@@ -1912,5 +2305,24 @@ window.guardarNovoAtleta = async function() {
 };
 
 </script>
+<!-- MODAL DETALHE ATLETA NACIONAL -->
+<div id="modal-nac-detalhe" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9000;overflow-y:auto;padding:20px" onclick="if(event.target===this)fecharDetalheNac()">
+  <div style="background:var(--bg2);border-radius:12px;max-width:900px;margin:0 auto;padding:24px;position:relative">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <div id="nac-det-nome" style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--navy)"></div>
+        <div id="nac-det-meta" style="font-size:0.78rem;color:var(--dim)"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div id="nac-det-status" style="font-size:0.75rem;color:var(--dim)"></div>
+        <button onclick="fecharDetalheNac()" style="background:var(--sep);border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:0.82rem;color:var(--text)">✕ Fechar</button>
+      </div>
+    </div>
+    <div id="nac-det-body">
+      <div style="padding:40px;text-align:center;color:var(--dim)">A carregar detalhe...</div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
