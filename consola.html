@@ -1552,7 +1552,10 @@ function renderNacCategoria() {
   atletas.forEach((a,i)=>{
     const vzg=isVzg(a.clube);
     // Usar voltasDetalhe (com vertente por volta) se disponível, senão vertente definida manualmente
-    const vertCat = (dadosNac?.vertentes||{})[nacAtivo] || 'peter';
+    // Vertente: 1º manual, 2º automático por letras B/E/F, 3º lógica por categoria
+    const vertManual = (dadosNac?.vertentes||{})[nacAtivo];
+    const vertDefault = ['Homens','Senhoras'].some(c=>nacAtivo&&nacAtivo.includes(c)) ? 'mini' : 'peter';
+    const vertCat = vertManual || vertDefault;
     const vDetalhe = a.voltasDetalhe || [];
     const voltasCells=(a.voltas||[]).map((v,vi)=>{
       const vert = vDetalhe[vi]?.vertente || vertCat;
@@ -1585,7 +1588,7 @@ window.abrirModalNac = function(a) {
     ? `<div class="tabela-wrap"><table>
         <thead><tr>${voltas.map((_,i)=>`<th style="text-align:center">Percurso ${i+1}</th>`).join('')}<th style="text-align:right">Total</th></tr></thead>
         <tbody><tr>
-          ${voltas.map(v=>{const vertM=(dadosNac?.vertentes||{})[nacAtivo]||'peter';const cor=corVolta(campo,v);const bg=bgVolta(campo,v);const em=emojiCor(campo,v);return (function(v,vi2){const vDet2=(a.voltasDetalhe||[])[vi2];const vt2=vDet2?.vertente||vertM;const cmp2=vt2==='mini'?'mV1':'pV1';const cor2=corVolta(cmp2,v);const bg2=bgVolta(cmp2,v);const em2=emojiCor(cmp2,v);return `<td style="text-align:center;font-size:1.1rem;font-weight:700;color:${cor2||'inherit'};background:${bg2||'transparent'}" title="${vt2}">${em2} ${v}</td>`;})(v,voltas.indexOf(v));}).join('')}
+          ${voltas.map(v=>{const vertM=(dadosNac?.vertentes||{})[nacAtivo]||(['Homens','Senhoras'].some(c=>nacAtivo&&nacAtivo.includes(c))?'mini':'peter');const cor=corVolta(campo,v);const bg=bgVolta(campo,v);const em=emojiCor(campo,v);return (function(v,vi2){const vDet2=(a.voltasDetalhe||[])[vi2];const vt2=vDet2?.vertente||vertM;const cmp2=vt2==='mini'?'mV1':'pV1';const cor2=corVolta(cmp2,v);const bg2=bgVolta(cmp2,v);const em2=emojiCor(cmp2,v);return `<td style="text-align:center;font-size:1.1rem;font-weight:700;color:${cor2||'inherit'};background:${bg2||'transparent'}" title="${vt2}">${em2} ${v}</td>`;})(v,voltas.indexOf(v));}).join('')}
           <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.4rem;color:var(--orange)">${a.total}</td>
         </tr></tbody></table></div>`
     : '<p style="color:var(--dim)">Sem detalhe de percursos.</p>';
@@ -1758,8 +1761,12 @@ function parseBangolfe(html) {
       }
     }
 
+    // Total = sempre soma das voltas válidas (não confiar no total do Bangolfe que pode ser parcial)
+    const totalCalculado = voltas.filter(v=>v>0).reduce((a,b)=>a+b,0);
     const totalStr=dnf?cells[cells.length-2]:cells[cells.length-1];
-    const total=parseInt(totalStr)||0;
+    const totalBangolfe=parseInt(totalStr)||0;
+    // Usar o maior dos dois (protege contra total parcial do Bangolfe)
+    const total = totalCalculado > 0 ? totalCalculado : totalBangolfe;
     categorias[catAtual].push({rank,nome,clube,voltas,voltasDetalhe,total,completo:!dnf,dnf});
   });
   return categorias;
