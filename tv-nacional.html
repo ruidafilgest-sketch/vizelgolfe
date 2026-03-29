@@ -153,7 +153,13 @@ function corTotal(total,nVoltas,tipo){const n=Number(total);if(isNaN(n)||n<=0||!
 const GRUPO_A=['Homens','Senhoras','H','S'];
 const CAT_MINI=GRUPO_A;
 
-function isVzg(clube) { return clube && clube.toLowerCase().includes('vizelgolfe'); }
+const VZG_ATLETAS = ["Abilio Meneses", "Ricardo Ferreira", "Nuno Cunha", "Paulo Cassiano", "José Mateus", "Rui Cunha", "Rui Gonçalves", "Rui Dias", "Hugo Ferreira", "Adriano Costa", "Celso Dias", "Uwe Ludwig", "Ângelo Ribeiro", "José Tropa", "Filomena Mendes", "Catarina Ferreira", "Conceição Andrade", "Cristina Fernandes", "Avelino Lopes", "João Ferreira", "Armindo Gonçalves", "Helder Mendes", "Fernando Carneiro", "José Cunha", "Domingos Ribeiro", "Manuel Pinto", "Armindo Machado", "Armando Lopes", "Manuel Sousa", "Manuel Silva", "Antonio José Silva", "José Eduardo", "Guilherme Pinto", "Helder Tropa", "Artur Magalhães", "Chayanna Gomes", "Fernanda Costa", "Jaime Andrade", "Armindo Costa", "Antonio Meireles", "Paulo Torralvo", "Domingos Silva", "Carlos Magalhães"];
+
+function isVzg(clube, nome) {
+  if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
+  if(nome && VZG_ATLETAS.some(a => nome.toLowerCase().includes(a.toLowerCase().split(' ')[0]) && a.toLowerCase().includes(nome.toLowerCase().split(' ')[0]))) return true;
+  return false;
+}
 
 function renderCategorias(categorias) {
   const content = document.getElementById('content');
@@ -186,7 +192,7 @@ function renderCategorias(categorias) {
     `;
 
     atletas.forEach(a => {
-      const isV = isVzg(a.clube);
+      const isV = isVzg(a.clube, a.nome);
       html += `<tr class="${isV ? 'vzg' : ''}">
         <td class="rank">${a.rank}º</td>
         <td class="nome">${a.nome}</td>
