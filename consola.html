@@ -609,12 +609,8 @@ tr:hover td{background:rgba(0,0,0,0.02);}
 <div class="notif" id="notif"></div>
 
 <script type="module">
-const VZG_EXCECOES = ["Jose Tropa","José Tropa"];
-function normalizar(s){ return s?s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase():''; }
-function isVzg(clube, nome) {
-  if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
-  if(nome && VZG_EXCECOES.some(n => normalizar(nome).includes(normalizar(n)))) return true;
-  return false;
+function isVzg(clube) {
+  return clube && clube.toLowerCase().includes('vizelgolfe');
 }
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -1852,6 +1848,7 @@ window.onJornadaChange = function() {
   renderFormInserir(provaId, jornada);
 };
 
+
 // ── CORES POR VERTENTE ──
 function corMini(v){
   v=parseInt(v);
@@ -2041,14 +2038,14 @@ function renderNacional() {
   const upd = new Date(dadosNac.atualizadoEm||Date.now());
   document.getElementById('nac-prova-meta').textContent = 'Atualizado: ' + upd.toLocaleTimeString('pt-PT');
   const totalAtl = Object.values(cats).reduce((s,a)=>s+a.length,0);
-  const totalVzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube, x.nome)).length,0);
+  const totalVzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube)).length,0);
   document.getElementById('nac-total-atletas').textContent = totalAtl;
   document.getElementById('nac-total-vzg').textContent = totalVzg;
 
   // Tabs
   if (!nacAtivo||!cats[nacAtivo]) nacAtivo = catsPresentes[0];
   document.getElementById('nac-cat-tabs').innerHTML = catsPresentes.map(c=>{
-    const vzgN = cats[c].filter(a=>isVzg(a.clube, a.nome)).length;
+    const vzgN = cats[c].filter(a=>isVzg(a.clube)).length;
     return `<div class="cat-tab${c===nacAtivo?' on':''}" onclick="nacMudarCat('${c}',this)">
       ${c}${vzgN?` <span style="color:var(--orange);font-size:0.65rem">(${vzgN}🟡)</span>`:''}
     </div>`;
@@ -2076,7 +2073,7 @@ function renderNacCategoria() {
     <th style="text-align:right">Total</th><th style="text-align:center">Sit.</th>
     </tr></thead><tbody>`;
   atletas.forEach((a,i)=>{
-    const vzg=isVzg(a.clube, a.nome);
+    const vzg=isVzg(a.clube);
     // Usar voltasDetalhe (com vertente por volta) se disponível, senão vertente definida manualmente
     // Vertente: 1º manual, 2º automático por letras B/E/F, 3º lógica por categoria
     const vertManual = (dadosNac?.vertentes||{})[nacAtivo];
@@ -2197,7 +2194,7 @@ window.nacAtualizarAgora = async function() {
       dadosParaGuardar.bangolfe = dadosNac;
     }
     await setDoc(doc(db,'vizelgolfe','nacional'), dadosParaGuardar, {merge: true});
-    const vzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube, x.nome)).length,0);
+    const vzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube)).length,0);
     nacLog(`✅ ${totalAtl} atletas · ${vzg} Vizelgolfe · ${Object.keys(cats).length} categorias`,'ok');
     nacSetStatus('✅ Atualizado às ' + new Date().toLocaleTimeString('pt-PT'),'verde');
     mostrarNotif('✅ Nacional atualizado!');
