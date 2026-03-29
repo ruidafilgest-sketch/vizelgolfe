@@ -128,6 +128,14 @@ tr.vzg { background: rgba(212, 130, 10, 0.15); } /* Destaque Vizelgolfe */
 </div>
 
 <script type="module">
+const VZG_EXCECOES = ["Jose Tropa","José Tropa"];
+function normalizar(s){ return s?s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase():''; }
+function isVzg(clube, nome) {
+  if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
+  if(nome && VZG_EXCECOES.some(n => normalizar(nome).includes(normalizar(n)))) return true;
+  return false;
+}
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -152,13 +160,6 @@ function corVoltaPeter(t){const n=Number(t);if(isNaN(n)||n<=0)return'';if(n<=24)
 function corTotal(total,nVoltas,tipo){const n=Number(total);if(isNaN(n)||n<=0||!nVoltas)return'';const m=n/nVoltas;return tipo==='mini'?corVoltaMini(m):corVoltaPeter(m);}
 const GRUPO_A=['Homens','Senhoras','H','S'];
 const CAT_MINI=GRUPO_A;
-
-const VZG_EXCECOES = ["José Tropa"]; // Atletas Vizelgolfe inscritos com outro clube
-function isVzg(clube, nome) {
-  if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
-  if(nome && VZG_EXCECOES.some(n => nome.toLowerCase().includes(n.toLowerCase()))) return true;
-  return false;
-}
 
 function renderCategorias(categorias) {
   const content = document.getElementById('content');
