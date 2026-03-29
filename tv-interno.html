@@ -162,7 +162,7 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 
 <script type="module">
 const VZG_EXCECOES = ["Jose Tropa","José Tropa"];
-function normalizar(s){ return s?s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase():''; }
+function normalizar(s){ return s?s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase():''; }
 function isVzg(clube, nome) {
   if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
   if(nome && VZG_EXCECOES.some(n => normalizar(nome).includes(normalizar(n)))) return true;
