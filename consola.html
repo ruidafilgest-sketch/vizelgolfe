@@ -609,6 +609,14 @@ tr:hover td{background:rgba(0,0,0,0.02);}
 <div class="notif" id="notif"></div>
 
 <script type="module">
+const VZG_EXCECOES = ["Jose Tropa","José Tropa"];
+function normalizar(s){ return s?s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase():''; }
+function isVzg(clube, nome) {
+  if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
+  if(nome && VZG_EXCECOES.some(n => normalizar(nome).includes(normalizar(n)))) return true;
+  return false;
+}
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -1843,14 +1851,6 @@ window.onJornadaChange = function() {
   const jornada = parseInt(document.getElementById('sel-jornada').value);
   renderFormInserir(provaId, jornada);
 };
-
-const VZG_EXCECOES = ["Jose Tropa","José Tropa"];
-function normalizar(s){ return s?s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase():''; }
-function isVzg(clube, nome) {
-  if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
-  if(nome && VZG_EXCECOES.some(n => normalizar(nome).includes(normalizar(n)))) return true;
-  return false;
-}
 
 // ── CORES POR VERTENTE ──
 function corMini(v){
