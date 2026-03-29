@@ -2097,10 +2097,10 @@ function renderNacCategoria() {
   cont.innerHTML=html;
 }
 
-const VZG_ATLETAS = ["Abilio Meneses", "Ricardo Ferreira", "Nuno Cunha", "Paulo Cassiano", "José Mateus", "Rui Cunha", "Rui Gonçalves", "Rui Dias", "Hugo Ferreira", "Adriano Costa", "Celso Dias", "Uwe Ludwig", "Ângelo Ribeiro", "José Tropa", "Filomena Mendes", "Catarina Ferreira", "Conceição Andrade", "Cristina Fernandes", "Avelino Lopes", "João Ferreira", "Armindo Gonçalves", "Helder Mendes", "Fernando Carneiro", "José Cunha", "Domingos Ribeiro", "Manuel Pinto", "Armindo Machado", "Armando Lopes", "Manuel Sousa", "Manuel Silva", "Antonio José Silva", "José Eduardo", "Guilherme Pinto", "Helder Tropa", "Artur Magalhães", "Chayanna Gomes", "Fernanda Costa", "Jaime Andrade", "Armindo Costa", "Antonio Meireles", "Paulo Torralvo", "Domingos Silva", "Carlos Magalhães"];
+const VZG_EXCECOES = ["José Tropa"]; // Atletas Vizelgolfe inscritos com outro clube
 function isVzg(clube, nome) {
-  if(clube&&clube.toLowerCase().includes('vizelgolfe')) return true;
-  if(nome&&VZG_ATLETAS.some(a=>nome.toLowerCase().split(' ')[0]===a.toLowerCase().split(' ')[0])) return true;
+  if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
+  if(nome && VZG_EXCECOES.some(n => nome.toLowerCase().includes(n.toLowerCase()))) return true;
   return false;
 }
 
