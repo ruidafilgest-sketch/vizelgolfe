@@ -454,7 +454,7 @@ function renderNacional(){
     atletas.forEach((a,i)=>{
       const vzg=isVzg(a.clube);
       const cls=i===0?'g1':i===1?'g2':i===2?'g3':'';
-      const isMini=['H','S'].includes(cat);const cV=isMini?corVoltaMini:corVoltaPeter;const voltasCells=(a.voltas||[]).map(v=>`<td class="td-par" style="font-size:0.9rem;${cV(v)}">${v}</td>`).join('');
+      const isMini=['Homens','Senhoras','H','S'].some(g=>cat===g||cat.startsWith(g));const cV=isMini?corVoltaMini:corVoltaPeter;const voltasCells=(a.voltas||[]).map(v=>`<td class="td-par" style="font-size:0.9rem;${cV(v)}">${v}</td>`).join('');
       const vazios=maxV-(a.voltas||[]).length;
       const vaziosCells=Array(vazios).fill('<td class="td-par">—</td>').join('');
       html+=`<tr class="${cls}"${a.dnf?' style="opacity:0.6"':''}>
