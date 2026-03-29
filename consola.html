@@ -557,7 +557,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -2033,14 +2033,14 @@ function renderNacional() {
   const upd = new Date(dadosNac.atualizadoEm||Date.now());
   document.getElementById('nac-prova-meta').textContent = 'Atualizado: ' + upd.toLocaleTimeString('pt-PT');
   const totalAtl = Object.values(cats).reduce((s,a)=>s+a.length,0);
-  const totalVzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube)).length,0);
+  const totalVzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube, x.nome)).length,0);
   document.getElementById('nac-total-atletas').textContent = totalAtl;
   document.getElementById('nac-total-vzg').textContent = totalVzg;
 
   // Tabs
   if (!nacAtivo||!cats[nacAtivo]) nacAtivo = catsPresentes[0];
   document.getElementById('nac-cat-tabs').innerHTML = catsPresentes.map(c=>{
-    const vzgN = cats[c].filter(a=>isVzg(a.clube)).length;
+    const vzgN = cats[c].filter(a=>isVzg(a.clube, a.nome)).length;
     return `<div class="cat-tab${c===nacAtivo?' on':''}" onclick="nacMudarCat('${c}',this)">
       ${c}${vzgN?` <span style="color:var(--orange);font-size:0.65rem">(${vzgN}🟡)</span>`:''}
     </div>`;
@@ -2068,7 +2068,7 @@ function renderNacCategoria() {
     <th style="text-align:right">Total</th><th style="text-align:center">Sit.</th>
     </tr></thead><tbody>`;
   atletas.forEach((a,i)=>{
-    const vzg=isVzg(a.clube);
+    const vzg=isVzg(a.clube, a.nome);
     // Usar voltasDetalhe (com vertente por volta) se disponível, senão vertente definida manualmente
     // Vertente: 1º manual, 2º automático por letras B/E/F, 3º lógica por categoria
     const vertManual = (dadosNac?.vertentes||{})[nacAtivo];
@@ -2097,7 +2097,12 @@ function renderNacCategoria() {
   cont.innerHTML=html;
 }
 
-function isVzg(clube){return clube&&clube.toLowerCase().includes('vizelgolfe');}
+const VZG_ATLETAS = ["Abilio Meneses", "Ricardo Ferreira", "Nuno Cunha", "Paulo Cassiano", "José Mateus", "Rui Cunha", "Rui Gonçalves", "Rui Dias", "Hugo Ferreira", "Adriano Costa", "Celso Dias", "Uwe Ludwig", "Ângelo Ribeiro", "José Tropa", "Filomena Mendes", "Catarina Ferreira", "Conceição Andrade", "Cristina Fernandes", "Avelino Lopes", "João Ferreira", "Armindo Gonçalves", "Helder Mendes", "Fernando Carneiro", "José Cunha", "Domingos Ribeiro", "Manuel Pinto", "Armindo Machado", "Armando Lopes", "Manuel Sousa", "Manuel Silva", "Antonio José Silva", "José Eduardo", "Guilherme Pinto", "Helder Tropa", "Artur Magalhães", "Chayanna Gomes", "Fernanda Costa", "Jaime Andrade", "Armindo Costa", "Antonio Meireles", "Paulo Torralvo", "Domingos Silva", "Carlos Magalhães"];
+function isVzg(clube, nome) {
+  if(clube&&clube.toLowerCase().includes('vizelgolfe')) return true;
+  if(nome&&VZG_ATLETAS.some(a=>nome.toLowerCase().split(' ')[0]===a.toLowerCase().split(' ')[0])) return true;
+  return false;
+}
 
 window.abrirDetalheOuModal = function(a, vertente, provaUrl) {
   if(a.linkAtleta) {
@@ -2191,7 +2196,7 @@ window.nacAtualizarAgora = async function() {
       dadosParaGuardar.bangolfe = dadosNac;
     }
     await setDoc(doc(db,'vizelgolfe','nacional'), dadosParaGuardar, {merge: true});
-    const vzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube)).length,0);
+    const vzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube, x.nome)).length,0);
     nacLog(`✅ ${totalAtl} atletas · ${vzg} Vizelgolfe · ${Object.keys(cats).length} categorias`,'ok');
     nacSetStatus('✅ Atualizado às ' + new Date().toLocaleTimeString('pt-PT'),'verde');
     mostrarNotif('✅ Nacional atualizado!');
