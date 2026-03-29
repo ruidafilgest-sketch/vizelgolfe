@@ -365,27 +365,53 @@ tr:hover td{background:rgba(0,0,0,0.02);}
               </select>
             </div>
             <div class="form-group" id="nac-vert-container">
-              <label>Vertente (por categoria) <span style="font-size:0.72rem;color:var(--silver)">— só para 2026 (sem letras B/E/F)</span></label>
-              <div style="font-size:0.75rem;color:var(--silver);margin-bottom:6px">Define a vertente de cada categoria para aplicar as cores correctas</div>
-              <table style="font-size:0.8rem;border-collapse:collapse;width:100%">
-                <thead><tr>
-                  <th style="text-align:left;padding:4px 8px;color:var(--silver)">Categoria</th>
-                  <th style="padding:4px 8px;color:var(--silver)">Vertente</th>
-                </tr></thead>
-                <tbody>
-                  ${['Homens','Senhoras','Juniores Masculinos','Juniores Femininos','Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos','Veteranos Masculinos','Veteranos Femininos'].map(cat=>`
-                  <tr>
-                    <td style="padding:3px 8px;color:var(--branco)">${cat}</td>
-                    <td style="padding:3px 8px;text-align:center">
-                      <select id="nac-vert-${cat.replace(/ /g,'-')}" style="background:var(--card);border:1px solid var(--border);color:var(--silver);padding:3px 6px;border-radius:4px;font-size:0.78rem">
+              <label>Parametrizar Grupos <span style="font-size:0.72rem;color:var(--silver)">— só quando não há letras B/E/F no Bangolfe</span></label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px">
+                <!-- GRUPO A -->
+                <div style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:12px">
+                  <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--org2);margin-bottom:8px;font-weight:700">Grupo A — Homens / Senhoras</div>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <div>
+                      <div style="font-size:0.68rem;color:var(--silver);margin-bottom:3px">Vertente</div>
+                      <select id="nac-grupoA-vert" style="background:var(--card);border:1px solid var(--border);color:var(--silver);padding:4px 8px;border-radius:4px;font-size:0.8rem">
+                        <option value="mini" selected>🏌️ Minigolfe</option>
+                        <option value="peter">⛳ Petergolfe</option>
+                        <option value="felt">🎯 Feltgolfe</option>
+                      </select>
+                    </div>
+                    <div>
+                      <div style="font-size:0.68rem;color:var(--silver);margin-bottom:3px">Nº Voltas</div>
+                      <select id="nac-grupoA-voltas" style="background:var(--card);border:1px solid var(--border);color:var(--silver);padding:4px 8px;border-radius:4px;font-size:0.8rem">
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                        <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+                        <option value="7" selected>7</option><option value="8">8</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+                <!-- GRUPO B -->
+                <div style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:12px">
+                  <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--silver);margin-bottom:8px;font-weight:700">Grupo B — Restantes categorias</div>
+                  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    <div>
+                      <div style="font-size:0.68rem;color:var(--silver);margin-bottom:3px">Vertente</div>
+                      <select id="nac-grupoB-vert" style="background:var(--card);border:1px solid var(--border);color:var(--silver);padding:4px 8px;border-radius:4px;font-size:0.8rem">
                         <option value="mini">🏌️ Minigolfe</option>
                         <option value="peter" selected>⛳ Petergolfe</option>
                         <option value="felt">🎯 Feltgolfe</option>
                       </select>
-                    </td>
-                  </tr>`).join('')}
-                </tbody>
-              </table>
+                    </div>
+                    <div>
+                      <div style="font-size:0.68rem;color:var(--silver);margin-bottom:3px">Nº Voltas</div>
+                      <select id="nac-grupoB-voltas" style="background:var(--card);border:1px solid var(--border);color:var(--silver);padding:4px 8px;border-radius:4px;font-size:0.8rem">
+                        <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                        <option value="4">4</option><option value="5">5</option>
+                        <option value="6" selected>6</option><option value="7">7</option><option value="8">8</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
             <div class="form-group">
               <label>Atualizar cada</label>
@@ -2135,16 +2161,22 @@ window.nacAtualizarAgora = async function() {
     const nac_nome = document.getElementById('nac-nome-input').value.trim()||extrairNome(url);
     const nac_ano  = document.getElementById('nac-ano-input').value.trim() || new Date().getFullYear().toString();
     const nac_tipo = document.getElementById('nac-tipo-input').value;
-    // Ler vertentes definidas por categoria
+    // Ler parametrização Grupo A / Grupo B
+    const grupoAVert  = document.getElementById('nac-grupoA-vert')?.value  || 'mini';
+    const grupoAVoltas= parseInt(document.getElementById('nac-grupoA-voltas')?.value || '7');
+    const grupoBVert  = document.getElementById('nac-grupoB-vert')?.value  || 'peter';
+    const grupoBVoltas= parseInt(document.getElementById('nac-grupoB-voltas')?.value || '6');
+    // Construir vertentes por categoria baseado nos grupos
     const nac_vertentes = {};
     ['Homens','Senhoras','Juniores Masculinos','Juniores Femininos','Infantis Masculinos',
      'Infantis Femininos','Seniores Masculinos','Seniores Femininos','Veteranos Masculinos','Veteranos Femininos'].forEach(cat => {
-      const sel = document.getElementById('nac-vert-' + cat.replace(/ /g,'-'));
-      if(sel) nac_vertentes[cat] = sel.value;
+      nac_vertentes[cat] = isGrupoA(cat) ? grupoAVert : grupoBVert;
     });
     dadosNac = {
       url, nome: nac_nome, ano: nac_ano, tipo: nac_tipo,
       vertentes: nac_vertentes,
+      grupoA: {vertente: grupoAVert, voltas: grupoAVoltas},
+      grupoB: {vertente: grupoBVert, voltas: grupoBVoltas},
       atualizadoEm: new Date().toISOString(), categorias: cats
     };
     // Guardar por ano/tipo — acumula histórico em vez de substituir
