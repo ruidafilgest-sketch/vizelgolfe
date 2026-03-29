@@ -161,6 +161,14 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);font-fam
 <div id="exit"><span>✕ SAIR</span></div>
 
 <script type="module">
+const VZG_EXCECOES = ["Jose Tropa","José Tropa"];
+function normalizar(s){ return s?s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase():''; }
+function isVzg(clube, nome) {
+  if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
+  if(nome && VZG_EXCECOES.some(n => normalizar(nome).includes(normalizar(n)))) return true;
+  return false;
+}
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -176,13 +184,6 @@ const CATEGORIAS=['Homens','Senhoras','Seniores Masculinos','Veteranos Masculino
 const CAT_GRUPO={'Homens':'Homens','Juniores':'Homens','Senhoras':'Senhoras','Seniores Masculinos':'Seniores Masculinos','Veteranos Masculinos':'Veteranos Masculinos'};
 const PONTUACAO=[25,18,15,12,10,8,6,4,2,1];
 const CAT_NAC=['Homens','Senhoras','Juniores Masculinos','Juniores Femininos','Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos','Veteranos Masculinos','Veteranos Femininos'];
-
-const VZG_EXCECOES = ["José Tropa"]; // Atletas Vizelgolfe inscritos com outro clube
-function isVzg(clube, nome) {
-  if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
-  if(nome && VZG_EXCECOES.some(n => nome.toLowerCase().includes(n.toLowerCase()))) return true;
-  return false;
-}
 
 function calcTotal(prova,j,res){
   if(!res)return null;
