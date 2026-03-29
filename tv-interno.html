@@ -177,7 +177,12 @@ const CAT_GRUPO={'Homens':'Homens','Juniores':'Homens','Senhoras':'Senhoras','Se
 const PONTUACAO=[25,18,15,12,10,8,6,4,2,1];
 const CAT_NAC=['Homens','Senhoras','Juniores Masculinos','Juniores Femininos','Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos','Veteranos Masculinos','Veteranos Femininos'];
 
-function isVzg(clube){return clube&&clube.toLowerCase().includes('vizelgolfe');}
+const VZG_ATLETAS = ["Abilio Meneses", "Ricardo Ferreira", "Nuno Cunha", "Paulo Cassiano", "José Mateus", "Rui Cunha", "Rui Gonçalves", "Rui Dias", "Hugo Ferreira", "Adriano Costa", "Celso Dias", "Uwe Ludwig", "Ângelo Ribeiro", "José Tropa", "Filomena Mendes", "Catarina Ferreira", "Conceição Andrade", "Cristina Fernandes", "Avelino Lopes", "João Ferreira", "Armindo Gonçalves", "Helder Mendes", "Fernando Carneiro", "José Cunha", "Domingos Ribeiro", "Manuel Pinto", "Armindo Machado", "Armando Lopes", "Manuel Sousa", "Manuel Silva", "Antonio José Silva", "José Eduardo", "Guilherme Pinto", "Helder Tropa", "Artur Magalhães", "Chayanna Gomes", "Fernanda Costa", "Jaime Andrade", "Armindo Costa", "Antonio Meireles", "Paulo Torralvo", "Domingos Silva", "Carlos Magalhães"];
+function isVzg(clube, nome) {
+  if(clube&&clube.toLowerCase().includes('vizelgolfe')) return true;
+  if(nome&&VZG_ATLETAS.some(a=>nome.toLowerCase().split(' ')[0]===a.toLowerCase().split(' ')[0])) return true;
+  return false;
+}
 
 function calcTotal(prova,j,res){
   if(!res)return null;
@@ -445,14 +450,14 @@ function renderNacional(){
     any=true;
     const maxV=Math.max(...atletas.map(a=>(a.voltas||[]).length),0);
 
-    html+=`<div class="cat-hdr"><div class="cat-name">${cat}</div><div class="cat-count">${atletas.length} atletas · ${atletas.filter(a=>isVzg(a.clube)).length} 🟡</div><div class="cat-badge">FPM · ${allDataNac.nome||''}</div></div>
+    html+=`<div class="cat-hdr"><div class="cat-name">${cat}</div><div class="cat-count">${atletas.length} atletas · ${atletas.filter(a=>isVzg(a.clube, a.nome)).length} 🟡</div><div class="cat-badge">FPM · ${allDataNac.nome||''}</div></div>
     <table class="tbl"><thead><tr><th class="c">Pos</th><th>Atleta</th><th>Clube</th>
     ${Array.from({length:maxV},(_,i)=>`<th class="c" style="font-size:0.55rem">V${i+1}</th>`).join('')}
     <th class="r">Total</th><th class="c">Sit.</th>
     </tr></thead><tbody>`;
 
     atletas.forEach((a,i)=>{
-      const vzg=isVzg(a.clube);
+      const vzg=isVzg(a.clube, a.nome);
       const cls=i===0?'g1':i===1?'g2':i===2?'g3':'';
       const isMini=['Homens','Senhoras','H','S'].some(g=>cat===g||cat.startsWith(g));const cV=isMini?corVoltaMini:corVoltaPeter;const voltasCells=(a.voltas||[]).map(v=>`<td class="td-par" style="font-size:0.9rem;${cV(v)}">${v}</td>`).join('');
       const vazios=maxV-(a.voltas||[]).length;
