@@ -610,7 +610,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
 
 <script type="module">
 function isVzg(clube) {
-  return clube && clube.toLowerCase().includes('vizelgolfe');
+  return clube && (clube.toLowerCase().includes('vizelgolfe') || clube.toLowerCase().includes('vizelglfe'));
 }
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -1848,6 +1848,8 @@ window.onJornadaChange = function() {
   renderFormInserir(provaId, jornada);
 };
 
+const VZG_EXCECOES = ["Jose Tropa","José Tropa"];
+function normalizar(s){ return s?s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase():''; }
 
 // ── CORES POR VERTENTE ──
 function corMini(v){
