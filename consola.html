@@ -834,9 +834,9 @@ function renderStatsAtleta(el, catFilt, atlId) {
           const provaNome = l.prova + (l.j>1?` <span style="font-size:0.7rem;color:var(--dim)">J${l.j}</span>`:'');
           h+=`<tr>
             <td>${provaNome}</td>
-            <td style="text-align:center;font-weight:700;color:var(--navy)">${l.tM||'—'}</td>
+            <td style="text-align:center;font-weight:700;color:${l.tM&&l.mM?corTotal(l.tM,Math.round(l.tM/l.mM),'mV1'):'var(--navy)'}">${l.tM||'—'}</td>
             <td style="text-align:center;color:var(--dim)">${l.mM?l.mM.toFixed(1):'—'}</td>
-            <td style="text-align:center;font-weight:700;color:var(--navy)">${l.tP||'—'}</td>
+            <td style="text-align:center;font-weight:700;color:${l.tP&&l.mP?corTotal(l.tP,Math.round(l.tP/l.mP),'pV1'):'var(--navy)'}">${l.tP||'—'}</td>
             <td style="text-align:center;color:var(--dim)">${l.mP?l.mP.toFixed(1):'—'}</td>
             <td style="text-align:center;font-size:0.75rem;color:var(--green)">${l.bonus.length?'🥇 '+l.bonus.join(', '):'—'}</td>
             <td style="text-align:center">${l.abandono?'<span class="badge" style="background:rgba(204,34,34,0.1);color:var(--red)">Abandono</span>':''}</td>
@@ -916,8 +916,10 @@ function renderStatsProva(el, catFilt) {
           <td style="font-size:0.75rem;color:var(--dim)">${l.cat}</td>
           <td style="text-align:center;font-weight:700">${l.tM||'—'}</td>
           <td style="text-align:center;font-weight:700">${l.tP||'—'}</td>
-          <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:${l.abandono?'var(--red)':'var(--orange)'}">
-            ${l.abandono?'<span class="badge" style="background:rgba(204,34,34,0.1);color:var(--red)">Abandono</span>':l.tot}
+          <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.15rem">
+            ${l.abandono
+              ? '<span class="badge" style="background:rgba(204,34,34,0.1);color:var(--red)">Abandono</span>'
+              : ('<span style="color:' + (l.tM&&!l.tP?corTotal(l.tM,2,'mV1'):l.tP&&!l.tM?corTotal(l.tP,2,'pV1'):'var(--orange)') + ';font-weight:700">' + l.tot + '</span>')}
           </td>
         </tr>`;
       });
@@ -1662,6 +1664,20 @@ async function carregarDetalheNac() {
   }
 }
 
+// Grupo A = Homens + Senhoras → Mini | Grupo B = restantes → Peter/Felt
+function isGrupoA(cat) {
+  return cat==='Homens' || cat==='Senhoras' || cat==='H' || cat==='S' ||
+         cat.startsWith('Hom') || cat.startsWith('Sen');
+}
+
+function corPista(t) {
+  t = parseInt(t);
+  if(isNaN(t) || t <= 0) return {cor:'', bg:'', emoji:''};
+  if(t === 1) return {cor:'#16a34a', bg:'rgba(22,163,74,0.12)', emoji:'🟢'};
+  if(t === 2) return {cor:'#dc2626', bg:'rgba(220,38,38,0.12)', emoji:'🔴'};
+  return {cor:'#111827', bg:'rgba(17,24,39,0.15)', emoji:'⚫'};
+}
+
 function renderDetalheNac(html) {
   const parser = new DOMParser();
   const d = parser.parseFromString(html, 'text/html');
@@ -1741,10 +1757,8 @@ function renderDetalheNac(html) {
     tacadas.forEach((t,vi) => {
       const vert = vertentes.length>vi+2 ? vertentes[vi+2] : (_nacDetVertente||'peter');
       const campo = vert==='mini'?'mV1':'pV1';
-      const cor = corVolta(campo,t);
-      const bg = bgVolta(campo,t);
-      const emoji = emojiCor(campo,t);
-      h += `<td style="padding:6px 10px;text-align:center;font-weight:700;font-size:0.95rem;color:${cor||'var(--text)'};background:${bg||'transparent'}">${emoji} ${t}</td>`;
+      const cp = corPista(t);
+      h += `<td style="padding:6px 10px;text-align:center;font-weight:700;font-size:0.95rem;color:${cp.cor||'var(--text)'};background:${cp.bg||'transparent'}">${cp.emoji} ${t}</td>`;
     });
     h += '</tr>';
   });
@@ -1756,9 +1770,10 @@ function renderDetalheNac(html) {
     somas.forEach((s,vi) => {
       const vert = vertentes.length>vi+2 ? vertentes[vi+2] : (_nacDetVertente||'peter');
       const campo = vert==='mini'?'mV1':'pV1';
-      const cor = corVolta(campo,s);
-      const bg = bgVolta(campo,s);
-      h += `<td style="padding:7px 10px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${cor||'var(--orange)'};background:${bg||'transparent'};font-weight:700">${s}</td>`;
+      const vert2 = vertentes.length>vi+2 ? vertentes[vi+2] : (_nacDetVertente||'peter');
+      const campo2 = vert2==='mini'?'mV1':'pV1';
+      const corSoma = corTotal(s, nPistas, campo2);
+      h += `<td style="padding:7px 10px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${corSoma||'var(--orange)'};font-weight:700">${s}</td>`;
     });
     h += '</tr>';
   }
@@ -1820,6 +1835,12 @@ function corPeter(v){
   if(v<=35) return '#dc2626';   // vermelho
   return '#111827';              // preto
 }
+function corTotal(total, nVoltas, campoId){
+  if(!total||!nVoltas) return 'var(--orange)';
+  const media = total/nVoltas;
+  return campoId&&campoId.startsWith('m') ? corMini(Math.round(media)) : corPeter(Math.round(media));
+}
+
 function corVolta(campoId, valor){
   if(!valor) return '';
   if(campoId.startsWith('m')) return corMini(valor);
@@ -2025,7 +2046,7 @@ function renderNacCategoria() {
     // Usar voltasDetalhe (com vertente por volta) se disponível, senão vertente definida manualmente
     // Vertente: 1º manual, 2º automático por letras B/E/F, 3º lógica por categoria
     const vertManual = (dadosNac?.vertentes||{})[nacAtivo];
-    const vertDefault = ['Homens','Senhoras'].some(c=>nacAtivo&&nacAtivo.includes(c)) ? 'mini' : 'peter';
+    const vertDefault = isGrupoA(nacAtivo) ? 'mini' : 'peter';
     const vertCat = vertManual || vertDefault;
     const vDetalhe = a.voltasDetalhe || [];
     const voltasCells=(a.voltas||[]).map((v,vi)=>{
@@ -2036,7 +2057,7 @@ function renderNacCategoria() {
     }).join('');
     const vazios=maxV-(a.voltas||[]).length;
     const vaziosCells=Array(vazios).fill('<td style="text-align:center;color:var(--dim)">—</td>').join('');
-    const vertNac = (dadosNac?.vertentes||{})[nacAtivo] || (['Homens','Senhoras'].some(c=>nacAtivo&&nacAtivo.includes(c))?'mini':'peter');
+    const vertNac = (dadosNac?.vertentes||{})[nacAtivo] || (isGrupoA(nacAtivo)?'mini':'peter');
       html+=`<tr class="${vzg?'vzg-row':''}" style="cursor:pointer${a.dnf?';opacity:0.6':''}" onclick="abrirDetalheOuModal(${JSON.stringify(a).replace(/"/g,'&quot;')},'${vertNac}','${dadosNac?.url||''}')">
       <td class="${i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':''}">${a.rank||'—'}º</td>
       <td><strong>${vzg?'🟡 ':''}${a.nome}</strong></td>
@@ -2071,7 +2092,7 @@ window.abrirModalNac = function(a) {
     ? `<div class="tabela-wrap"><table>
         <thead><tr>${voltas.map((_,i)=>`<th style="text-align:center">Percurso ${i+1}</th>`).join('')}<th style="text-align:right">Total</th></tr></thead>
         <tbody><tr>
-          ${voltas.map(v=>{const vertM=(dadosNac?.vertentes||{})[nacAtivo]||(['Homens','Senhoras'].some(c=>nacAtivo&&nacAtivo.includes(c))?'mini':'peter');const cor=corVolta(campo,v);const bg=bgVolta(campo,v);const em=emojiCor(campo,v);return (function(v,vi2){const vDet2=(a.voltasDetalhe||[])[vi2];const vt2=vDet2?.vertente||vertM;const cmp2=vt2==='mini'?'mV1':'pV1';const cor2=corVolta(cmp2,v);const bg2=bgVolta(cmp2,v);const em2=emojiCor(cmp2,v);return `<td style="text-align:center;font-size:1.1rem;font-weight:700;color:${cor2||'inherit'};background:${bg2||'transparent'}" title="${vt2}">${em2} ${v}</td>`;})(v,voltas.indexOf(v));}).join('')}
+          ${voltas.map(v=>{const vertM=(dadosNac?.vertentes||{})[nacAtivo]||(isGrupoA(nacAtivo)?'mini':'peter');const cor=corVolta(campo,v);const bg=bgVolta(campo,v);const em=emojiCor(campo,v);return (function(v,vi2){const vDet2=(a.voltasDetalhe||[])[vi2];const vt2=vDet2?.vertente||vertM;const cmp2=vt2==='mini'?'mV1':'pV1';const cor2=corVolta(cmp2,v);const bg2=bgVolta(cmp2,v);const em2=emojiCor(cmp2,v);return `<td style="text-align:center;font-size:1.1rem;font-weight:700;color:${cor2||'inherit'};background:${bg2||'transparent'}" title="${vt2}">${em2} ${v}</td>`;})(v,voltas.indexOf(v));}).join('')}
           <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.4rem;color:var(--orange)">${a.total}</td>
         </tr></tbody></table></div>`
     : '<p style="color:var(--dim)">Sem detalhe de percursos.</p>';
