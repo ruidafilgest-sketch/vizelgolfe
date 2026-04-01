@@ -556,7 +556,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -2010,7 +2010,7 @@ window.guardarResultados = async function(provaId, jornada) {
   prova.resultados[jornada] = jRes;
 
   try {
-    await setDoc(doc(db,'vizelgolfe','dados'), dadosInt);
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
     mostrarNotif('✅ Resultados guardados!');
   } catch(e) {
     mostrarNotif('❌ Erro ao guardar', true);
@@ -2044,7 +2044,7 @@ window.criarProva = async function() {
   if (!dadosInt.provas) dadosInt.provas=[];
   dadosInt.provas.push({id,nome,tipo,estado:'agendado',data,jornadas:1,pts1:25,bonusMini:1,bonusPeter:1,bonusCompleto:0,resultados});
   dadosInt.proximoProvaId = id+1;
-  await setDoc(doc(db,'vizelgolfe','dados'),dadosInt);
+  await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
   mostrarNotif('✅ Prova criada!');
   document.getElementById('nova-prova-nome').value='';
 };
@@ -2052,7 +2052,7 @@ window.criarProva = async function() {
 window.alterarEstado = async function(id, val) {
   if (!dadosInt) return;
   const p = (dadosInt.provas||[]).find(p=>p.id==id);
-  if (p) { p.estado=val; await setDoc(doc(db,'vizelgolfe','dados'),dadosInt); mostrarNotif('Estado atualizado'); }
+  if (p) { p.estado=val; await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'}); mostrarNotif('Estado atualizado'); }
 };
 
 // ── NACIONAL ──
@@ -2233,7 +2233,7 @@ window.nacAtualizarAgora = async function() {
     if(nac_ano === anoAtual){
       dadosParaGuardar.bangolfe = dadosNac;
     }
-    await setDoc(doc(db,'vizelgolfe','nacional'), dadosParaGuardar, {merge: true});
+    await setDoc(doc(db,'vizelgolfe','nacional'), {...dadosParaGuardar, _vzgKey:'VZG-2026-SEC-K9x'}, {merge: true});
     const vzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube, x.nome)).length,0);
     nacLog(`✅ ${totalAtl} atletas · ${vzg} Vizelgolfe · ${Object.keys(cats).length} categorias`,'ok');
     nacSetStatus('✅ Atualizado às ' + new Date().toLocaleTimeString('pt-PT'),'verde');
@@ -2397,7 +2397,7 @@ window.guardarNovoAtleta = async function() {
   if (!dadosInt.atletas) dadosInt.atletas=[];
   dadosInt.atletas.push({id,nome,categoria:cat});
   dadosInt.proximoId = id+1;
-  await setDoc(doc(db,'vizelgolfe','dados'),dadosInt);
+  await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
   document.getElementById('modal-overlay').classList.remove('on');
   mostrarNotif('✅ Atleta adicionado!');
 };
