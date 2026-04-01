@@ -556,7 +556,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1543,16 +1543,57 @@ window.renderRankingAnual = function(btn) {
     html += `<div style="margin-bottom:24px">
       <div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);padding:8px 0;border-bottom:2px solid var(--orange);margin-bottom:8px">${cat}</div>
       <div class="tabela-wrap"><table>
-        <thead><tr><th>Pos</th><th>Atleta</th><th style="text-align:right">Pontos Totais</th></tr></thead>
+        <thead><tr>
+          <th style="width:36px">Pos</th>
+          <th>Atleta</th>
+          ${(()=>{
+            // Cabeçalhos dinâmicos de voltas
+            const esp = prova.jornadaEspecial?.[jFiltro||1];
+            const isFiltroJ = !!jFiltro;
+            if(esp?.tipo==='peter4voltas') return '<th class="c">P1</th><th class="c">P2</th><th class="c">P3</th><th class="c">P4</th><th class="c">Total</th>';
+            if(isFiltroJ) return '<th class="c">M1</th><th class="c">M2</th><th class="c">P1</th><th class="c">P2</th><th class="c">Total</th>';
+            return '<th class="c">Jornadas</th><th class="c" style="text-align:right">Pontos</th>';
+          })()}
+        </tr></thead>
         <tbody>
-        ${ranked.map((a,i)=>`<tr style="cursor:pointer" onclick="abrirPerfilAtleta(${a.id})">
-          <td class="${i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':''}">${i+1}º</td>
-          <td><strong>${a.nome}</strong></td>
-          <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:var(--orange)">${a.pts}</td>
-        </tr>`).join('')}
+        ${ranked.map((a,i)=>{
+          const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
+          const esp = prova.jornadaEspecial?.[jFiltro||1];
+          const isFiltroJ = !!jFiltro;
+
+          // Se filtro por jornada, mostrar voltas com cores
+          if(isFiltroJ) {
+            const res = prova.resultados?.[jFiltro]?.[a.id]||{};
+            const campos = esp?.tipo==='peter4voltas'
+              ? [{id:'pV1',l:'pV1'},{id:'pV2',l:'pV2'},{id:'pV3',l:'pV3'},{id:'pV4',l:'pV4'}]
+              : [{id:'mV1',l:'mV1'},{id:'mV2',l:'mV2'},{id:'pV1',l:'pV1'},{id:'pV2',l:'pV2'}];
+            const tot = calcTotal(prova,jFiltro,res);
+            const voltaCols = campos.map(c=>{
+              const v=res[c.id];
+              if(!v) return '<td style="text-align:center;color:var(--dim)">—</td>';
+              const cor=corVolta(c.id,v); const bg=bgVolta(c.id,v); const em=emojiCor(c.id,v);
+              return '<td style="text-align:center;font-weight:700;font-size:0.88rem;color:'+cor+';background:'+bg+'">'+em+' '+v+'</td>';
+            }).join('');
+            const totCor = tot ? corTotal(tot,campos.length,campos[0].id) : 'var(--orange)';
+            return '<tr style="cursor:pointer" onclick="abrirPerfilAtleta('+a.id+')">'
+              +'<td class="'+posClass+'">'+(i+1)+'º</td>'
+              +'<td><strong>'+a.nome+'</strong></td>'
+              +voltaCols
+              +'<td style="text-align:center;font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:'+totCor+'">'+( tot||'—')+'</td>'
+              +'</tr>';
+          }
+
+          // Vista geral — pontos acumulados
+          return '<tr style="cursor:pointer" onclick="abrirPerfilAtleta('+a.id+')">'
+            +'<td class="'+posClass+'">'+(i+1)+'º</td>'
+            +'<td><strong>'+a.nome+'</strong></td>'
+            +'<td style="text-align:center;color:var(--dim);font-size:0.82rem">'+a.jPart+'</td>'
+            +'<td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:var(--orange)">'+a.pts+'</td>'
+            +'</tr>';
+        }).join('')}
         </tbody>
       </table></div>
-    </div>`;
+    </div>`
   });
   cont.innerHTML = html || '<div style="color:var(--dim);padding:20px">Sem resultados ainda.</div>';
 };
