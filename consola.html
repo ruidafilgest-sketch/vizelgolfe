@@ -556,7 +556,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1557,14 +1557,26 @@ window.renderRankingAnual = function(btn) {
   cont.innerHTML = html || '<div style="color:var(--dim);padding:20px">Sem resultados ainda.</div>';
 };
 
-window.renderClassProva = function(provaId, btn) {
+window.renderClassProva = function(provaId, btn, jFiltro) {
   if (btn) { document.querySelectorAll('#class-tabs .cat-tab').forEach(t=>t.classList.remove('on')); btn.classList.add('on'); }
   const prova = (dadosInt?.provas||[]).find(p=>p.id==provaId);
   if (!prova) return;
   const atletas = dadosInt.atletas||[];
   const empates = dadosInt.empates||{};
   const cont = document.getElementById('class-conteudo');
+
+  // Botões de jornada (só para campeonatos com mais de 1 jornada)
   let html = '';
+  if ((prova.jornadas||1) > 1) {
+    html += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">';
+    html += `<button class="cat-tab${!jFiltro?' on':''}" onclick="renderClassProva(${provaId},null,null)" style="font-size:0.78rem">🏆 Geral</button>`;
+    for(let j=1;j<=(prova.jornadas||1);j++){
+      const temRes = prova.resultados?.[j] && Object.keys(prova.resultados[j]).length>0;
+      if(!temRes) continue;
+      html += `<button class="cat-tab${jFiltro===j?' on':''}" onclick="renderClassProva(${provaId},null,${j})" style="font-size:0.78rem">J${j}</button>`;
+    }
+    html += '</div>';
+  }
 
   CATEGORIAS.forEach(cat => {
     const catAtl = atletas.filter(a=>a.categoria===cat);
@@ -1572,7 +1584,9 @@ window.renderClassProva = function(provaId, btn) {
 
     const ranked = catAtl.map(a => {
       let pts=0, jPart=0;
-      for (let j=1;j<=(prova.jornadas||1);j++) {
+      const jInicio = jFiltro||1;
+      const jFim = jFiltro||(prova.jornadas||1);
+      for (let j=jInicio;j<=jFim;j++) {
         const res=prova.resultados?.[j]?.[a.id];
         if (!res) continue;
         const tot=calcTotal(prova,j,res);
@@ -1884,7 +1898,7 @@ window.onJornadaChange = function() {
 const VZG_EXCECOES = ["Jose Tropa","José Tropa"];
 function normalizar(s){ return s?s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase():''; }
 function isVzg(clube, nome) {
-  if(clube && clube.toLowerCase().includes('vizelgolfe')) return true;
+  if(clube && (clube.toLowerCase().includes('vizelgolfe') || clube.toLowerCase().includes('vizelglfe'))) return true;
   if(nome && VZG_EXCECOES.some(n => normalizar(nome).includes(normalizar(n)))) return true;
   return false;
 }
