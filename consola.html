@@ -556,7 +556,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1990,6 +1990,83 @@ function emojiCor(campoId, valor){
   return {'#1d4ed8':'🔵','#16a34a':'🟢','#dc2626':'🔴','#111827':'⚫'}[c]||'';
 }
 
+// ── PISTAS INTERNAS ──
+const PISTAS_MINI_VZG = ["Direto","Ângulo Reto","Plataforma","Camelos","Passagens","Pirâmides","Saco","Tubo","Janela","Areia","Labirinto","V sem V","Lomba","Caracol","Diabolo","Raio","Queijo","Travessões"];
+const PISTAS_PETER_VZG = ["Direto","Pedras","Caracol","Ladrão","Pedras","Fosso","Grande","Vulcão","Ângulo Aberto","Lombas","Chapa","Tabela","Duplo Robové","Direto Torto","Casota do Cão","Ângulo Fechado","V","Rampa"];
+
+window.aplicarCorPista = function(inp) {
+  const v = parseInt(inp.value)||0;
+  if(v===0){inp.style.color='inherit';inp.style.background='var(--bg2)';return;}
+  inp.style.color   = v===1?'#16a34a':v===2?'#dc2626':'#111827';
+  inp.style.background = v===1?'rgba(22,163,74,0.1)':v===2?'rgba(220,38,38,0.1)':'rgba(17,24,39,0.1)';
+};
+
+window.atualizarTotalPistas = function(atletaId, campoId) {
+  let tot=0;
+  for(let i=1;i<=18;i++){
+    const el=document.getElementById('p_'+atletaId+'_'+campoId+'_'+i);
+    const v=parseInt(el&&el.value)||0; if(v>0) tot+=v;
+  }
+  const inpVolta=document.getElementById('inp_'+atletaId+'_'+campoId);
+  if(inpVolta&&tot>0){inpVolta.value=tot;aplicarCorInput(inpVolta,campoId);}
+  const totEl=document.getElementById('tpistas_'+atletaId+'_'+campoId);
+  if(totEl){
+    totEl.style.color=tot>0?corVolta(campoId,tot):'var(--dim)';
+    totEl.style.background=tot>0?bgVolta(campoId,tot):'transparent';
+    totEl.textContent=tot>0?tot:'—';
+  }
+};
+
+window.toggleDetalhe = function(atletaId, campoId) {
+  const div=document.getElementById('det_'+atletaId+'_'+campoId);
+  if(!div) return;
+  const vis=div.style.display!=='none';
+  div.style.display=vis?'none':'block';
+  const btn=document.getElementById('btndet_'+atletaId+'_'+campoId);
+  if(btn) btn.textContent=vis?'▼ Pista a pista':'▲ Fechar';
+};
+
+window.guardarDetalhePistas = async function(provaId, jornada, atletaId, campoId) {
+  const pistas={};
+  for(let i=1;i<=18;i++){
+    const el=document.getElementById('p_'+atletaId+'_'+campoId+'_'+i);
+    const v=parseInt(el&&el.value)||0; if(v>0) pistas['p'+i]=v;
+  }
+  try {
+    const snap=await getDoc(doc(db,'vizelgolfe','dados'));
+    const d=snap.exists()?snap.data():{};
+    const path='detalhe_'+provaId+'_j'+jornada;
+    if(!d[path]) d[path]={};
+    if(!d[path][atletaId]) d[path][atletaId]={};
+    d[path][atletaId][campoId]=pistas;
+    await setDoc(doc(db,'vizelgolfe','dados'),{...d,_vzgKey:'VZG-2026-SEC-K9x'});
+    mostrarNotif('✅ Pistas guardadas!');
+  } catch(e){ mostrarNotif('❌ Erro: '+e.message,true); }
+};
+
+function renderGridPistas(atletaId, campoId, provaId, jornada, pistasGuardadas) {
+  const nomes = campoId.startsWith('m') ? PISTAS_MINI_VZG : PISTAS_PETER_VZG;
+  let h = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:4px;background:var(--bg);padding:8px;border-radius:6px;border:1px solid var(--sep);margin-top:6px">';
+  for(let i=1;i<=18;i++){
+    const pv = pistasGuardadas['p'+i]||'';
+    const pcor = pv ? (pv==1?'#16a34a':pv==2?'#dc2626':'#111827') : 'inherit';
+    const pbg  = pv ? (pv==1?'rgba(22,163,74,0.1)':pv==2?'rgba(220,38,38,0.1)':'rgba(17,24,39,0.1)') : 'var(--bg2)';
+    h += '<div style="display:flex;flex-direction:column;gap:2px">';
+    h += '<label style="font-size:0.6rem;color:var(--dim);overflow:hidden;white-space:nowrap;text-overflow:ellipsis" title="'+nomes[i-1]+'">'+i+'. '+nomes[i-1]+'</label>';
+    h += '<input type="number" min="1" max="7" id="p_'+atletaId+'_'+campoId+'_'+i+'" value="'+pv+'"';
+    h += ' style="padding:3px;border:1px solid var(--sep);border-radius:4px;width:100%;text-align:center;font-size:0.85rem;font-weight:700;color:'+pcor+';background:'+pbg+'"';
+    h += ' oninput="aplicarCorPista(this);atualizarTotalPistas('+atletaId+',\"'+campoId+'\")">'; 
+    h += '</div>';
+  }
+  h += '</div>';
+  h += '<div style="display:flex;align-items:center;gap:8px;margin-top:6px">';
+  h += '<span style="font-size:0.72rem;color:var(--dim)">Total:</span>';
+  h += '<span id="tpistas_'+atletaId+'_'+campoId+'" style="font-family:Bebas Neue,sans-serif;font-size:1rem;padding:2px 8px;border-radius:4px">—</span>';
+  h += '<button onclick="guardarDetalhePistas('+provaId+','+jornada+','+atletaId+',\"'+campoId+'\")" style="font-size:0.7rem;padding:3px 8px;border:1px solid var(--orange);border-radius:4px;background:transparent;color:var(--orange);cursor:pointer">&#x1F4BE; Guardar pistas</button>';
+  h += '</div>';
+  return h;
+}
+
 function renderFormInserir(provaId, jornada) {
   if (!dadosInt) return;
   const prova = (dadosInt.provas||[]).find(p=>p.id===provaId);
@@ -2016,8 +2093,15 @@ function renderFormInserir(provaId, jornada) {
               style="padding:6px 8px;border:1px solid var(--sep);border-radius:6px;width:80px;text-align:center;font-size:0.95rem;font-weight:700;background:${bgVolta(c.id,res[c.id])||'var(--bg2)'};color:${corVolta(c.id,res[c.id])||'inherit'}"
               oninput="aplicarCorInput(this,'${c.id}')">
             <div id="em_${a.id}_${c.id}" style="text-align:center;font-size:0.8rem;height:16px">${emojiCor(c.id,res[c.id])}</div>
+            <button id="btndet_${a.id}_${c.id}" onclick="toggleDetalhe(${a.id},'${c.id}')"
+              style="font-size:0.65rem;padding:2px 6px;border:1px solid var(--sep);border-radius:4px;background:var(--bg2);cursor:pointer;color:var(--dim);margin-top:2px;width:80px">▼ Pista a pista</button>
           </div>`).join('')}
         </div>
+        ${campos.map(c => {
+          const detPath = 'detalhe_'+provaId+'_j'+jornada;
+          const pistasGuardadas = ((dadosInt[detPath]||{})[a.id]||{})[c.id]||{};
+          return '<div id="det_'+a.id+'_'+c.id+'" style="display:none;grid-column:1/-1">'+renderGridPistas(a.id,c.id,provaId,jornada,pistasGuardadas)+'</div>';
+        }).join('')}
       </div>`;
     });
     html += '</div>';
