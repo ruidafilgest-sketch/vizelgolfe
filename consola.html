@@ -556,7 +556,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -2009,9 +2009,17 @@ window.atualizarTotalPistas = function(atletaId, campoId) {
     const v=parseInt(el&&el.value)||0; if(v>0) tot+=v;
   }
   // Actualizar campo de volta principal
-  const inpVolta=document.getElementById('inp_'+atletaId+'_'+campoId);
+  // Garantir que atletaId é número para o ID coincidir com o template
+  const aid = parseInt(atletaId)||atletaId;
+  const inpVolta=document.getElementById('inp_'+aid+'_'+campoId);
   if(inpVolta){
-    if(tot>0){inpVolta.value=tot; aplicarCorInput(inpVolta,campoId);}
+    if(tot>0){
+      inpVolta.value=tot;
+      aplicarCorInput(inpVolta,campoId);
+      // Garantir que o emoji também actualiza
+      const emEl=document.getElementById('em_'+aid+'_'+campoId);
+      if(emEl) emEl.textContent=emojiCor(campoId,tot);
+    }
     else{inpVolta.value=''; inpVolta.style.color='inherit'; inpVolta.style.background='var(--bg2)';}
   }
   // Mostrar total parcial
@@ -2230,6 +2238,12 @@ function renderGerir() {
         <option value="ativo"${p.estado==='ativo'?' selected':''}>Ativo</option>
         <option value="concluido"${p.estado==='concluido'?' selected':''}>Concluído</option>
       </select>
+      <div style="display:flex;align-items:center;gap:4px">
+        <label style="font-size:0.72rem;color:var(--dim)">Jornadas:</label>
+        <select onchange="alterarJornadas(${p.id},this.value)" style="padding:4px 8px;border:1px solid var(--sep);border-radius:6px;font-size:0.78rem;width:60px">
+          ${[1,2,3,4,5,6].map(n=>`<option value="${n}"${(p.jornadas||1)==n?' selected':''}>${n}</option>`).join('')}
+        </select>
+      </div>
     </div>`).join('');
 }
 
@@ -2247,6 +2261,21 @@ window.criarProva = async function() {
   await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
   mostrarNotif('✅ Prova criada!');
   document.getElementById('nova-prova-nome').value='';
+};
+
+window.alterarJornadas = async function(id, val) {
+  if (!dadosInt) return;
+  const p = (dadosInt.provas||[]).find(p=>p.id==id);
+  if (!p) return;
+  p.jornadas = parseInt(val);
+  // Garantir que resultados existem para todas as jornadas
+  if(!p.resultados) p.resultados={};
+  for(let j=1;j<=p.jornadas;j++){
+    if(!p.resultados[j]) p.resultados[j]={};
+  }
+  await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt,_vzgKey:'VZG-2026-SEC-K9x'});
+  mostrarNotif('✅ Jornadas actualizadas para '+val);
+  renderGerir();
 };
 
 window.alterarEstado = async function(id, val) {
