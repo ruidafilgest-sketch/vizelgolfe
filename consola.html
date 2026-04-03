@@ -1549,9 +1549,21 @@ window.renderRankingAnual = function(btn) {
   CATEGORIAS.forEach(cat => {
     const catAtl = atletas.filter(a=>a.categoria===cat);
     if (!catAtl.length) return;
-    const ranked = catAtl.map(a => ({
-      ...a, pts: calcPontosAtletaEpoca(a.id, cat)
-    })).filter(a=>a.pts>0).sort((a,b)=>b.pts-a.pts);
+
+    // Calcular pontos e nº de jornadas participadas por atleta
+    const ranked = catAtl.map(a => {
+      const pts = calcPontosAtletaEpoca(a.id, cat);
+      // Contar jornadas com resultado válido
+      let jPart = 0;
+      (dadosInt.provas||[]).forEach(p => {
+        for (let j=1; j<=(p.jornadas||1); j++) {
+          const res = p.resultados?.[j]?.[a.id];
+          if (res && calcTotal(p,j,res) != null) jPart++;
+        }
+      });
+      return {...a, pts, jPart};
+    }).filter(a=>a.pts>0).sort((a,b)=>b.pts-a.pts);
+
     if (!ranked.length) return;
     html += `<div style="margin-bottom:24px">
       <div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);padding:8px 0;border-bottom:2px solid var(--orange);margin-bottom:8px">${cat}</div>
@@ -1559,44 +1571,12 @@ window.renderRankingAnual = function(btn) {
         <thead><tr>
           <th style="width:36px">Pos</th>
           <th>Atleta</th>
-          ${(()=>{
-            // Cabeçalhos dinâmicos de voltas
-            const esp = prova.jornadaEspecial?.[jFiltro||1];
-            const isFiltroJ = !!jFiltro;
-            if(esp?.tipo==='peter4voltas') return '<th class="c">P1</th><th class="c">P2</th><th class="c">P3</th><th class="c">P4</th><th class="c">Total</th>';
-            if(isFiltroJ) return '<th class="c">M1</th><th class="c">M2</th><th class="c">P1</th><th class="c">P2</th><th class="c">Total</th>';
-            return '<th class="c">Jornadas</th><th class="c" style="text-align:right">Pontos</th>';
-          })()}
+          <th style="text-align:center">Jornadas</th>
+          <th style="text-align:right">Pontos</th>
         </tr></thead>
         <tbody>
         ${ranked.map((a,i)=>{
           const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
-          const esp = prova.jornadaEspecial?.[jFiltro||1];
-          const isFiltroJ = !!jFiltro;
-
-          // Se filtro por jornada, mostrar voltas com cores
-          if(isFiltroJ) {
-            const res = prova.resultados?.[jFiltro]?.[a.id]||{};
-            const campos = esp?.tipo==='peter4voltas'
-              ? [{id:'pV1',l:'pV1'},{id:'pV2',l:'pV2'},{id:'pV3',l:'pV3'},{id:'pV4',l:'pV4'}]
-              : [{id:'mV1',l:'mV1'},{id:'mV2',l:'mV2'},{id:'pV1',l:'pV1'},{id:'pV2',l:'pV2'}];
-            const tot = calcTotal(prova,jFiltro,res);
-            const voltaCols = campos.map(c=>{
-              const v=res[c.id];
-              if(!v) return '<td style="text-align:center;color:var(--dim)">—</td>';
-              const cor=corVolta(c.id,v); const bg=bgVolta(c.id,v); const em=emojiCor(c.id,v);
-              return '<td style="text-align:center;font-weight:700;font-size:0.88rem;color:'+cor+';background:'+bg+'">'+em+' '+v+'</td>';
-            }).join('');
-            const totCor = tot ? corTotal(tot,campos.length,campos[0].id) : 'var(--orange)';
-            return '<tr style="cursor:pointer" onclick="abrirPerfilAtleta('+a.id+')">'
-              +'<td class="'+posClass+'">'+(i+1)+'º</td>'
-              +'<td><strong>'+a.nome+'</strong></td>'
-              +voltaCols
-              +'<td style="text-align:center;font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:'+totCor+'">'+( tot||'—')+'</td>'
-              +'</tr>';
-          }
-
-          // Vista geral — pontos acumulados
           return '<tr style="cursor:pointer" onclick="abrirPerfilAtleta('+a.id+')">'
             +'<td class="'+posClass+'">'+(i+1)+'º</td>'
             +'<td><strong>'+a.nome+'</strong></td>'
@@ -1606,7 +1586,7 @@ window.renderRankingAnual = function(btn) {
         }).join('')}
         </tbody>
       </table></div>
-    </div>`
+    </div>`;
   });
   cont.innerHTML = html || '<div style="color:var(--dim);padding:20px">Sem resultados ainda.</div>';
 };
@@ -1683,14 +1663,31 @@ function calcTotal(prova, j, res) {
 
 function calcPos(prova, j, atletaId, grupo, atletas, empates) {
   const jRes=prova.resultados?.[j]; if (!jRes) return 999;
+  atletaId = parseInt(atletaId);
   const doGrupo=atletas.filter(a=>CAT_GRUPO[a.categoria]===grupo&&jRes[a.id]);
-  const totais=doGrupo.map(a=>({id:a.id,t:calcTotal(prova,j,jRes[a.id])??9999})).filter(x=>x.t<9999);
+  const totais=doGrupo.map(a=>({id:parseInt(a.id),t:calcTotal(prova,j,jRes[a.id])??9999})).filter(x=>x.t<9999);
   totais.sort((a,b)=>{
     if(a.t!==b.t) return a.t-b.t;
     const k=`${prova.id}_j${j}_${Math.min(a.id,b.id)}_${Math.max(a.id,b.id)}`;
-    const v=empates?.[k]; if(v) return v===a.id?-1:1; return 0;
+    const v=empates?.[k]; if(v) return parseInt(v)===a.id?-1:1; return 0;
   });
-  for(let i=0;i<totais.length;i++){if(totais[i].id===atletaId) return i+1;}
+  // Calcular posição real (empates não resolvidos partilham posição)
+  let pos = 1;
+  for(let i=0;i<totais.length;i++){
+    if(i>0 && totais[i].t!==totais[i-1].t){
+      // Verificar se o par anterior estava empatado mas resolvido
+      pos = i+1;
+    } else if(i>0 && totais[i].t===totais[i-1].t){
+      // Mesmo total — verificar se existe resolução para este par
+      const k=`${prova.id}_j${j}_${Math.min(totais[i].id,totais[i-1].id)}_${Math.max(totais[i].id,totais[i-1].id)}`;
+      const v=empates?.[k];
+      if(!v) {
+        // Empate não resolvido — ambos ficam na posição de início do grupo empatado
+        // pos já está no valor correcto (não incrementar)
+      }
+    }
+    if(totais[i].id===atletaId) return pos;
+  }
   return 999;
 }
 
@@ -2449,16 +2446,50 @@ window.resolverEmpate = async function(key, atletaId) {
   if (atletaId === null) {
     delete dadosInt.empates[key];
   } else {
-    dadosInt.empates[key] = atletaId;
+    dadosInt.empates[key] = parseInt(atletaId);
   }
   try {
     await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
-    // Recalcular bónus de todas as provas após resolver empate
     await recalcularTodosBonusAuto();
+    atualizarBadgeEmpates();
     renderEmpates();
     mostrarNotif('✅ Empate resolvido!');
   } catch(e){ mostrarNotif('❌ Erro: '+e.message, true); }
 };
+
+// Atualizar badge de empates pendentes no menu
+function atualizarBadgeEmpates() {
+  const empBadge = document.getElementById('nav-empates');
+  if (!empBadge) return;
+  const atletas = dadosInt.atletas||[];
+  let pend = 0;
+  (dadosInt.provas||[]).forEach(p => {
+    const isCViz = p.nome && p.nome.includes('Vizela') && p.tipo==='campeonato';
+    if (!isCViz) return;
+    for (let j=1; j<=(p.jornadas||1); j++) {
+      if (!p.resultados?.[j] || !Object.keys(p.resultados[j]).length) continue;
+      const bc = calcularBonusAuto(p, j, atletas);
+      if (bc && bc.empates.length) pend += bc.empates.length;
+    }
+    // Empates de posição por jornada/categoria
+    for (let j=1; j<=(p.jornadas||1); j++) {
+      if (!p.resultados?.[j]) continue;
+      CATEGORIAS.forEach(cat => {
+        const grupo = CAT_GRUPO[cat];
+        const catAtl = atletas.filter(a=>a.categoria===cat&&p.resultados[j][a.id]);
+        const totais = catAtl.map(a=>({id:parseInt(a.id),t:calcTotal(p,j,p.resultados[j][a.id])??9999})).filter(x=>x.t<9999);
+        totais.sort((a,b)=>a.t-b.t);
+        for (let i=0;i<totais.length-1;i++){
+          if(totais[i].t===totais[i+1].t){
+            const k=`${p.id}_j${j}_${Math.min(totais[i].id,totais[i+1].id)}_${Math.max(totais[i].id,totais[i+1].id)}`;
+            if(!(dadosInt.empates||{})[k]) pend++;
+          }
+        }
+      });
+    }
+  });
+  empBadge.querySelector('.label').textContent = 'Empates' + (pend ? ` (${pend}⚠️)` : '');
+}
 
 // Recalcular e aplicar bónus automáticos em todas as jornadas
 async function recalcularTodosBonusAuto() {
@@ -2492,7 +2523,6 @@ window.guardarResultados = async function(provaId, jornada) {
       const el = document.getElementById(`inp_${a.id}_${c}`);
       if (el&&el.value&&!isNaN(parseInt(el.value))) res[c]=parseInt(el.value);
     });
-    // Bónus calculados automaticamente por calcularBonusAuto()
     if (Object.keys(res).length>0) jRes[a.id]=res;
   });
 
@@ -2503,11 +2533,8 @@ window.guardarResultados = async function(provaId, jornada) {
     await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
     await recalcularTodosBonusAuto();
     mostrarNotif('✅ Resultados guardados!');
-    // Actualizar badge de empates pendentes
-    const empBadge = document.getElementById('nav-empates');
-    if(empBadge) { const atletas=dadosInt.atletas||[]; let pend=0;
-      (dadosInt.provas||[]).forEach(prova=>{const isCViz=prova.nome&&prova.nome.includes('Vizela')&&prova.tipo==='campeonato';if(!isCViz)return;for(let j=1;j<=(prova.jornadas||1);j++){const bc=calcularBonusAuto(prova,j,atletas);if(bc&&bc.empates.length)pend+=bc.empates.length;}});
-      empBadge.querySelector('.label').textContent='Empates'+(pend?` (${pend}⚠️)`:''); }
+    // Actualizar badge de empates pendentes — após recálculo completo
+    atualizarBadgeEmpates();
   } catch(e) {
     mostrarNotif('❌ Erro ao guardar', true);
   }
