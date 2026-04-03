@@ -266,6 +266,9 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       <div class="nav-item admin-only" onclick="irPara('gerir')">
         <span class="ico">⚙️</span><span class="label">Gerir Provas</span>
       </div>
+      <div class="nav-item admin-only" id="nav-empates" onclick="irPara('empates');renderEmpates()">
+        <span class="ico">⚖️</span><span class="label">Empates</span>
+      </div>
       <div class="nav-section">Outros</div>
       <div class="nav-item" onclick="irPara('stats')">
         <span class="ico">📈</span><span class="label">Estatísticas</span>
@@ -508,7 +511,17 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       </div>
 
       <!-- REGRAS -->
-      <div class="secao" id="sec-stats">
+      <div class="secao admin-only" id="sec-empates">
+      <div class="card-titulo" style="margin-bottom:16px">⚖️ Gestão de Empates</div>
+      <div style="font-size:0.78rem;color:var(--dim);margin-bottom:16px">
+        Bónus automáticos e desempates por jornada do Campeonato de Vizela. 
+        Os bónus Mini e Peter são atribuídos automaticamente ao atleta com menor total. 
+        Em caso de empate, resolve aqui manualmente.
+      </div>
+      <div id="empates-conteudo"><div style="color:var(--dim);padding:20px;text-align:center">A carregar...</div></div>
+    </div>
+
+    <div class="secao" id="sec-stats">
   <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:2px;color:var(--org2);margin:0 0 16px">📈 Estatísticas</h2>
 
   <!-- TABS SIMPLES -->
@@ -556,7 +569,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -2160,6 +2173,17 @@ function renderFormInserir(provaId, jornada) {
           </div>`).join('')}
         </div>
         ${campos.map(c=>`<div id="det_${a.id}_${c.id}" style="display:none;padding:0 4px"></div>`).join('')}
+        ${(()=>{
+          const isCViz = prova.nome&&prova.nome.includes('Vizela')&&prova.tipo==='campeonato';
+          if(!isCViz) return '';
+          const res2 = prova.resultados?.[jornada]?.[a.id]||{};
+          let bh = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;padding:4px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--sep);font-size:0.72rem;color:var(--dim)">';
+          bh += '<span style="align-self:center">Bónus automático:</span>';
+          bh += res2.bonusMini  ? '<span style="color:#16a34a;font-weight:700">🏌️ Mini ✅</span>' : '<span>🏌️ Mini —</span>';
+          bh += res2.bonusPeter ? '<span style="color:#16a34a;font-weight:700">⛳ Peter ✅</span>' : '<span>⛳ Peter —</span>';
+          bh += '</div>';
+          return bh;
+        })()}
       </div>`;
     });
     html += '</div>';
@@ -2195,6 +2219,263 @@ window.aplicarCorInput = function(inp, campoId) {
   if(em) em.textContent = emojiCor(campoId, v);
 };
 
+// ── BÓNUS AUTOMÁTICOS E EMPATES ──
+
+// Calcular bónus automáticos após guardar resultados
+// Retorna: { bonusMini: {atletaId: true}, bonusPeter: {atletaId: true}, empates: [...] }
+function calcularBonusAuto(prova, jornada, atletas) {
+  const jRes = prova.resultados?.[jornada] || {};
+  const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
+  if (!isCampVizela) return null;
+
+  const resultado = { bonusMini: {}, bonusPeter: {}, empates: [] };
+  const empatesExistentes = dadosInt.empates || {};
+
+  // Por categoria
+  const CATS = [...new Set(atletas.map(a => a.categoria))];
+
+  CATS.forEach(cat => {
+    const catAtl = atletas.filter(a => a.categoria === cat && jRes[a.id]);
+    if (!catAtl.length) return;
+
+    // ── BÓNUS MINI ──
+    const totaisMini = catAtl.map(a => {
+      const res = jRes[a.id] || {};
+      const m1 = parseInt(res.mV1) || 0;
+      const m2 = parseInt(res.mV2) || 0;
+      return { id: a.id, nome: a.nome, tot: (m1 > 0 && m2 > 0) ? m1 + m2 : (m1 || m2) };
+    }).filter(x => x.tot > 0).sort((a, b) => a.tot - b.tot);
+
+    if (totaisMini.length > 0) {
+      const melhorMini = totaisMini[0].tot;
+      const comMelhorMini = totaisMini.filter(x => x.tot === melhorMini);
+      const keyEmpMini = `${prova.id}_j${jornada}_bonusMini_${cat.replace(/ /g,'_')}`;
+
+      if (comMelhorMini.length === 1) {
+        // Sem empate — atribui automático
+        resultado.bonusMini[comMelhorMini[0].id] = true;
+      } else {
+        // Empate — ver se já foi resolvido
+        const resolucao = empatesExistentes[keyEmpMini];
+        if (resolucao) {
+          resultado.bonusMini[resolucao] = true;
+        } else {
+          resultado.empates.push({
+            key: keyEmpMini,
+            tipo: 'bonusMini',
+            cat,
+            jornada,
+            descricao: `Bónus Mini J${jornada} — ${cat}`,
+            atletas: comMelhorMini,
+            total: melhorMini,
+            label: `Total Mini: ${melhorMini} tacadas`
+          });
+        }
+      }
+    }
+
+    // ── BÓNUS PETER ──
+    const totaisPeter = catAtl.map(a => {
+      const res = jRes[a.id] || {};
+      const p1 = parseInt(res.pV1) || 0;
+      const p2 = parseInt(res.pV2) || 0;
+      return { id: a.id, nome: a.nome, tot: (p1 > 0 && p2 > 0) ? p1 + p2 : (p1 || p2) };
+    }).filter(x => x.tot > 0).sort((a, b) => a.tot - b.tot);
+
+    if (totaisPeter.length > 0) {
+      const melhorPeter = totaisPeter[0].tot;
+      const comMelhorPeter = totaisPeter.filter(x => x.tot === melhorPeter);
+      const keyEmpPeter = `${prova.id}_j${jornada}_bonusPeter_${cat.replace(/ /g,'_')}`;
+
+      if (comMelhorPeter.length === 1) {
+        resultado.bonusPeter[comMelhorPeter[0].id] = true;
+      } else {
+        const resolucao = empatesExistentes[keyEmpPeter];
+        if (resolucao) {
+          resultado.bonusPeter[resolucao] = true;
+        } else {
+          resultado.empates.push({
+            key: keyEmpPeter,
+            tipo: 'bonusPeter',
+            cat,
+            jornada,
+            descricao: `Bónus Peter J${jornada} — ${cat}`,
+            atletas: comMelhorPeter,
+            total: melhorPeter,
+            label: `Total Peter: ${melhorPeter} tacadas`
+          });
+        }
+      }
+    }
+  });
+
+  return resultado;
+}
+
+// Aplicar bónus calculados nos resultados
+function aplicarBonusNosResultados(prova, jornada, bonusCalc) {
+  if (!bonusCalc) return;
+  const jRes = prova.resultados?.[jornada];
+  if (!jRes) return;
+
+  // Limpar bónus anteriores desta jornada
+  Object.values(jRes).forEach(res => {
+    if (res) { delete res.bonusMini; delete res.bonusPeter; }
+  });
+
+  // Aplicar novos
+  Object.entries(bonusCalc.bonusMini || {}).forEach(([id, val]) => {
+    if (jRes[id]) jRes[id].bonusMini = val;
+  });
+  Object.entries(bonusCalc.bonusPeter || {}).forEach(([id, val]) => {
+    if (jRes[id]) jRes[id].bonusPeter = val;
+  });
+}
+
+// Render do editor de empates expandido
+function renderEmpates() {
+  if (!dadosInt || !modoAdmin) return;
+  const div = document.getElementById('empates-conteudo');
+  if (!div) return;
+
+  const atletas = dadosInt.atletas || [];
+  const empatesResolvidos = dadosInt.empates || {};
+  let html = '';
+  let totalEmpates = 0;
+
+  (dadosInt.provas || []).forEach(prova => {
+    const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
+    if (!isCampVizela) return;
+
+    for (let j = 1; j <= (prova.jornadas || 1); j++) {
+      if (!prova.resultados?.[j] || !Object.keys(prova.resultados[j]).length) continue;
+
+      const bonusCalc = calcularBonusAuto(prova, j, atletas);
+      if (!bonusCalc || !bonusCalc.empates.length) continue;
+
+      bonusCalc.empates.forEach(emp => {
+        totalEmpates++;
+        const resolvido = empatesResolvidos[emp.key];
+        const atletaResolvido = resolvido ? atletas.find(a => a.id == resolvido) : null;
+
+        html += `<div class="card" style="margin-bottom:12px;border-left:4px solid ${resolvido ? '#16a34a' : '#d4820a'}">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div>
+              <span style="font-weight:700;color:var(--navy)">${emp.descricao}</span>
+              <span style="font-size:0.72rem;color:var(--dim);margin-left:8px">${emp.label}</span>
+            </div>
+            ${resolvido ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:700">✅ Resolvido — ${atletaResolvido?.nome || resolvido}</span>` : '<span style="font-size:0.75rem;color:var(--orange);font-weight:700">⚠️ Pendente</span>'}
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${emp.atletas.map(a => `
+              <button onclick="resolverEmpate('${emp.key}',${a.id})"
+                style="padding:6px 14px;border-radius:6px;font-size:0.82rem;cursor:pointer;font-family:Barlow Condensed,sans-serif;font-weight:700;
+                border:2px solid ${resolvido == a.id ? '#16a34a' : 'var(--sep)'};
+                background:${resolvido == a.id ? 'rgba(22,163,74,0.1)' : 'var(--bg)'};
+                color:${resolvido == a.id ? '#16a34a' : 'var(--text)'}">
+                ${resolvido == a.id ? '✅ ' : ''}${a.nome}
+              </button>`).join('')}
+            ${resolvido ? `<button onclick="resolverEmpate('${emp.key}',null)"
+              style="padding:6px 14px;border-radius:6px;font-size:0.75rem;cursor:pointer;border:1px solid var(--sep);background:var(--bg);color:var(--dim)">
+              ↩️ Anular</button>` : ''}
+          </div>
+        </div>`;
+      });
+    }
+
+    // Empates de posição (classificação geral por jornada)
+    for (let j = 1; j <= (prova.jornadas || 1); j++) {
+      if (!prova.resultados?.[j]) continue;
+      const CATS = [...new Set(atletas.map(a => a.categoria))];
+      CATS.forEach(cat => {
+        const catAtl = atletas.filter(a => a.categoria === cat);
+        const jRes = prova.resultados[j];
+        const grupo = CAT_GRUPO[cat];
+        const totais = catAtl
+          .filter(a => jRes?.[a.id] && calcTotal(prova, j, jRes[a.id]) != null)
+          .map(a => ({ id: a.id, nome: a.nome, tot: calcTotal(prova, j, jRes[a.id]) }))
+          .sort((a, b) => a.tot - b.tot);
+
+        // Encontrar grupos empatados
+        const vistos = new Set();
+        totais.forEach((x, i) => {
+          if (vistos.has(x.id)) return;
+          const empatados = totais.filter(y => y.tot === x.tot);
+          if (empatados.length < 2) return;
+          empatados.forEach(y => vistos.add(y.id));
+
+          const keyEmp = `${prova.id}_j${j}_pos_${cat.replace(/ /g,'_')}_${x.tot}`;
+          const resolvido = empatesResolvidos[keyEmp];
+          const atletaResolvido = resolvido ? atletas.find(a => a.id == resolvido) : null;
+          totalEmpates++;
+
+          html += `<div class="card" style="margin-bottom:12px;border-left:4px solid ${resolvido ? '#16a34a' : '#1e5fa8'}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+              <div>
+                <span style="font-weight:700;color:var(--navy)">Empate de Posição J${j} — ${cat}</span>
+                <span style="font-size:0.72rem;color:var(--dim);margin-left:8px">Total: ${x.tot} tacadas</span>
+              </div>
+              ${resolvido ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:700">✅ ${atletaResolvido?.nome || resolvido} à frente</span>` : '<span style="font-size:0.75rem;color:#1e5fa8;font-weight:700">⚠️ Pendente</span>'}
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${empatados.map(a => `
+                <button onclick="resolverEmpate('${keyEmp}',${a.id})"
+                  style="padding:6px 14px;border-radius:6px;font-size:0.82rem;cursor:pointer;font-family:Barlow Condensed,sans-serif;font-weight:700;
+                  border:2px solid ${resolvido == a.id ? '#16a34a' : 'var(--sep)'};
+                  background:${resolvido == a.id ? 'rgba(22,163,74,0.1)' : 'var(--bg)'};
+                  color:${resolvido == a.id ? '#16a34a' : 'var(--text)'}">
+                  ${resolvido == a.id ? '✅ ' : ''}${a.nome}
+                </button>`).join('')}
+              ${resolvido ? `<button onclick="resolverEmpate('${keyEmp}',null)"
+                style="padding:6px 14px;border-radius:6px;font-size:0.75rem;cursor:pointer;border:1px solid var(--sep);background:var(--bg);color:var(--dim)">
+                ↩️ Anular</button>` : ''}
+            </div>
+          </div>`;
+        });
+      });
+    }
+  });
+
+  if (!totalEmpates) {
+    html = '<div style="color:var(--dim);padding:20px;text-align:center">Sem empates detectados nas provas activas.</div>';
+  }
+
+  div.innerHTML = html;
+}
+
+window.resolverEmpate = async function(key, atletaId) {
+  if (!dadosInt) return;
+  if (!dadosInt.empates) dadosInt.empates = {};
+  if (atletaId === null) {
+    delete dadosInt.empates[key];
+  } else {
+    dadosInt.empates[key] = atletaId;
+  }
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    // Recalcular bónus de todas as provas após resolver empate
+    await recalcularTodosBonusAuto();
+    renderEmpates();
+    mostrarNotif('✅ Empate resolvido!');
+  } catch(e){ mostrarNotif('❌ Erro: '+e.message, true); }
+};
+
+// Recalcular e aplicar bónus automáticos em todas as jornadas
+async function recalcularTodosBonusAuto() {
+  const atletas = dadosInt.atletas || [];
+  (dadosInt.provas || []).forEach(prova => {
+    const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
+    if (!isCampVizela) return;
+    for (let j = 1; j <= (prova.jornadas || 1); j++) {
+      if (!prova.resultados?.[j]) continue;
+      const bonusCalc = calcularBonusAuto(prova, j, atletas);
+      aplicarBonusNosResultados(prova, j, bonusCalc);
+    }
+  });
+  await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+}
+
+
 window.guardarResultados = async function(provaId, jornada) {
   if (!dadosInt) return;
   const prova = (dadosInt.provas||[]).find(p=>p.id===provaId);
@@ -2211,6 +2492,7 @@ window.guardarResultados = async function(provaId, jornada) {
       const el = document.getElementById(`inp_${a.id}_${c}`);
       if (el&&el.value&&!isNaN(parseInt(el.value))) res[c]=parseInt(el.value);
     });
+    // Bónus calculados automaticamente por calcularBonusAuto()
     if (Object.keys(res).length>0) jRes[a.id]=res;
   });
 
@@ -2219,7 +2501,13 @@ window.guardarResultados = async function(provaId, jornada) {
 
   try {
     await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    await recalcularTodosBonusAuto();
     mostrarNotif('✅ Resultados guardados!');
+    // Actualizar badge de empates pendentes
+    const empBadge = document.getElementById('nav-empates');
+    if(empBadge) { const atletas=dadosInt.atletas||[]; let pend=0;
+      (dadosInt.provas||[]).forEach(prova=>{const isCViz=prova.nome&&prova.nome.includes('Vizela')&&prova.tipo==='campeonato';if(!isCViz)return;for(let j=1;j<=(prova.jornadas||1);j++){const bc=calcularBonusAuto(prova,j,atletas);if(bc&&bc.empates.length)pend+=bc.empates.length;}});
+      empBadge.querySelector('.label').textContent='Empates'+(pend?` (${pend}⚠️)`:''); }
   } catch(e) {
     mostrarNotif('❌ Erro ao guardar', true);
   }
