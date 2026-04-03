@@ -569,7 +569,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -2263,70 +2263,77 @@ function calcularBonusAuto(prova, jornada, atletas) {
   const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
   if (!isCampVizela) return null;
 
-  const resultado = { bonusMini: {}, bonusPeter: {}, empates: [] };
+  const esp = prova.jornadaEspecial?.[jornada];
+  const isPeter4 = esp?.tipo === 'peter4voltas';
+
+  const resultado = { bonusMini: {}, bonusPeter: {}, bonusPeterManha: {}, bonusPeterTarde: {}, empates: [] };
   const empatesExist = dadosInt.empates || {};
 
+  // Função auxiliar: calcular bónus para um campo/label/key
+  function calcBonus(grpAtl, camposFn, keyBase, tipoLabel, campoResultado) {
+    const totais = grpAtl.map(a => {
+      const res = jRes[a.id] || {};
+      const tot = camposFn(res);
+      return { id: parseInt(a.id), nome: a.nome, tot };
+    }).filter(x => x.tot > 0).sort((a, b) => a.tot - b.tot);
+
+    if (!totais.length) return;
+    const melhor = totais[0].tot;
+    const empatados = totais.filter(x => x.tot === melhor);
+    const key = prova.id + '_j' + jornada + '_' + keyBase;
+
+    if (empatados.length === 1) {
+      resultado[campoResultado][empatados[0].id] = true;
+    } else {
+      const resolvido = parseInt(empatesExist[key] || 0);
+      if (resolvido && empatados.some(x => x.id === resolvido)) {
+        resultado[campoResultado][resolvido] = true;
+      } else {
+        resultado.empates.push({
+          key, tipo: campoResultado, jornada,
+          descricao: tipoLabel,
+          atletas: empatados, total: melhor,
+          label: melhor + ' tacadas'
+        });
+      }
+    }
+  }
+
   GRUPOS_BONUS.forEach(grpDef => {
-    // Atletas do grupo com resultados nesta jornada
     const grpAtl = atletas.filter(a => grpDef.cats.includes(a.categoria) && jRes[a.id]);
     if (!grpAtl.length) return;
 
-    // ── BÓNUS MINI ──
-    const totaisMini = grpAtl.map(a => {
-      const res = jRes[a.id] || {};
-      const m1 = parseInt(res.mV1) || 0;
-      const m2 = parseInt(res.mV2) || 0;
-      return { id: parseInt(a.id), nome: a.nome, tot: (m1 > 0 && m2 > 0) ? m1 + m2 : (m1 || m2) };
-    }).filter(x => x.tot > 0).sort((a, b) => a.tot - b.tot);
-
-    if (totaisMini.length > 0) {
-      const melhor = totaisMini[0].tot;
-      const empatados = totaisMini.filter(x => x.tot === melhor);
-      const key = prova.id + '_j' + jornada + '_bonusMini_' + grpDef.key;
-      if (empatados.length === 1) {
-        resultado.bonusMini[empatados[0].id] = true;
-      } else {
-        const resolvido = parseInt(empatesExist[key] || 0);
-        if (resolvido && empatados.some(x => x.id === resolvido)) {
-          resultado.bonusMini[resolvido] = true;
-        } else {
-          resultado.empates.push({
-            key, tipo: 'bonusMini', jornada,
-            descricao: 'Bónus Mini J' + jornada + ' — ' + grpDef.label,
-            atletas: empatados, total: melhor,
-            label: 'Total Mini: ' + melhor + ' tacadas'
-          });
-        }
-      }
-    }
-
-    // ── BÓNUS PETER ──
-    const totaisPeter = grpAtl.map(a => {
-      const res = jRes[a.id] || {};
-      const p1 = parseInt(res.pV1) || 0;
-      const p2 = parseInt(res.pV2) || 0;
-      return { id: parseInt(a.id), nome: a.nome, tot: (p1 > 0 && p2 > 0) ? p1 + p2 : (p1 || p2) };
-    }).filter(x => x.tot > 0).sort((a, b) => a.tot - b.tot);
-
-    if (totaisPeter.length > 0) {
-      const melhor = totaisPeter[0].tot;
-      const empatados = totaisPeter.filter(x => x.tot === melhor);
-      const key = prova.id + '_j' + jornada + '_bonusPeter_' + grpDef.key;
-      if (empatados.length === 1) {
-        resultado.bonusPeter[empatados[0].id] = true;
-      } else {
-        const resolvido = parseInt(empatesExist[key] || 0);
-        if (resolvido && empatados.some(x => x.id === resolvido)) {
-          resultado.bonusPeter[resolvido] = true;
-        } else {
-          resultado.empates.push({
-            key, tipo: 'bonusPeter', jornada,
-            descricao: 'Bónus Peter J' + jornada + ' — ' + grpDef.label,
-            atletas: empatados, total: melhor,
-            label: 'Total Peter: ' + melhor + ' tacadas'
-          });
-        }
-      }
+    if (isPeter4) {
+      // Jornada especial: 4 voltas Peter
+      // Bónus manhã = menor pV1+pV2 | Bónus tarde = menor pV3+pV4
+      // Sem bónus Mini
+      calcBonus(grpAtl,
+        res => { const p1=parseInt(res.pV1)||0; const p2=parseInt(res.pV2)||0; return (p1>0&&p2>0)?p1+p2:(p1||p2); },
+        'bonusPeterManha_' + grpDef.key,
+        'Bonus Peter Manha J' + jornada + ' - ' + grpDef.label,
+        'bonusPeterManha'
+      );
+      calcBonus(grpAtl,
+        res => { const p3=parseInt(res.pV3)||0; const p4=parseInt(res.pV4)||0; return (p3>0&&p4>0)?p3+p4:(p3||p4); },
+        'bonusPeterTarde_' + grpDef.key,
+        'Bonus Peter Tarde J' + jornada + ' - ' + grpDef.label,
+        'bonusPeterTarde'
+      );
+    } else {
+      // Jornada normal: 2 Mini + 2 Peter
+      // Bónus Mini = menor mV1+mV2 | Bónus Peter = menor pV1+pV2
+      calcBonus(grpAtl,
+        res => { const m1=parseInt(res.mV1)||0; const m2=parseInt(res.mV2)||0; return (m1>0&&m2>0)?m1+m2:(m1||m2); },
+        'bonusMini_' + grpDef.key,
+        'Bonus Mini J' + jornada + ' - ' + grpDef.label,
+        'bonusMini'
+      );
+      calcBonus(grpAtl,
+        res => { const p1=parseInt(res.pV1)||0; const p2=parseInt(res.pV2)||0; return (p1>0&&p2>0)?p1+p2:(p1||p2); },
+        'bonusPeter_' + grpDef.key,
+        'Bonus Peter J' + jornada + ' - ' + grpDef.label,
+        'bonusPeter'
+      );
     }
   });
 
@@ -2339,17 +2346,21 @@ function aplicarBonusNosResultados(prova, jornada, bonusCalc) {
   const jRes = prova.resultados?.[jornada];
   if (!jRes) return;
 
-  // Limpar bónus anteriores desta jornada
+  // Limpar todos os bónus anteriores desta jornada
   Object.values(jRes).forEach(res => {
-    if (res) { delete res.bonusMini; delete res.bonusPeter; }
+    if (res) {
+      delete res.bonusMini; delete res.bonusPeter;
+      delete res.bonusMiniManha; delete res.bonusMiniTarde;
+      delete res.bonusPeterManha; delete res.bonusPeterTarde;
+    }
   });
 
   // Aplicar novos
-  Object.entries(bonusCalc.bonusMini || {}).forEach(([id, val]) => {
-    if (jRes[id]) jRes[id].bonusMini = val;
-  });
-  Object.entries(bonusCalc.bonusPeter || {}).forEach(([id, val]) => {
-    if (jRes[id]) jRes[id].bonusPeter = val;
+  const campos = ['bonusMini','bonusPeter','bonusMiniManha','bonusMiniTarde','bonusPeterManha','bonusPeterTarde'];
+  campos.forEach(campo => {
+    Object.entries(bonusCalc[campo] || {}).forEach(([id, val]) => {
+      if (jRes[id]) jRes[id][campo] = val;
+    });
   });
 }
 
