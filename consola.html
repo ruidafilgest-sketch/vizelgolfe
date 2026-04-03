@@ -1493,7 +1493,7 @@ function calcPontosAtletaEpoca(atletaId, categoria) {
     const isCampVizela = p.nome && p.nome.includes('Vizela') && p.tipo === 'campeonato';
 
     for (let j = 1; j <= (p.jornadas||1); j++) {
-      const res = p.resultados?.[j]?.[atletaId];
+      const res = getRes(p.resultados, j, atletaId);
       const tot = calcTotal(p, j, res);
       if (tot == null) continue;
 
@@ -1518,7 +1518,7 @@ function calcPontosAtletaEpoca(atletaId, categoria) {
     // Bónus participação completa (só Campeonato Vizela)
     if (isCampVizela && p.bonusCompleto) {
       const jPart = Object.keys(p.resultados||{}).filter(j =>
-        p.resultados[j]?.[atletaId] && calcTotal(p,parseInt(j),p.resultados[j][atletaId]) != null
+        getRes(p.resultados,parseInt(j),atletaId) && calcTotal(p,parseInt(j),getRes(p.resultados,parseInt(j),atletaId)) != null
       ).length;
       if (jPart === p.jornadas) totalPts += (p.bonusCompleto || 0);
     }
@@ -1563,7 +1563,7 @@ window.renderRankingAnual = function(btn) {
       let jPart = 0;
       (dadosInt.provas||[]).forEach(p => {
         for (let j=1; j<=(p.jornadas||1); j++) {
-          const res = p.resultados?.[j]?.[a.id];
+          const res = getRes(p.resultados,j,a.id);
           if (res && calcTotal(p,j,res) != null) jPart++;
         }
       });
@@ -1627,7 +1627,7 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
       const jInicio = jFiltro||1;
       const jFim = jFiltro||(prova.jornadas||1);
       for (let j=jInicio;j<=jFim;j++) {
-        const res=prova.resultados?.[j]?.[a.id];
+        const res=getRes(prova.resultados,j,a.id);
         if (!res) continue;
         const tot=calcTotal(prova,j,res);
         if (tot==null) continue;
@@ -1667,9 +1667,16 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
   cont.innerHTML = html || '<div style="color:var(--dim);padding:20px">Sem resultados.</div>';
 };
 
+// Aceder a resultados independentemente de chave ser string ou número
+function getRes(resultados, j, id) {
+  const jr = resultados?.[j] ?? resultados?.[String(j)];
+  if (!jr) return null;
+  return jr[id] ?? jr[String(id)] ?? null;
+}
+
 function calcTotal(prova, j, res) {
   if (!res) return null;
-  const esp = prova.jornadaEspecial?.[j];
+  const esp = prova.jornadaEspecial?.[j] ?? prova.jornadaEspecial?.[String(j)];
   const campos = esp?.tipo==='peter4voltas' ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
   const vals = campos.map(c=>Number(res[c])).filter(v=>!isNaN(v)&&v>0);
   return vals.length ? vals.reduce((a,b)=>a+b,0) : null;
@@ -1686,12 +1693,12 @@ function calcPos(prova, j, atletaId, grupo, atletas, empates) {
 
   // Atletas do mesmo grupo com resultado válido
   const doGrupo = atletas.filter(a => {
-    if (!jRes[a.id]) return false;
+    if (!getRes(prova.resultados,j,a.id)) return false;
     if (grpDef) return grpDef.cats.includes(a.categoria);
     return CAT_GRUPO[a.categoria] === grupo;
   });
   const totais = doGrupo
-    .map(a => ({ id: parseInt(a.id), t: calcTotal(prova, j, jRes[a.id]) ?? 9999 }))
+    .map(a => ({ id: parseInt(a.id), t: calcTotal(prova, j, getRes(prova.resultados,j,a.id)) ?? 9999 }))
     .filter(x => x.t < 9999)
     .sort((a, b) => a.t - b.t);
 
@@ -1754,7 +1761,7 @@ window.abrirPerfilAtleta = function(atletaId) {
   let html = '';
   provas.forEach(prova => {
     for (let j=1;j<=(prova.jornadas||1);j++) {
-      const res = prova.resultados?.[j]?.[atletaId];
+      const res = getRes(prova.resultados, j, atletaId);
       if (!res) continue;
       const tot = calcTotal(prova,j,res);
       if (tot==null) continue;
@@ -2188,7 +2195,7 @@ function renderFormInserir(provaId, jornada) {
     if (!catAtl.length) return;
     html += `<div class="card"><div class="card-titulo">${cat}</div>`;
     catAtl.forEach(a => {
-      const res = prova.resultados?.[jornada]?.[a.id]||{};
+      const res = getRes(prova.resultados,jornada,a.id)||{};
       html += `<div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:8px">
         <div style="font-weight:700;margin-bottom:8px">${a.nome}</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -2206,7 +2213,7 @@ function renderFormInserir(provaId, jornada) {
         ${(()=>{
           const isCViz = prova.nome&&prova.nome.includes('Vizela')&&prova.tipo==='campeonato';
           if(!isCViz) return '';
-          const res2 = prova.resultados?.[jornada]?.[a.id]||{};
+          const res2 = getRes(prova.resultados,jornada,a.id)||{};
           let bh = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;padding:4px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--sep);font-size:0.72rem;color:var(--dim)">';
           bh += '<span style="align-self:center">Bónus automático:</span>';
           bh += res2.bonusMini  ? '<span style="color:#16a34a;font-weight:700">🏌️ Mini ✅</span>' : '<span>🏌️ Mini —</span>';
@@ -2442,13 +2449,13 @@ function renderEmpates() {
 
       GRUPOS_BONUS.forEach(grpDef => {
         const grpAtl = atletas.filter(a =>
-          grpDef.cats.includes(a.categoria) && jRes[a.id] && calcTotal(prova, j, jRes[a.id]) != null
+          grpDef.cats.includes(a.categoria) && getRes(prova.resultados,j,a.id) && calcTotal(prova, j, getRes(prova.resultados,j,a.id)) != null
         );
         if (grpAtl.length < 2) return;
 
         const totais = grpAtl.map(a => ({
           id: parseInt(a.id), nome: a.nome,
-          tot: calcTotal(prova, j, jRes[a.id])
+          tot: calcTotal(prova, j, getRes(prova.resultados,j,a.id))
         })).sort((a, b) => a.tot - b.tot);
 
         const vistos = new Set();
@@ -2599,8 +2606,8 @@ function atualizarBadgeEmpates() {
       if (!p.resultados?.[j]) continue;
       CATEGORIAS.forEach(cat => {
         const grupo = CAT_GRUPO[cat];
-        const catAtl = atletas.filter(a=>a.categoria===cat&&p.resultados[j][a.id]);
-        const totais = catAtl.map(a=>({id:parseInt(a.id),t:calcTotal(p,j,p.resultados[j][a.id])??9999})).filter(x=>x.t<9999);
+        const catAtl = atletas.filter(a=>a.categoria===cat&&getRes(p.resultados,j,a.id));
+        const totais = catAtl.map(a=>({id:parseInt(a.id),t:calcTotal(p,j,getRes(p.resultados,j,a.id))??9999})).filter(x=>x.t<9999);
         totais.sort((a,b)=>a.t-b.t);
         for (let i=0;i<totais.length-1;i++){
           if(totais[i].t===totais[i+1].t){
