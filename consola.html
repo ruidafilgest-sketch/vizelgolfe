@@ -574,7 +574,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -2355,24 +2355,26 @@ function calcularBonusAuto(prova, jornada, atletas) {
 // Aplicar bónus calculados nos resultados
 function aplicarBonusNosResultados(prova, jornada, bonusCalc) {
   if (!bonusCalc) return;
-  const jRes = prova.resultados?.[jornada];
+  // Chave real no Firebase pode ser string
+  const jRes = prova.resultados?.[jornada] ?? prova.resultados?.[String(jornada)];
   if (!jRes) return;
 
   // Limpar todos os bónus anteriores desta jornada
   Object.values(jRes).forEach(res => {
-    if (res) {
+    if (res && typeof res === 'object') {
       delete res.bonusMini; delete res.bonusPeter;
       delete res.bonusMiniManha; delete res.bonusMiniTarde;
       delete res.bonusPeterManha; delete res.bonusPeterTarde;
     }
   });
 
-  // Aplicar novos
+  // Aplicar novos — id vem como número do calcularBonusAuto
+  // mas chave no jRes pode ser string
   const campos = ['bonusMini','bonusPeter','bonusMiniManha','bonusMiniTarde','bonusPeterManha','bonusPeterTarde'];
   campos.forEach(campo => {
     Object.entries(bonusCalc[campo] || {}).forEach(([id, val]) => {
-      const chave = jRes[id] ? id : (jRes[String(id)] ? String(id) : null);
-      if (chave) jRes[chave][campo] = val;
+      const chave = jRes[id] !== undefined ? id : (jRes[String(id)] !== undefined ? String(id) : null);
+      if (chave !== null) jRes[chave][campo] = val;
     });
   });
 }
@@ -2627,11 +2629,12 @@ async function recalcularTodosBonusAuto() {
   (dadosInt.provas || []).forEach(prova => {
     const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
     if (!isCampVizela) return;
-    for (let j = 1; j <= (prova.jornadas || 1); j++) {
-      if (!prova.resultados?.[j] && !prova.resultados?.[String(j)]) continue;
+    // Iterar pelas chaves reais do resultados (podem ser strings "1","2"...)
+    const jornadasComRes = Object.keys(prova.resultados || {}).map(Number).filter(n => !isNaN(n));
+    jornadasComRes.forEach(j => {
       const bonusCalc = calcularBonusAuto(prova, j, atletas);
       aplicarBonusNosResultados(prova, j, bonusCalc);
-    }
+    });
   });
   await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
 }
