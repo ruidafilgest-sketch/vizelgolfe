@@ -266,7 +266,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       <div class="nav-item admin-only" onclick="irPara('gerir')">
         <span class="ico">⚙️</span><span class="label">Gerir Provas</span>
       </div>
-      <div class="nav-item admin-only" id="nav-empates" onclick="irPara('empates');renderEmpates()">
+      <div class="nav-item admin-only" id="nav-empates" onclick="irPara('empates')">
         <span class="ico">⚖️</span><span class="label">Empates</span>
       </div>
       <div class="nav-section">Outros</div>
@@ -569,7 +569,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1405,6 +1405,7 @@ window.irPara = function(sec) {
   if (sec === 'gerir') renderGerir();
   if (sec === 'nacional') renderNacional();
   if (sec === 'stats') renderStats();
+  if (sec === 'empates') renderEmpates();
 };
 
 // ── RENDER TUDO ──
@@ -1617,7 +1618,7 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
     if (!catAtl.length) return;
 
     const ranked = catAtl.map(a => {
-      let pts=0, jPart=0;
+      let pts=0, jPart=0, ptsPosTotal=0, ptsBonusMini=0, ptsBonusPeter=0;
       const jInicio = jFiltro||1;
       const jFim = jFiltro||(prova.jornadas||1);
       for (let j=jInicio;j<=jFim;j++) {
@@ -1627,23 +1628,31 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
         if (tot==null) continue;
         jPart++;
         const pos=calcPos(prova,j,a.id,CAT_GRUPO[cat],atletas,empates);
-        if (pos>=1&&pos<=PONTUACAO.length) pts+=PONTUACAO[pos-1];
-        if (res.bonusMini) pts+=(prova.bonusMini||0);
-        if (res.bonusPeter) pts+=(prova.bonusPeter||0);
+        if (pos>=1&&pos<=PONTUACAO.length){ const pp=PONTUACAO[pos-1]; pts+=pp; ptsPosTotal+=pp; }
+        if (res.bonusMini){ const bm=prova.bonusMini||0; pts+=bm; ptsBonusMini+=bm; }
+        if (res.bonusPeter){ const bp=prova.bonusPeter||0; pts+=bp; ptsBonusPeter+=bp; }
       }
-      return {...a, pts, jPart};
+      return {...a, pts, jPart, ptsPosTotal, ptsBonusMini, ptsBonusPeter};
     }).filter(a=>a.jPart>0).sort((a,b)=>b.pts-a.pts);
+
+    const isCViz = prova.nome&&prova.nome.includes('Vizela')&&prova.tipo==='campeonato';
+    const temBonus = isCViz && ranked.some(a=>a.ptsBonusMini>0||a.ptsBonusPeter>0);
 
     if (!ranked.length) return;
     html += `<div style="margin-bottom:24px">
       <div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);padding:8px 0;border-bottom:2px solid var(--orange);margin-bottom:8px">${cat}</div>
       <div class="tabela-wrap"><table>
-        <thead><tr><th>Pos</th><th>Atleta</th><th class="c">Jornadas</th><th style="text-align:right">Pontos</th></tr></thead>
+        <thead><tr>
+          <th>Pos</th><th>Atleta</th><th style="text-align:center">Jornadas</th>
+          ${temBonus ? '<th style="text-align:right;color:var(--silver);font-size:0.65rem">Classif.</th><th style="text-align:right;color:#1a8a4a;font-size:0.65rem">+Mini</th><th style="text-align:right;color:#1e5fa8;font-size:0.65rem">+Peter</th>' : ''}
+          <th style="text-align:right">Pontos</th>
+        </tr></thead>
         <tbody>
         ${ranked.map((a,i)=>`<tr style="cursor:pointer" onclick="abrirPerfilAtleta(${a.id})">
           <td class="${i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':''}">${i+1}º</td>
           <td><strong>${a.nome}</strong></td>
           <td style="text-align:center">${a.jPart}</td>
+          ${temBonus ? `<td style="text-align:right;color:var(--silver);font-size:0.82rem">${a.ptsPosTotal}</td><td style="text-align:right;color:#1a8a4a;font-size:0.82rem">${a.ptsBonusMini>0?'+'+a.ptsBonusMini:'—'}</td><td style="text-align:right;color:#1e5fa8;font-size:0.82rem">${a.ptsBonusPeter>0?'+'+a.ptsBonusPeter:'—'}</td>` : ''}
           <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:var(--orange)">${a.pts}</td>
         </tr>`).join('')}
         </tbody>
@@ -2349,7 +2358,8 @@ function aplicarBonusNosResultados(prova, jornada, bonusCalc) {
 const _empateOrdem = {}; // key -> [id1, id2, ...]
 
 function renderEmpates() {
-  if (!dadosInt || !modoAdmin) return;
+  if (!dadosInt) return;
+  if (!modoAdmin) { const div=document.getElementById('empates-conteudo'); if(div) div.innerHTML='<div style="color:var(--dim);padding:20px;text-align:center">Secção disponível apenas para administradores.</div>'; return; }
   const div = document.getElementById('empates-conteudo');
   if (!div) return;
 
