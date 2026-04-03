@@ -508,6 +508,11 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div class="card-titulo">⚙️ Gerir Provas</div>
           <div id="gerir-provas-list"></div>
         </div>
+        <div class="card" id="card-diag" style="border:2px dashed var(--orange)">
+          <div class="card-titulo">🔍 Diagnóstico Bónus J1</div>
+          <button class="btn btn-secondary" onclick="diagBonusJ1()">▶ Executar diagnóstico</button>
+          <pre id="diag-output" style="margin-top:12px;font-size:0.72rem;line-height:1.6;white-space:pre-wrap;color:var(--text)"></pre>
+        </div>
       </div>
 
       <!-- REGRAS -->
@@ -569,7 +574,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -3018,6 +3023,64 @@ function parseBangolfe(html) {
 }
 
 function extrairNome(url){const m=url.match(/\/([\w]+)\/result/);return m?m[1].toUpperCase()+' 2026':'Prova Nacional';}
+
+// ── DIAGNÓSTICO ──
+window.diagBonusJ1 = function() {
+  const out = document.getElementById('diag-output');
+  if (!dadosInt) { out.textContent = 'dadosInt não carregado'; return; }
+  const prova = (dadosInt.provas||[]).find(p => p.nome && p.nome.includes('Vizela') && p.tipo === 'campeonato');
+  if (!prova) { out.textContent = 'Prova Campeonato de Vizela não encontrada'; return; }
+
+  let log = '';
+  log += 'Prova: ' + prova.nome + ' (id=' + prova.id + ')\n';
+  log += 'jornadaEspecial: ' + JSON.stringify(prova.jornadaEspecial) + '\n';
+
+  const jornada = 1;
+  const jRes = prova.resultados?.[jornada] || prova.resultados?.['1'] || {};
+  log += 'Chaves em resultados[1]: ' + Object.keys(prova.resultados||{}).join(', ') + '\n';
+  log += 'Atletas em J1: ' + Object.keys(jRes).join(', ') + '\n\n';
+
+  const esp = prova.jornadaEspecial?.[jornada] || prova.jornadaEspecial?.[String(jornada)];
+  log += 'esp J1: ' + JSON.stringify(esp) + '\n';
+  log += 'isPeter4: ' + (esp?.tipo === 'peter4voltas') + '\n\n';
+
+  const atletas = dadosInt.atletas || [];
+  // Mostrar dados do Cassiano e Cristina
+  const nomes = ['Cassiano','Cristina'];
+  nomes.forEach(n => {
+    const atl = atletas.find(a => a.nome && a.nome.includes(n));
+    if (!atl) { log += n + ': não encontrado\n'; return; }
+    const res = jRes[atl.id] || jRes[String(atl.id)];
+    log += atl.nome + ' (id=' + atl.id + ', cat=' + atl.categoria + '):\n';
+    log += '  resultado: ' + JSON.stringify(res) + '\n';
+  });
+
+  log += '\nGRUPOS_BONUS: ' + JSON.stringify(GRUPOS_BONUS.map(g=>g.key+':'+g.cats.join(','))) + '\n';
+
+  // Simular calcBonus manualmente para HomensJuniores manhã
+  log += '\n-- Simulação Bónus Peter Manhã (HomensJuniores) --\n';
+  const grpH = atletas.filter(a => ['Homens','Juniores'].includes(a.categoria) && (jRes[a.id]||jRes[String(a.id)]));
+  log += 'Atletas no grupo H+J com resultado: ' + grpH.map(a=>a.nome).join(', ') + '\n';
+  grpH.forEach(a => {
+    const res = jRes[a.id] || jRes[String(a.id)] || {};
+    const p1=parseInt(res.pV1)||0, p2=parseInt(res.pV2)||0;
+    const tot = (p1>0&&p2>0)?p1+p2:(p1||p2);
+    log += '  ' + a.nome + ': pV1=' + p1 + ' pV2=' + p2 + ' soma=' + tot + '\n';
+  });
+
+  // Senhoras manhã
+  log += '\n-- Simulação Bónus Peter Manhã (Senhoras) --\n';
+  const grpS = atletas.filter(a => ['Senhoras'].includes(a.categoria) && (jRes[a.id]||jRes[String(a.id)]));
+  log += 'Atletas: ' + grpS.map(a=>a.nome).join(', ') + '\n';
+  grpS.forEach(a => {
+    const res = jRes[a.id] || jRes[String(a.id)] || {};
+    const p1=parseInt(res.pV1)||0, p2=parseInt(res.pV2)||0;
+    const tot = (p1>0&&p2>0)?p1+p2:(p1||p2);
+    log += '  ' + a.nome + ': pV1=' + p1 + ' pV2=' + p2 + ' soma=' + tot + '\n';
+  });
+
+  out.textContent = log;
+};
 
 // ── MODO TV ──
 window.abrirTV = function() {
