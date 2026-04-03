@@ -574,7 +574,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -2184,7 +2184,7 @@ function renderFormInserir(provaId, jornada) {
   const prova = (dadosInt.provas||[]).find(p=>p.id===provaId);
   if (!prova) return;
   const atletas = dadosInt.atletas||[];
-  const esp = prova.jornadaEspecial?.[jornada];
+  const esp = prova.jornadaEspecial?.[jornada] ?? prova.jornadaEspecial?.[String(jornada)];
   const campos = esp?.tipo==='peter4voltas'
     ? [{id:'pV1',l:'Peter V1'},{id:'pV2',l:'Peter V2'},{id:'pV3',l:'Peter V3'},{id:'pV4',l:'Peter V4'}]
     : [{id:'mV1',l:'Mini V1'},{id:'mV2',l:'Mini V2'},{id:'pV1',l:'Peter V1'},{id:'pV2',l:'Peter V2'}];
@@ -2628,7 +2628,7 @@ async function recalcularTodosBonusAuto() {
     const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
     if (!isCampVizela) return;
     for (let j = 1; j <= (prova.jornadas || 1); j++) {
-      if (!prova.resultados?.[j]) continue;
+      if (!prova.resultados?.[j] && !prova.resultados?.[String(j)]) continue;
       const bonusCalc = calcularBonusAuto(prova, j, atletas);
       aplicarBonusNosResultados(prova, j, bonusCalc);
     }
@@ -2642,7 +2642,7 @@ window.guardarResultados = async function(provaId, jornada) {
   const prova = (dadosInt.provas||[]).find(p=>p.id===provaId);
   if (!prova) return;
   const atletas = dadosInt.atletas||[];
-  const esp = prova.jornadaEspecial?.[jornada];
+  const esp = prova.jornadaEspecial?.[jornada] ?? prova.jornadaEspecial?.[String(jornada)];
   const campos = esp?.tipo==='peter4voltas'
     ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
 
