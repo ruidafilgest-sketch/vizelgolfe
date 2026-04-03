@@ -569,7 +569,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -2263,7 +2263,7 @@ function calcularBonusAuto(prova, jornada, atletas) {
   const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
   if (!isCampVizela) return null;
 
-  const esp = prova.jornadaEspecial?.[jornada];
+  const esp = prova.jornadaEspecial?.[String(jornada)] || prova.jornadaEspecial?.[jornada];
   const isPeter4 = esp?.tipo === 'peter4voltas';
 
   const resultado = { bonusMini: {}, bonusPeter: {}, bonusPeterManha: {}, bonusPeterTarde: {}, empates: [] };
@@ -2272,7 +2272,7 @@ function calcularBonusAuto(prova, jornada, atletas) {
   // Função auxiliar: calcular bónus para um campo/label/key
   function calcBonus(grpAtl, camposFn, keyBase, tipoLabel, campoResultado) {
     const totais = grpAtl.map(a => {
-      const res = jRes[a.id] || {};
+      const res = jRes[String(a.id)] || jRes[a.id] || {};
       const tot = camposFn(res);
       return { id: parseInt(a.id), nome: a.nome, tot };
     }).filter(x => x.tot > 0).sort((a, b) => a.tot - b.tot);
@@ -2300,7 +2300,7 @@ function calcularBonusAuto(prova, jornada, atletas) {
   }
 
   GRUPOS_BONUS.forEach(grpDef => {
-    const grpAtl = atletas.filter(a => grpDef.cats.includes(a.categoria) && jRes[a.id]);
+    const grpAtl = atletas.filter(a => grpDef.cats.includes(a.categoria) && (jRes[String(a.id)] || jRes[a.id]));
     if (!grpAtl.length) return;
 
     if (isPeter4) {
@@ -2359,7 +2359,8 @@ function aplicarBonusNosResultados(prova, jornada, bonusCalc) {
   const campos = ['bonusMini','bonusPeter','bonusMiniManha','bonusMiniTarde','bonusPeterManha','bonusPeterTarde'];
   campos.forEach(campo => {
     Object.entries(bonusCalc[campo] || {}).forEach(([id, val]) => {
-      if (jRes[id]) jRes[id][campo] = val;
+      const chave = jRes[id] ? id : (jRes[String(id)] ? String(id) : null);
+      if (chave) jRes[chave][campo] = val;
     });
   });
 }
