@@ -1662,31 +1662,50 @@ function calcTotal(prova, j, res) {
 }
 
 function calcPos(prova, j, atletaId, grupo, atletas, empates) {
-  const jRes=prova.resultados?.[j]; if (!jRes) return 999;
+  const jRes = prova.resultados?.[j]; if (!jRes) return 999;
   atletaId = parseInt(atletaId);
-  const doGrupo=atletas.filter(a=>CAT_GRUPO[a.categoria]===grupo&&jRes[a.id]);
-  const totais=doGrupo.map(a=>({id:parseInt(a.id),t:calcTotal(prova,j,jRes[a.id])??9999})).filter(x=>x.t<9999);
-  totais.sort((a,b)=>{
-    if(a.t!==b.t) return a.t-b.t;
-    const k=`${prova.id}_j${j}_${Math.min(a.id,b.id)}_${Math.max(a.id,b.id)}`;
-    const v=empates?.[k]; if(v) return parseInt(v)===a.id?-1:1; return 0;
+
+  // Determinar grpDef correspondente ao grupo pedido
+  const grpDef = GRUPOS_BONUS.find(g => g.cats.includes(
+    (atletas.find(a => parseInt(a.id) === atletaId) || {}).categoria
+  ));
+
+  // Atletas do mesmo grupo com resultado válido
+  const doGrupo = atletas.filter(a => {
+    if (!jRes[a.id]) return false;
+    if (grpDef) return grpDef.cats.includes(a.categoria);
+    return CAT_GRUPO[a.categoria] === grupo;
   });
-  // Calcular posição real (empates não resolvidos partilham posição)
+  const totais = doGrupo
+    .map(a => ({ id: parseInt(a.id), t: calcTotal(prova, j, jRes[a.id]) ?? 9999 }))
+    .filter(x => x.t < 9999)
+    .sort((a, b) => a.t - b.t);
+
+  // Agrupar por total
+  const grupos = [];
+  totais.forEach(x => {
+    const ult = grupos[grupos.length - 1];
+    if (ult && ult[0].t === x.t) ult.push(x);
+    else grupos.push([x]);
+  });
+
   let pos = 1;
-  for(let i=0;i<totais.length;i++){
-    if(i>0 && totais[i].t!==totais[i-1].t){
-      // Verificar se o par anterior estava empatado mas resolvido
-      pos = i+1;
-    } else if(i>0 && totais[i].t===totais[i-1].t){
-      // Mesmo total — verificar se existe resolução para este par
-      const k=`${prova.id}_j${j}_${Math.min(totais[i].id,totais[i-1].id)}_${Math.max(totais[i].id,totais[i-1].id)}`;
-      const v=empates?.[k];
-      if(!v) {
-        // Empate não resolvido — ambos ficam na posição de início do grupo empatado
-        // pos já está no valor correcto (não incrementar)
-      }
+  for (const grp of grupos) {
+    if (!grp.some(x => x.id === atletaId)) { pos += grp.length; continue; }
+    if (grp.length === 1) return pos;
+
+    // Procurar resolução de ordem para este grupo
+    const gKey = grpDef ? grpDef.key : grupo;
+    const key = prova.id + '_j' + j + '_pos_' + gKey + '_' + grp[0].t;
+    const ordemGuardada = empates && empates[key]; // array [id1,id2,...] ou null
+
+    if (ordemGuardada && Array.isArray(ordemGuardada)) {
+      // Ordem definida pelo admin — posição real
+      const idxNaOrdem = ordemGuardada.findIndex(id => parseInt(id) === atletaId);
+      if (idxNaOrdem >= 0) return pos + idxNaOrdem;
     }
-    if(totais[i].id===atletaId) return pos;
+    // Sem resolução — todos partilham a posição inicial do grupo
+    return pos;
   }
   return 999;
 }
@@ -2219,87 +2238,83 @@ window.aplicarCorInput = function(inp, campoId) {
 // ── BÓNUS AUTOMÁTICOS E EMPATES ──
 
 // Calcular bónus automáticos após guardar resultados
+// Grupos para bónus: H+Juniores juntos | Senhoras | Seniores M | Veteranos M
 // Retorna: { bonusMini: {atletaId: true}, bonusPeter: {atletaId: true}, empates: [...] }
+
+// Grupos de bónus/posição (H+Juniores = mesmo grupo)
+const GRUPOS_BONUS = [
+  { key: 'HomensJuniores', cats: ['Homens', 'Juniores'], label: 'Homens / Juniores' },
+  { key: 'Senhoras',       cats: ['Senhoras'],            label: 'Senhoras' },
+  { key: 'SenioresM',      cats: ['Seniores Masculinos'], label: 'Seniores Masculinos' },
+  { key: 'VeteranosM',     cats: ['Veteranos Masculinos'],label: 'Veteranos Masculinos' },
+];
+
 function calcularBonusAuto(prova, jornada, atletas) {
   const jRes = prova.resultados?.[jornada] || {};
   const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
   if (!isCampVizela) return null;
 
   const resultado = { bonusMini: {}, bonusPeter: {}, empates: [] };
-  const empatesExistentes = dadosInt.empates || {};
+  const empatesExist = dadosInt.empates || {};
 
-  // Por categoria
-  const CATS = [...new Set(atletas.map(a => a.categoria))];
-
-  CATS.forEach(cat => {
-    const catAtl = atletas.filter(a => a.categoria === cat && jRes[a.id]);
-    if (!catAtl.length) return;
+  GRUPOS_BONUS.forEach(grpDef => {
+    // Atletas do grupo com resultados nesta jornada
+    const grpAtl = atletas.filter(a => grpDef.cats.includes(a.categoria) && jRes[a.id]);
+    if (!grpAtl.length) return;
 
     // ── BÓNUS MINI ──
-    const totaisMini = catAtl.map(a => {
+    const totaisMini = grpAtl.map(a => {
       const res = jRes[a.id] || {};
       const m1 = parseInt(res.mV1) || 0;
       const m2 = parseInt(res.mV2) || 0;
-      return { id: a.id, nome: a.nome, tot: (m1 > 0 && m2 > 0) ? m1 + m2 : (m1 || m2) };
+      return { id: parseInt(a.id), nome: a.nome, tot: (m1 > 0 && m2 > 0) ? m1 + m2 : (m1 || m2) };
     }).filter(x => x.tot > 0).sort((a, b) => a.tot - b.tot);
 
     if (totaisMini.length > 0) {
-      const melhorMini = totaisMini[0].tot;
-      const comMelhorMini = totaisMini.filter(x => x.tot === melhorMini);
-      const keyEmpMini = `${prova.id}_j${jornada}_bonusMini_${cat.replace(/ /g,'_')}`;
-
-      if (comMelhorMini.length === 1) {
-        // Sem empate — atribui automático
-        resultado.bonusMini[comMelhorMini[0].id] = true;
+      const melhor = totaisMini[0].tot;
+      const empatados = totaisMini.filter(x => x.tot === melhor);
+      const key = prova.id + '_j' + jornada + '_bonusMini_' + grpDef.key;
+      if (empatados.length === 1) {
+        resultado.bonusMini[empatados[0].id] = true;
       } else {
-        // Empate — ver se já foi resolvido
-        const resolucao = empatesExistentes[keyEmpMini];
-        if (resolucao) {
-          resultado.bonusMini[resolucao] = true;
+        const resolvido = parseInt(empatesExist[key] || 0);
+        if (resolvido && empatados.some(x => x.id === resolvido)) {
+          resultado.bonusMini[resolvido] = true;
         } else {
           resultado.empates.push({
-            key: keyEmpMini,
-            tipo: 'bonusMini',
-            cat,
-            jornada,
-            descricao: `Bónus Mini J${jornada} — ${cat}`,
-            atletas: comMelhorMini,
-            total: melhorMini,
-            label: `Total Mini: ${melhorMini} tacadas`
+            key, tipo: 'bonusMini', jornada,
+            descricao: 'Bónus Mini J' + jornada + ' — ' + grpDef.label,
+            atletas: empatados, total: melhor,
+            label: 'Total Mini: ' + melhor + ' tacadas'
           });
         }
       }
     }
 
     // ── BÓNUS PETER ──
-    const totaisPeter = catAtl.map(a => {
+    const totaisPeter = grpAtl.map(a => {
       const res = jRes[a.id] || {};
       const p1 = parseInt(res.pV1) || 0;
       const p2 = parseInt(res.pV2) || 0;
-      return { id: a.id, nome: a.nome, tot: (p1 > 0 && p2 > 0) ? p1 + p2 : (p1 || p2) };
+      return { id: parseInt(a.id), nome: a.nome, tot: (p1 > 0 && p2 > 0) ? p1 + p2 : (p1 || p2) };
     }).filter(x => x.tot > 0).sort((a, b) => a.tot - b.tot);
 
     if (totaisPeter.length > 0) {
-      const melhorPeter = totaisPeter[0].tot;
-      const comMelhorPeter = totaisPeter.filter(x => x.tot === melhorPeter);
-      const keyEmpPeter = `${prova.id}_j${jornada}_bonusPeter_${cat.replace(/ /g,'_')}`;
-
-      if (comMelhorPeter.length === 1) {
-        resultado.bonusPeter[comMelhorPeter[0].id] = true;
+      const melhor = totaisPeter[0].tot;
+      const empatados = totaisPeter.filter(x => x.tot === melhor);
+      const key = prova.id + '_j' + jornada + '_bonusPeter_' + grpDef.key;
+      if (empatados.length === 1) {
+        resultado.bonusPeter[empatados[0].id] = true;
       } else {
-        const resolucao = empatesExistentes[keyEmpPeter];
-        if (resolucao) {
-          resultado.bonusPeter[resolucao] = true;
+        const resolvido = parseInt(empatesExist[key] || 0);
+        if (resolvido && empatados.some(x => x.id === resolvido)) {
+          resultado.bonusPeter[resolvido] = true;
         } else {
           resultado.empates.push({
-            key: keyEmpPeter,
-            tipo: 'bonusPeter',
-            cat,
-            jornada,
-            descricao: `Bónus Peter J${jornada} — ${cat}`,
-            atletas: comMelhorPeter,
-            total: melhorPeter,
-            label: `Total Peter: ${melhorPeter} tacadas`
+            key, tipo: 'bonusPeter', jornada,
+            descricao: 'Bónus Peter J' + jornada + ' — ' + grpDef.label,
+            atletas: empatados, total: melhor,
+            label: 'Total Peter: ' + melhor + ' tacadas'
           });
         }
       }
@@ -2329,7 +2344,10 @@ function aplicarBonusNosResultados(prova, jornada, bonusCalc) {
   });
 }
 
-// Render do editor de empates expandido
+// ── EMPATES ──
+// Estado temporário de ordenação de posições (antes de guardar)
+const _empateOrdem = {}; // key -> [id1, id2, ...]
+
 function renderEmpates() {
   if (!dadosInt || !modoAdmin) return;
   const div = document.getElementById('empates-conteudo');
@@ -2344,103 +2362,180 @@ function renderEmpates() {
     const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
     if (!isCampVizela) return;
 
+    // ── BONUS ──
     for (let j = 1; j <= (prova.jornadas || 1); j++) {
       if (!prova.resultados?.[j] || !Object.keys(prova.resultados[j]).length) continue;
-
       const bonusCalc = calcularBonusAuto(prova, j, atletas);
-      if (!bonusCalc || !bonusCalc.empates.length) continue;
+      if (!bonusCalc) continue;
 
       bonusCalc.empates.forEach(emp => {
         totalEmpates++;
-        const resolvido = empatesResolvidos[emp.key];
-        const atletaResolvido = resolvido ? atletas.find(a => a.id == resolvido) : null;
+        const resolvido = parseInt(empatesResolvidos[emp.key] || 0);
+        const atletaResolvido = resolvido ? atletas.find(a => parseInt(a.id) === resolvido) : null;
+        const pendente = !resolvido;
+        const corCard = pendente ? '#d4820a' : '#16a34a';
 
-        html += `<div class="card" style="margin-bottom:12px;border-left:4px solid ${resolvido ? '#16a34a' : '#d4820a'}">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div>
-              <span style="font-weight:700;color:var(--navy)">${emp.descricao}</span>
-              <span style="font-size:0.72rem;color:var(--dim);margin-left:8px">${emp.label}</span>
-            </div>
-            ${resolvido ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:700">✅ Resolvido — ${atletaResolvido?.nome || resolvido}</span>` : '<span style="font-size:0.75rem;color:var(--orange);font-weight:700">⚠️ Pendente</span>'}
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            ${emp.atletas.map(a => `
-              <button onclick="resolverEmpate('${emp.key}',${a.id})"
-                style="padding:6px 14px;border-radius:6px;font-size:0.82rem;cursor:pointer;font-family:Barlow Condensed,sans-serif;font-weight:700;
-                border:2px solid ${resolvido == a.id ? '#16a34a' : 'var(--sep)'};
-                background:${resolvido == a.id ? 'rgba(22,163,74,0.1)' : 'var(--bg)'};
-                color:${resolvido == a.id ? '#16a34a' : 'var(--text)'}">
-                ${resolvido == a.id ? '✅ ' : ''}${a.nome}
-              </button>`).join('')}
-            ${resolvido ? `<button onclick="resolverEmpate('${emp.key}',null)"
-              style="padding:6px 14px;border-radius:6px;font-size:0.75rem;cursor:pointer;border:1px solid var(--sep);background:var(--bg);color:var(--dim)">
-              ↩️ Anular</button>` : ''}
-          </div>
-        </div>`;
+        html += '<div class="card" style="margin-bottom:12px;border-left:4px solid ' + corCard + '">';
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+        html += '<div><span style="font-weight:700;color:var(--navy)">' + emp.descricao + '</span>';
+        html += '<span style="font-size:0.72rem;color:var(--dim);margin-left:8px">' + emp.label + '</span></div>';
+        if (pendente) {
+          html += '<span style="font-size:0.75rem;color:var(--orange);font-weight:700">Pendente</span>';
+        } else {
+          html += '<span style="font-size:0.75rem;color:#16a34a;font-weight:700">Resolvido: ' + (atletaResolvido ? atletaResolvido.nome : resolvido) + '</span>';
+        }
+        html += '</div><div style="display:flex;gap:8px;flex-wrap:wrap">';
+        emp.atletas.forEach(a => {
+          const sel = resolvido === parseInt(a.id);
+          const bord = sel ? '#16a34a' : 'var(--sep)';
+          const bg   = sel ? 'rgba(22,163,74,0.1)' : 'var(--bg)';
+          const cor  = sel ? '#16a34a' : 'var(--text)';
+          const pref = sel ? '[OK] ' : '';
+          html += '<button data-bkey="' + emp.key + '" data-bid="' + a.id + '"'
+                + ' onclick="resolverEmpateBonus(this.dataset.bkey, parseInt(this.dataset.bid))"'
+                + ' style="padding:6px 14px;border-radius:6px;font-size:0.82rem;cursor:pointer;'
+                + 'font-family:Barlow Condensed,sans-serif;font-weight:700;'
+                + 'border:2px solid ' + bord + ';background:' + bg + ';color:' + cor + '">'
+                + pref + a.nome + '</button>';
+        });
+        if (!pendente) {
+          html += '<button data-bkey="' + emp.key + '"'
+                + ' onclick="resolverEmpateBonus(this.dataset.bkey, null)"'
+                + ' style="padding:6px 14px;border-radius:6px;font-size:0.75rem;cursor:pointer;'
+                + 'border:1px solid var(--sep);background:var(--bg);color:var(--dim)">Anular</button>';
+        }
+        html += '</div></div>';
       });
     }
 
-    // Empates de posição (classificação geral por jornada)
+    // ── POSICOES ──
     for (let j = 1; j <= (prova.jornadas || 1); j++) {
       if (!prova.resultados?.[j]) continue;
-      const CATS = [...new Set(atletas.map(a => a.categoria))];
-      CATS.forEach(cat => {
-        const catAtl = atletas.filter(a => a.categoria === cat);
-        const jRes = prova.resultados[j];
-        const grupo = CAT_GRUPO[cat];
-        const totais = catAtl
-          .filter(a => jRes?.[a.id] && calcTotal(prova, j, jRes[a.id]) != null)
-          .map(a => ({ id: a.id, nome: a.nome, tot: calcTotal(prova, j, jRes[a.id]) }))
-          .sort((a, b) => a.tot - b.tot);
+      const jRes = prova.resultados[j];
 
-        // Encontrar grupos empatados
+      GRUPOS_BONUS.forEach(grpDef => {
+        const grpAtl = atletas.filter(a =>
+          grpDef.cats.includes(a.categoria) && jRes[a.id] && calcTotal(prova, j, jRes[a.id]) != null
+        );
+        if (grpAtl.length < 2) return;
+
+        const totais = grpAtl.map(a => ({
+          id: parseInt(a.id), nome: a.nome,
+          tot: calcTotal(prova, j, jRes[a.id])
+        })).sort((a, b) => a.tot - b.tot);
+
         const vistos = new Set();
-        totais.forEach((x, i) => {
+        totais.forEach(x => {
           if (vistos.has(x.id)) return;
           const empatados = totais.filter(y => y.tot === x.tot);
-          if (empatados.length < 2) return;
+          if (empatados.length < 2) { vistos.add(x.id); return; }
           empatados.forEach(y => vistos.add(y.id));
 
-          const keyEmp = `${prova.id}_j${j}_pos_${cat.replace(/ /g,'_')}_${x.tot}`;
-          const resolvido = empatesResolvidos[keyEmp];
-          const atletaResolvido = resolvido ? atletas.find(a => a.id == resolvido) : null;
           totalEmpates++;
+          const key = prova.id + '_j' + j + '_pos_' + grpDef.key + '_' + x.tot;
+          const ordemGuardada = empatesResolvidos[key];
+          if (!_empateOrdem[key]) {
+            _empateOrdem[key] = ordemGuardada ? ordemGuardada.map(Number) : empatados.map(a => a.id);
+          }
+          const ordemAtual = _empateOrdem[key];
+          const resolvido = !!ordemGuardada;
+          const corCard2 = resolvido ? '#16a34a' : '#1e5fa8';
 
-          html += `<div class="card" style="margin-bottom:12px;border-left:4px solid ${resolvido ? '#16a34a' : '#1e5fa8'}">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div>
-                <span style="font-weight:700;color:var(--navy)">Empate de Posição J${j} — ${cat}</span>
-                <span style="font-size:0.72rem;color:var(--dim);margin-left:8px">Total: ${x.tot} tacadas</span>
-              </div>
-              ${resolvido ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:700">✅ ${atletaResolvido?.nome || resolvido} à frente</span>` : '<span style="font-size:0.75rem;color:#1e5fa8;font-weight:700">⚠️ Pendente</span>'}
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              ${empatados.map(a => `
-                <button onclick="resolverEmpate('${keyEmp}',${a.id})"
-                  style="padding:6px 14px;border-radius:6px;font-size:0.82rem;cursor:pointer;font-family:Barlow Condensed,sans-serif;font-weight:700;
-                  border:2px solid ${resolvido == a.id ? '#16a34a' : 'var(--sep)'};
-                  background:${resolvido == a.id ? 'rgba(22,163,74,0.1)' : 'var(--bg)'};
-                  color:${resolvido == a.id ? '#16a34a' : 'var(--text)'}">
-                  ${resolvido == a.id ? '✅ ' : ''}${a.nome}
-                </button>`).join('')}
-              ${resolvido ? `<button onclick="resolverEmpate('${keyEmp}',null)"
-                style="padding:6px 14px;border-radius:6px;font-size:0.75rem;cursor:pointer;border:1px solid var(--sep);background:var(--bg);color:var(--dim)">
-                ↩️ Anular</button>` : ''}
-            </div>
-          </div>`;
+          html += '<div class="card" style="margin-bottom:12px;border-left:4px solid ' + corCard2 + '">';
+          html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+          html += '<div><span style="font-weight:700;color:var(--navy)">Empate Posicao J' + j + ' - ' + grpDef.label + '</span>';
+          html += '<span style="font-size:0.72rem;color:var(--dim);margin-left:8px">'
+                + x.tot + ' tacadas - ' + empatados.length + ' atletas</span></div>';
+          if (resolvido) {
+            html += '<span style="font-size:0.75rem;color:#16a34a;font-weight:700">Ordem definida</span>';
+          } else {
+            html += '<span style="font-size:0.75rem;color:#1e5fa8;font-weight:700">Pendente - definir ordem</span>';
+          }
+          html += '</div>';
+
+          html += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px">';
+          ordemAtual.forEach((id, idx) => {
+            const atl = empatados.find(a => a.id === id);
+            if (!atl) return;
+            html += '<div style="display:flex;align-items:center;gap:8px;background:var(--bg);'
+                  + 'border:1px solid var(--sep);border-radius:6px;padding:7px 10px">';
+            html += '<span style="font-family:Bebas Neue,sans-serif;font-size:1rem;color:var(--orange);min-width:28px">'
+                  + (idx + 1) + 'o</span>';
+            html += '<span style="flex:1;font-weight:700">' + atl.nome + '</span>';
+            if (idx > 0) {
+              html += '<button data-pkey="' + key + '" data-pidx="' + idx + '" data-pdir="-1"'
+                    + ' onclick="moverEmpatePos(this.dataset.pkey,parseInt(this.dataset.pidx),parseInt(this.dataset.pdir))"'
+                    + ' style="padding:3px 8px;border:1px solid var(--sep);border-radius:4px;'
+                    + 'background:var(--bg2);cursor:pointer;font-size:0.9rem">&#9650;</button>';
+            }
+            if (idx < ordemAtual.length - 1) {
+              html += '<button data-pkey="' + key + '" data-pidx="' + idx + '" data-pdir="1"'
+                    + ' onclick="moverEmpatePos(this.dataset.pkey,parseInt(this.dataset.pidx),parseInt(this.dataset.pdir))"'
+                    + ' style="padding:3px 8px;border:1px solid var(--sep);border-radius:4px;'
+                    + 'background:var(--bg2);cursor:pointer;font-size:0.9rem">&#9660;</button>';
+            }
+            html += '</div>';
+          });
+          html += '</div>';
+
+          html += '<div style="display:flex;gap:8px">';
+          html += '<button data-pkey="' + key + '" onclick="guardarOrdemPos(this.dataset.pkey)"'
+                + ' class="btn btn-primary" style="font-size:0.78rem;padding:6px 14px">Guardar ordem</button>';
+          if (resolvido) {
+            html += '<button data-pkey="' + key + '" onclick="anularOrdemPos(this.dataset.pkey)"'
+                  + ' style="padding:6px 14px;border-radius:6px;font-size:0.75rem;cursor:pointer;'
+                  + 'border:1px solid var(--sep);background:var(--bg);color:var(--dim)">Anular</button>';
+          }
+          html += '</div></div>';
         });
       });
     }
   });
 
   if (!totalEmpates) {
-    html = '<div style="color:var(--dim);padding:20px;text-align:center">Sem empates detectados nas provas activas.</div>';
+    html = '<div style="color:var(--dim);padding:20px;text-align:center">Sem empates detectados.</div>';
   }
-
   div.innerHTML = html;
 }
 
-window.resolverEmpate = async function(key, atletaId) {
+window.moverEmpatePos = function(key, idx, dir) {
+  const ord = _empateOrdem[key];
+  if (!ord) return;
+  const novo = idx + dir;
+  if (novo < 0 || novo >= ord.length) return;
+  const tmp = ord[idx]; ord[idx] = ord[novo]; ord[novo] = tmp;
+  renderEmpates();
+};
+
+window.guardarOrdemPos = async function(key) {
+  if (!dadosInt) return;
+  if (!dadosInt.empates) dadosInt.empates = {};
+  const ord = _empateOrdem[key];
+  if (!ord) return;
+  dadosInt.empates[key] = [...ord];
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    await recalcularTodosBonusAuto();
+    atualizarBadgeEmpates();
+    renderEmpates();
+    mostrarNotif('Ordem guardada!');
+  } catch(e) { mostrarNotif('Erro: ' + e.message, true); }
+};
+
+window.anularOrdemPos = async function(key) {
+  if (!dadosInt) return;
+  delete dadosInt.empates[key];
+  delete _empateOrdem[key];
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    await recalcularTodosBonusAuto();
+    atualizarBadgeEmpates();
+    renderEmpates();
+    mostrarNotif('Ordem anulada');
+  } catch(e) { mostrarNotif('Erro: ' + e.message, true); }
+};
+
+window.resolverEmpateBonus = async function(key, atletaId) {
   if (!dadosInt) return;
   if (!dadosInt.empates) dadosInt.empates = {};
   if (atletaId === null) {
@@ -2453,9 +2548,10 @@ window.resolverEmpate = async function(key, atletaId) {
     await recalcularTodosBonusAuto();
     atualizarBadgeEmpates();
     renderEmpates();
-    mostrarNotif('✅ Empate resolvido!');
-  } catch(e){ mostrarNotif('❌ Erro: '+e.message, true); }
+    mostrarNotif('Empate resolvido!');
+  } catch(e) { mostrarNotif('Erro: ' + e.message, true); }
 };
+
 
 // Atualizar badge de empates pendentes no menu
 function atualizarBadgeEmpates() {
