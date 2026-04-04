@@ -266,9 +266,6 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       <div class="nav-item admin-only" onclick="irPara('gerir')">
         <span class="ico">⚙️</span><span class="label">Gerir Provas</span>
       </div>
-      <div class="nav-item admin-only" id="nav-empates" onclick="irPara('empates')">
-        <span class="ico">⚖️</span><span class="label">Empates</span>
-      </div>
       <div class="nav-section">Outros</div>
       <div class="nav-item" onclick="irPara('stats')">
         <span class="ico">📈</span><span class="label">Estatísticas</span>
@@ -511,17 +508,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       </div>
 
       <!-- REGRAS -->
-      <div class="secao admin-only" id="sec-empates">
-      <div class="card-titulo" style="margin-bottom:16px">⚖️ Gestão de Empates</div>
-      <div style="font-size:0.78rem;color:var(--dim);margin-bottom:16px">
-        Bónus automáticos e desempates por jornada do Campeonato de Vizela. 
-        Os bónus Mini e Peter são atribuídos automaticamente ao atleta com menor total. 
-        Em caso de empate, resolve aqui manualmente.
-      </div>
-      <div id="empates-conteudo"><div style="color:var(--dim);padding:20px;text-align:center">A carregar...</div></div>
-    </div>
-
-    <div class="secao" id="sec-stats">
+      <div class="secao" id="sec-stats">
   <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:2px;color:var(--org2);margin:0 0 16px">📈 Estatísticas</h2>
 
   <!-- TABS SIMPLES -->
@@ -569,7 +556,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -641,81 +628,11 @@ const PASS_ATLETA = 'Vizelgolfe2009*';
 const PASS_VIEW   = 'Vizela2026View*';
 let _passAtleta = PASS_ATLETA;
 let modoView = false; // pode ser actualizada pelo admin via Firebase
-// ════════════════════════════════════════════════════════════════
-// REGRAS IMUTÁVEIS — VIZELGOLFE 2026
-// NÃO ALTERAR EM NENHUMA CIRCUNSTÂNCIA
-// ════════════════════════════════════════════════════════════════
-
-// ── PONTUAÇÃO POR POSIÇÃO (Campeonato de Vizela + todos os torneios) ──
-// 1º=25 · 2º=18 · 3º=15 · 4º=12 · 5º=10 · 6º=8 · 7º=6 · 8º=4 · 9º=2 · 10º=1
-const PONTUACAO = [25,18,15,12,10,8,6,4,2,1];
-
-// ── CATEGORIAS INTERNAS DO CLUBE ──
-const CATEGORIAS = ['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos','Juniores'];
-
-// ── GRUPOS DE COMPETIÇÃO ──
-// REGRA ABSOLUTA: Juniores competem COM Homens para posição E bónus
-// Classificação e pontos são SEPARADOS por categoria
-// mas posição na jornada e bónus são calculados no grupo conjunto
-const CAT_GRUPO = {
-  'Homens':               'Homens',
-  'Juniores':             'Homens',   // Juniores competem com Homens: mesmas posições, mesmos pontos
-  'Senhoras':             'Senhoras',
-  'Seniores Masculinos':  'Seniores Masculinos',
-  'Veteranos Masculinos': 'Veteranos Masculinos',
-};
-
-// Categorias que têm classificação DUPLA:
-// - aparecem no grupo principal (com os Homens) para posição e pontos
-// - E têm separador próprio para pódio da categoria
-const CAT_DUPLA = ['Juniores'];
-
-// ── CORES — REGRAS ABSOLUTAS (aplicar em TODO o sistema sem excepção) ──
-// Por PISTA individual:   🟢 1 tacada · 🔴 2 tacadas · ⚫ 3–7 tacadas
-// Por VOLTA Minigolfe:    🔵 18–19 · 🟢 20–24 · 🔴 25–29 · ⚫ 30+
-// Por VOLTA Peter/Felt:   🔵 18–24 · 🟢 25–29 · 🔴 30–35 · ⚫ 36+
-// Totais/médias: cor pela MÉDIA por volta
-// Grupo Mini:   Homens + Senhoras + Juniores
-// Grupo Peter:  Seniores + Veteranos (e Felt = mesmas regras Peter)
-
-// ── BÓNUS — REGRAS ABSOLUTAS ──
-// Apenas para o Campeonato de Vizela
-// Bónus Mini:  atleta com MELHOR VOLTA INDIVIDUAL Mini (min de mV1 e mV2)
-// Bónus Peter: atleta com MELHOR VOLTA INDIVIDUAL Peter (min de pV1 e pV2)
-// Calculado por GRUPO (Juniores entram com Homens)
-// Em caso de empate → editor ⚖️ decide manualmente
-// Valor: +1 ponto por bónus (configurável em prova.bonusMini / prova.bonusPeter)
-// +5 pontos participação completa (todas as jornadas) — prova.bonusCompleto
-
-// ── REGRA DO 126 ──
-// 126 = pontuação máxima (18 pistas × 7 tacadas) atribuída a volta não jogada
-// ENTRA no total da jornada (classifica o atleta)
-// NUNCA ganha bónus (é a pior pontuação possível, Math.min nunca a escolhe)
-// 0 ou vazio = volta ainda não inserida (não entra na classificação)
-const VALOR_AUSENTE = 0; // só 0/vazio é ausência real
-
-// ── DESEMPATE DE POSIÇÃO ──
-// 1º critério: menor total de tacadas
-// 2º critério: resolução manual via ⚖️ Empates (desempate em pista)
-// Empates são POR JORNADA, nunca acumulados
-
-// ── CAMPEONATO DE VIZELA — IDENTIFICAÇÃO ──
-// Uma prova é Campeonato de Vizela se: nome contém 'Vizela' E tipo === 'campeonato'
-// Todos os outros torneios usam tabela F1 simples (PONTUACAO) sem bónus
-
-// ── CATEGORIAS NACIONAIS FPM (10 categorias) ──
-const CAT_ORDEM_NAC = [
-  'Homens','Senhoras',
-  'Juniores Masculinos','Juniores Femininos',
-  'Infantis Masculinos','Infantis Femininos',
-  'Seniores Masculinos','Seniores Femininos',
-  'Veteranos Masculinos','Veteranos Femininos'
-];
-// Categorias sem atletas ficam ocultas automaticamente
-
-// ════════════════════════════════════════════════════════════════
-// FIM DAS REGRAS IMUTÁVEIS
-// ════════════════════════════════════════════════════════════════
+const PONTUACAO=[25,18,15,12,10,8,6,4,2,1];
+const CATEGORIAS=['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos','Juniores'];
+const CAT_GRUPO={'Homens':'Homens','Juniores':'Homens','Senhoras':'Senhoras','Seniores Masculinos':'Seniores Masculinos','Veteranos Masculinos':'Veteranos Masculinos'};
+const CAT_DUPLA=['Juniores'];
+const CAT_ORDEM_NAC=['Homens','Senhoras','Juniores Masculinos','Juniores Femininos','Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos','Veteranos Masculinos','Veteranos Femininos'];
 
 let modoAdmin  = false;
 let dadosInt   = null; // dados internos
@@ -1474,7 +1391,6 @@ window.irPara = function(sec) {
   if (sec === 'atletas') renderAtletas();
   if (sec === 'inserir') renderInserir();
   if (sec === 'gerir') renderGerir();
-  if (sec === 'empates') renderEmpates();
   if (sec === 'nacional') renderNacional();
   if (sec === 'stats') renderStats();
 };
@@ -1547,51 +1463,6 @@ function renderProvas() {
 // ── CÁLCULO DE PONTOS CENTRAL ──
 // Campeonato de Vizela (id=1): regras próprias intocáveis
 // Todos os outros torneios: tabela F1 simples sem bónus
-function calcPontosAtletaEpoca(atletaId, categoria) {
-  if (!dadosInt) return 0;
-  const provas  = dadosInt.provas  || [];
-  const atletas = dadosInt.atletas || [];
-  const empates = dadosInt.empates || {};
-  const grupo   = CAT_GRUPO[categoria];
-  let totalPts  = 0;
-
-  provas.forEach(p => {
-    const isCampVizela = p.nome && p.nome.includes('Vizela') && p.tipo === 'campeonato';
-
-    for (let j = 1; j <= (p.jornadas||1); j++) {
-      const res = p.resultados?.[j]?.[atletaId];
-      const tot = calcTotal(p, j, res);
-      if (tot == null) continue;
-
-      const pos = calcPos(p, j, atletaId, grupo, atletas, empates);
-      if (pos < 1 || pos > PONTUACAO.length) continue;
-
-      if (isCampVizela) {
-        // Regras intocáveis do Campeonato de Vizela
-        totalPts += PONTUACAO[pos-1];
-        if (res?.bonusMini)        totalPts += (p.bonusMini  || 0);
-        if (res?.bonusPeter)       totalPts += (p.bonusPeter || 0);
-        if (res?.bonusMiniManha)   totalPts += (p.bonusMini  || 0);
-        if (res?.bonusMiniTarde)   totalPts += (p.bonusMini  || 0);
-        if (res?.bonusPeterManha)  totalPts += (p.bonusPeter || 0);
-        if (res?.bonusPeterTarde)  totalPts += (p.bonusPeter || 0);
-      } else {
-        // Todos os outros: tabela F1 simples, sem bónus
-        totalPts += PONTUACAO[pos-1];
-      }
-    }
-
-    // Bónus participação completa (só Campeonato Vizela)
-    if (isCampVizela && p.bonusCompleto) {
-      const jPart = Object.keys(p.resultados||{}).filter(j =>
-        p.resultados[j]?.[atletaId] && calcTotal(p,parseInt(j),p.resultados[j][atletaId]) != null
-      ).length;
-      if (jPart === p.jornadas) totalPts += (p.bonusCompleto || 0);
-    }
-  });
-
-  return totalPts;
-}
 
 function renderClassificacoes() {
   if (!dadosInt) return;
@@ -1618,30 +1489,13 @@ window.renderRankingAnual = function(btn) {
   const cont = document.getElementById('class-conteudo');
   let html = '<div style="margin-bottom:8px;font-size:0.78rem;color:var(--dim);letter-spacing:1px">Pontuação acumulada de todas as provas da época · Campeonato de Vizela com regras próprias · Torneios com tabela F1</div>';
 
-  // Grupos principais + separador Juniores
-  const gruposRank = [];
-  const gruposVistosR = new Set();
   CATEGORIAS.forEach(cat => {
-    const grupo = CAT_GRUPO[cat]||cat;
-    if (gruposVistosR.has(grupo)) return;
-    gruposVistosR.add(grupo);
-    const grupoAtl = atletas.filter(a => (CAT_GRUPO[a.categoria]||a.categoria)===grupo);
-    gruposRank.push({label: grupo, atls: grupoAtl});
-  });
-  CATEGORIAS.forEach(cat => {
-    if (!CAT_DUPLA.includes(cat)) return;
     const catAtl = atletas.filter(a=>a.categoria===cat);
-    if (catAtl.length) gruposRank.push({label: cat+' — Classificação Própria', atls: catAtl});
-  });
-
-  gruposRank.forEach(({label, atls}) => {
-    const catAtl = atls;
     if (!catAtl.length) return;
     const ranked = catAtl.map(a => ({
-      ...a, pts: calcPontosAtletaEpoca(a.id, a.categoria)
+      ...a, pts: calcPontosAtletaEpoca(a.id, cat)
     })).filter(a=>a.pts>0).sort((a,b)=>b.pts-a.pts);
     if (!ranked.length) return;
-    const cat = label;
     html += `<div style="margin-bottom:24px">
       <div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);padding:8px 0;border-bottom:2px solid var(--orange);margin-bottom:8px">${cat}</div>
       <div class="tabela-wrap"><table>
@@ -1721,27 +1575,8 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
     html += '</div>';
   }
 
-  // Renderizar grupos (Homens inclui Juniores, depois separador Juniores)
-  const gruposRend = [];
-  // Primeiro os grupos principais com todos os atletas do grupo
-  const gruposVistos = new Set();
   CATEGORIAS.forEach(cat => {
-    const grupo = CAT_GRUPO[cat]||cat;
-    if (gruposVistos.has(grupo)) return;
-    gruposVistos.add(grupo);
-    // Atletas do grupo inteiro (ex: Homens + Juniores)
-    const grupoAtl = atletas.filter(a => (CAT_GRUPO[a.categoria]||a.categoria)===grupo);
-    gruposRend.push({label: grupo, atls: grupoAtl, isGrupo: true});
-  });
-  // Depois os separadores de categorias com dupla classificação
-  CATEGORIAS.forEach(cat => {
-    if (!CAT_DUPLA.includes(cat)) return;
     const catAtl = atletas.filter(a=>a.categoria===cat);
-    if (catAtl.length) gruposRend.push({label: cat+' — Classificação Própria', atls: catAtl, isGrupo: false});
-  });
-
-  gruposRend.forEach(({label, atls, isGrupo}) => {
-    const catAtl = atls;
     if (!catAtl.length) return;
 
     const ranked = catAtl.map(a => {
@@ -1754,7 +1589,7 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
         const tot=calcTotal(prova,j,res);
         if (tot==null) continue;
         jPart++;
-        const pos=calcPos(prova,j,a.id,CAT_GRUPO[a.categoria]||a.categoria,atletas,empates);
+        const pos=calcPos(prova,j,a.id,CAT_GRUPO[cat],atletas,empates);
         if (pos>=1&&pos<=PONTUACAO.length) pts+=PONTUACAO[pos-1];
         if (res.bonusMini) pts+=(prova.bonusMini||0);
         if (res.bonusPeter) pts+=(prova.bonusPeter||0);
@@ -1763,7 +1598,6 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
     }).filter(a=>a.jPart>0).sort((a,b)=>b.pts-a.pts);
 
     if (!ranked.length) return;
-    const cat = label;
     html += `<div style="margin-bottom:24px">
       <div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);padding:8px 0;border-bottom:2px solid var(--orange);margin-bottom:8px">${cat}</div>
       <div class="tabela-wrap"><table>
@@ -1782,847 +1616,73 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
   cont.innerHTML = html || '<div style="color:var(--dim);padding:20px">Sem resultados.</div>';
 };
 
-function calcTotal(prova, j, res) {
-  if (!res) return null;
-  const esp = prova.jornadaEspecial?.[j];
-  const campos = esp?.tipo==='peter4voltas' ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
-  const vals = campos.map(c=>Number(res[c])).filter(v=>!isNaN(v)&&v>0);
-  return vals.length ? vals.reduce((a,b)=>a+b,0) : null;
+function _isCampVizela(p){return !!(p.nome&&p.nome.includes('Vizela')&&p.tipo==='campeonato');}
+function _melhorVoltaIndividual(res,c1,c2){const v=[Number(res[c1])||0,Number(res[c2])||0].filter(v=>v>0&&v!==126);return v.length?Math.min(...v):null;}
+function calcTotal(prova,j,res){
+  if(!res)return null;
+  const esp=prova.jornadaEspecial?.[j];
+  const campos=esp?.tipo==='peter4voltas'?['pV1','pV2','pV3','pV4']:['mV1','mV2','pV1','pV2'];
+  const vals=campos.map(c=>Number(res[c])).filter(v=>!isNaN(v)&&v>0);
+  if(vals.length<campos.length)return null;
+  return vals.reduce((a,b)=>a+b,0);
 }
-
-function calcPos(prova, j, atletaId, grupo, atletas, empates) {
-  const jRes=prova.resultados?.[j]; if (!jRes) return 999;
-  const doGrupo=atletas.filter(a=>CAT_GRUPO[a.categoria]===grupo&&jRes[a.id]);
-  const totais=doGrupo.map(a=>({id:a.id,t:calcTotal(prova,j,jRes[a.id])??9999})).filter(x=>x.t<9999);
-  totais.sort((a,b)=>{
-    if(a.t!==b.t) return a.t-b.t;
-    const k=`${prova.id}_j${j}_${Math.min(a.id,b.id)}_${Math.max(a.id,b.id)}`;
-    const v=empates?.[k]; if(v) return v===a.id?-1:1; return 0;
-  });
-  for(let i=0;i<totais.length;i++){if(totais[i].id===atletaId) return i+1;}
-  return 999;
+function calcPos(prova,j,atletaId,grupo,atletas,empates){
+  const jRes=prova.resultados?.[j];if(!jRes)return 999;
+  const doGrupo=atletas.filter(a=>(CAT_GRUPO[a.categoria]||a.categoria)===grupo);
+  const totais=doGrupo.map(a=>{const r=jRes[String(a.id)]||jRes[a.id];const t=r?(calcTotal(prova,j,r)??9999):9999;return{id:a.id,t};}).filter(x=>x.t<9999);
+  totais.sort((a,b)=>{if(a.t!==b.t)return a.t-b.t;const k=`${prova.id}_j${j}_pos_${grupo.replace(/ /g,'_')}_${a.t}`;const v=empates?.[k];if(v)return parseInt(v)===a.id?-1:1;return a.id-b.id;});
+  const i=totais.findIndex(x=>x.id==atletaId||x.id===parseInt(atletaId));return i>=0?i+1:999;
 }
-
-// ── ATLETAS ──
-function renderAtletas() {
-  if (!dadosInt) return;
-  const cont = document.getElementById('atletas-conteudo');
-  const atletas = dadosInt.atletas||[];
-  let html = '<div class="tabela-wrap"><table><thead><tr><th>Nome</th><th>Categoria</th></tr></thead><tbody>';
-  atletas.forEach(a => {
-    html += `<tr style="cursor:pointer" onclick="abrirPerfilAtleta(${a.id})">
-      <td><strong>${a.nome}</strong></td>
-      <td style="font-size:0.78rem;color:var(--silver)">${a.categoria||'—'}</td>
-    </tr>`;
-  });
-  html += '</tbody></table></div>';
-  cont.innerHTML = html;
-}
-
-// ── PERFIL ATLETA ──
-window.abrirPerfilAtleta = function(atletaId) {
-  if (!dadosInt) return;
-  const atleta = (dadosInt.atletas||[]).find(a=>a.id==atletaId);
-  if (!atleta) return;
-  const provas = dadosInt.provas||[];
-  const empates = dadosInt.empates||{};
-
-  document.getElementById('modal-nome').textContent = atleta.nome;
-  document.getElementById('modal-meta').textContent = atleta.categoria;
-
-  let html = '';
-  provas.forEach(prova => {
-    for (let j=1;j<=(prova.jornadas||1);j++) {
-      const res = prova.resultados?.[j]?.[atletaId];
-      if (!res) continue;
-      const tot = calcTotal(prova,j,res);
-      if (tot==null) continue;
-      const pos = calcPos(prova,j,atletaId,CAT_GRUPO[atleta.categoria],dadosInt.atletas||[],empates);
-      const campos = prova.jornadaEspecial?.[j]?.tipo==='peter4voltas'
-        ? ['pV1','pV2','pV3','pV4']
-        : ['mV1','mV2','pV1','pV2'];
-      const voltasHtml = campos.map(c=>{
-        if(res[c]==null) return '';
-        const cor = corVolta(c, res[c]);
-        const bg  = bgVolta(c, res[c]);
-        const emoji = emojiCor(c, res[c]);
-        return `<td style="text-align:center;font-weight:700;color:${cor||'inherit'};background:${bg||'transparent'}">${emoji} ${res[c]}</td>`;
-      }).join('');
-      html += `<div style="margin-bottom:16px">
-        <div style="font-weight:700;margin-bottom:6px;color:var(--navy)">${prova.nome}${prova.jornadas>1?` — J${j}`:''}</div>
-        <div class="tabela-wrap"><table>
-          <thead><tr>${campos.map((c,i)=>`<th style="text-align:center">${c}</th>`).join('')}<th style="text-align:right">Total</th><th style="text-align:center">Pos</th></tr></thead>
-          <tbody><tr>${voltasHtml}<td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.2rem;color:var(--orange)">${tot}</td><td style="text-align:center;font-weight:700">${pos<999?pos+'º':'—'}</td></tr></tbody>
-        </table></div>
-      </div>`;
+function calcPontosAtletaEpoca(atletaId,categoria){
+  if(!dadosInt)return 0;
+  const provas=dadosInt.provas||[],atletas=dadosInt.atletas||[],empates=dadosInt.empates||{};
+  const grupo=CAT_GRUPO[categoria]||categoria;let pts=0;
+  provas.forEach(p=>{
+    const isCViz=_isCampVizela(p);
+    for(let j=1;j<=(p.jornadas||1);j++){
+      const res=p.resultados?.[j]?.[atletaId]||p.resultados?.[j]?.[String(atletaId)];
+      if(!calcTotal(p,j,res))continue;
+      const pos=calcPos(p,j,atletaId,grupo,atletas,empates);
+      if(pos<1||pos>PONTUACAO.length)continue;
+      pts+=PONTUACAO[pos-1];
+      if(isCViz&&res){const b=p.bonusMini||1;if(res.bonusMini)pts+=b;if(res.bonusPeter)pts+=b;if(res.bonusPeterManha)pts+=b;if(res.bonusPeterTarde)pts+=b;}
     }
+    if(isCViz&&p.bonusCompleto){const jPart=Object.keys(p.resultados||{}).filter(j=>{const r=p.resultados[j]?.[atletaId]||p.resultados[j]?.[String(atletaId)];return r&&calcTotal(p,parseInt(j),r)!=null;}).length;if(jPart>=(p.jornadas||1))pts+=(p.bonusCompleto||0);}
   });
-
-  document.getElementById('modal-body').innerHTML = html || '<p style="color:var(--dim)">Sem resultados registados.</p>';
-  document.getElementById('modal-overlay').classList.add('on');
-};
-
-// ── DETALHE ATLETA NACIONAL ──
-let _nacDetIntervalo = null;
-let _nacDetUrl = null;
-let _nacDetVertente = null;
-
-window.abrirDetalheNac = function(urlCompleto, nome, clube, cat, vertente) {
-  if(!urlCompleto) return;
-  _nacDetUrl = urlCompleto;
-  _nacDetVertente = vertente;
-
-  document.getElementById('nac-det-nome').textContent = nome;
-  document.getElementById('nac-det-meta').textContent = clube + ' · ' + cat;
-  document.getElementById('nac-det-status').textContent = '🔄 A actualizar...';
-  document.getElementById('modal-nac-detalhe').style.display = 'block';
-  document.getElementById('nac-det-body').innerHTML = '<div style="padding:40px;text-align:center;color:var(--dim)">⏳ A carregar...</div>';
-
-  carregarDetalheNac();
-  _nacDetIntervalo = setInterval(carregarDetalheNac, 5000);
-};
-
-window.fecharDetalheNac = function() {
-  clearInterval(_nacDetIntervalo);
-  _nacDetIntervalo = null;
-  _nacDetUrl = null;
-  document.getElementById('modal-nac-detalhe').style.display = 'none';
-};
-
-async function carregarDetalheNac() {
-  if(!_nacDetUrl) return;
-  try {
-    const workerUrl = WORKER_URL + '?url=' + encodeURIComponent(_nacDetUrl);
-    const resp = await fetch(workerUrl, {signal:AbortSignal.timeout(10000)});
-    if(!resp.ok) throw new Error('Worker falhou');
-    const html = await resp.text();
-    renderDetalheNac(html);
-    const agora = new Date().toLocaleTimeString('pt-PT');
-    document.getElementById('nac-det-status').textContent = '✅ Actualizado às ' + agora;
-  } catch(e) {
-    document.getElementById('nac-det-status').textContent = '❌ Erro: ' + e.message;
-  }
+  return pts;
 }
-
-// Grupo A = Homens + Senhoras → Mini | Grupo B = restantes → Peter/Felt
-function isGrupoA(cat) {
-  return cat==='Homens' || cat==='Senhoras' || cat==='H' || cat==='S' ||
-         cat.startsWith('Hom') || cat.startsWith('Sen');
-}
-
-function corPista(t) {
-  t = parseInt(t);
-  if(isNaN(t) || t <= 0) return {cor:'', bg:'', emoji:''};
-  if(t === 1) return {cor:'#16a34a', bg:'rgba(22,163,74,0.12)', emoji:'🟢'};
-  if(t === 2) return {cor:'#dc2626', bg:'rgba(220,38,38,0.12)', emoji:'🔴'};
-  return {cor:'#111827', bg:'rgba(17,24,39,0.15)', emoji:'⚫'};
-}
-
-function renderDetalheNac(html) {
-  const parser = new DOMParser();
-  const d = parser.parseFromString(html, 'text/html');
-  const VERT_MAP = {'B':'peter','E':'mini','F':'felt'};
-  const el = document.getElementById('nac-det-body');
-
-  // Extrair cabeçalhos das colunas (B1,E7,F8 etc)
-  let headers = [];
-  let vertentes = [];
-  d.querySelectorAll('table tr').forEach(row => {
-    const cells = Array.from(row.querySelectorAll('td,th')).map(c=>c.textContent.trim());
-    if(cells.includes('B1')||cells.includes('E1')||cells.includes('E7')||cells.includes('B14')) {
-      headers = cells;
-      cells.forEach(c => {
-        const letra = c.replace(/\d+/g,'');
-        vertentes.push(VERT_MAP[letra] || _nacDetVertente || 'peter');
-      });
-    }
-  });
-
-  // Extrair pistas e tacadas
-  const pistas = [];
-  let inData = false;
-  d.querySelectorAll('table tr').forEach(row => {
-    const cells = Array.from(row.querySelectorAll('td,th')).map(c=>c.textContent.trim());
-    if(!cells.length) return;
-    const pistaNum = parseInt(cells[0]);
-    if(!isNaN(pistaNum) && pistaNum>=1 && pistaNum<=18) {
-      inData = true;
-      const tacadas = [];
-      // cells[2] em diante são as tacadas por volta
-      for(let i=2;i<cells.length;i++) {
-        const v = parseInt(cells[i]);
-        if(!isNaN(v) && v>=1 && v<=9) tacadas.push(v);
-      }
-      pistas.push({pista:pistaNum, tacadas});
-    }
-  });
-
-  // Extrair somas por volta
-  const somas = [];
-  d.querySelectorAll('table tr').forEach(row => {
-    const cells = Array.from(row.querySelectorAll('td,th')).map(c=>c.textContent.trim());
-    if(cells[0]==='Soma' || cells[1]==='Soma') {
-      for(let i=2;i<cells.length;i++){
-        const v=parseInt(cells[i]); if(!isNaN(v)&&v>10) somas.push(v);
-      }
-    }
-  });
-
-  if(!pistas.length) {
-    el.innerHTML='<div style="padding:20px;color:var(--dim);text-align:center">Sem detalhe disponível ainda.</div>';
-    return;
-  }
-
-  const nVoltas = pistas[0]?.tacadas?.length || 0;
-  const nPistas = pistas.length;
-
-  // Construir tabela
-  let h = '<div style="overflow-x:auto">';
-  h += '<table style="width:100%;border-collapse:collapse;font-size:0.82rem">';
-  h += '<thead><tr style="background:#f0f3f8">';
-  h += '<th style="padding:7px 10px;text-align:left;border-bottom:2px solid var(--sep);color:var(--navy);font-size:0.7rem;letter-spacing:1px;text-transform:uppercase">Pista</th>';
-
-  for(let v=0;v<nVoltas;v++) {
-    const hdr = headers.length>v+2 ? headers[v+2] : ('V'+(v+1));
-    const vert = vertentes.length>v+2 ? vertentes[v+2] : (_nacDetVertente||'peter');
-    const vertLabel = vert==='mini'?'🏌️ Mini':vert==='felt'?'🎯 Felt':'⛳ Peter';
-    h += `<th style="padding:7px 10px;text-align:center;border-bottom:2px solid var(--sep);color:var(--navy);font-size:0.7rem;letter-spacing:1px;text-transform:uppercase">${hdr}<br><span style="font-weight:400;font-size:0.65rem;color:var(--dim)">${vertLabel}</span></th>`;
-  }
-  h += '</tr></thead><tbody>';
-
-  // Linhas das pistas
-  pistas.forEach(({pista,tacadas}) => {
-    h += `<tr style="border-bottom:1px solid var(--sep)">`;
-    h += `<td style="padding:6px 10px;font-weight:700;color:var(--navy);font-family:'Bebas Neue',sans-serif;font-size:1rem">Pista ${pista}</td>`;
-    tacadas.forEach((t,vi) => {
-      const vert = vertentes.length>vi+2 ? vertentes[vi+2] : (_nacDetVertente||'peter');
-      const campo = vert==='mini'?'mV1':'pV1';
-      const cp = corPista(t);
-      h += `<td style="padding:6px 10px;text-align:center;font-weight:700;font-size:0.95rem;color:${cp.cor||'var(--text)'};background:${cp.bg||'transparent'}">${cp.emoji} ${t}</td>`;
-    });
-    h += '</tr>';
-  });
-
-  // Linha de somas
-  if(somas.length) {
-    h += '<tr style="background:#f0f3f8;border-top:2px solid var(--sep)">';
-    h += '<td style="padding:7px 10px;font-weight:700;color:var(--navy);font-size:0.7rem;text-transform:uppercase;letter-spacing:1px">Total</td>';
-    somas.forEach((s,vi) => {
-      const vert = vertentes.length>vi+2 ? vertentes[vi+2] : (_nacDetVertente||'peter');
-      const campo = vert==='mini'?'mV1':'pV1';
-      const vert2 = vertentes.length>vi+2 ? vertentes[vi+2] : (_nacDetVertente||'peter');
-      const campo2 = vert2==='mini'?'mV1':'pV1';
-      const corSoma = corTotal(s, nPistas, campo2);
-      h += `<td style="padding:7px 10px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:${corSoma||'var(--orange)'};font-weight:700">${s}</td>`;
-    });
-    h += '</tr>';
-  }
-
-  h += '</tbody></table></div>';
-  el.innerHTML = h;
-}
-
-window.fecharModal = function(e) {
-  if (e.target===document.getElementById('modal-overlay'))
-    document.getElementById('modal-overlay').classList.remove('on');
-};
-
-// ── INSERIR RESULTADOS ──
-function renderInserir() {
-  if (!dadosInt||!modoAdmin) return;
-  const sel = document.getElementById('sel-prova');
-  sel.innerHTML = (dadosInt.provas||[]).map(p=>`<option value="${p.id}">${p.nome}</option>`).join('');
-  onProvaChange();
-}
-
-window.onProvaChange = function() {
-  if (!dadosInt) return;
-  const provaId = parseInt(document.getElementById('sel-prova').value);
-  const prova = (dadosInt.provas||[]).find(p=>p.id===provaId);
-  if (!prova) return;
-  const grpJ = document.getElementById('grp-jornada');
-  if (prova.jornadas > 1) {
-    grpJ.style.display = '';
-    const selJ = document.getElementById('sel-jornada');
-    selJ.innerHTML = Array.from({length:prova.jornadas},(_,i)=>`<option value="${i+1}">Jornada ${i+1}</option>`).join('');
-    onJornadaChange();
-  } else {
-    grpJ.style.display = 'none';
-    renderFormInserir(provaId, 1);
-  }
-};
-
-window.onJornadaChange = function() {
-  const provaId = parseInt(document.getElementById('sel-prova').value);
-  const jornada = parseInt(document.getElementById('sel-jornada').value);
-  renderFormInserir(provaId, jornada);
-};
-
-const VZG_EXCECOES = ["Jose Tropa","José Tropa"];
-function normalizar(s){ return s?s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase():''; }
-function isVzg(clube, nome) {
-  if(clube && (clube.toLowerCase().includes('vizelgolfe') || clube.toLowerCase().includes('vizelglfe'))) return true;
-  if(nome && VZG_EXCECOES.some(n => normalizar(nome).includes(normalizar(n)))) return true;
-  return false;
-}
-
-// ── CORES POR VERTENTE ──
-function corMini(v){
-  v=parseInt(v);
-  if(isNaN(v)||v<=0) return '';
-  if(v<=19) return '#1d4ed8';   // azul
-  if(v<=24) return '#16a34a';   // verde
-  if(v<=29) return '#dc2626';   // vermelho
-  return '#111827';              // preto
-}
-function corPeter(v){
-  v=parseInt(v);
-  if(isNaN(v)||v<=0) return '';
-  if(v<=24) return '#1d4ed8';   // azul
-  if(v<=29) return '#16a34a';   // verde
-  if(v<=35) return '#dc2626';   // vermelho
-  return '#111827';              // preto
-}
-function corTotal(total, nVoltas, campoId){
-  if(!total||!nVoltas) return 'var(--orange)';
-  const media = total/nVoltas;
-  return campoId&&campoId.startsWith('m') ? corMini(Math.round(media)) : corPeter(Math.round(media));
-}
-
-function corVolta(campoId, valor){
-  if(!valor) return '';
-  if(campoId.startsWith('m')) return corMini(valor);
-  if(campoId.startsWith('p')) return corPeter(valor);
-  return '';
-}
-function bgVolta(campoId, valor){
-  const c = corVolta(campoId, valor);
-  if(!c) return '';
-  const bg = {
-    '#1d4ed8':'rgba(29,78,216,0.12)',
-    '#16a34a':'rgba(22,163,74,0.12)',
-    '#dc2626':'rgba(220,38,38,0.12)',
-    '#111827':'rgba(17,24,39,0.15)'
-  };
-  return bg[c]||'';
-}
-function emojiCor(campoId, valor){
-  const c = corVolta(campoId, valor);
-  if(!c) return '';
-  return {'#1d4ed8':'🔵','#16a34a':'🟢','#dc2626':'🔴','#111827':'⚫'}[c]||'';
-}
-
-// ── PISTAS INTERNAS ──
-const PISTAS_MINI_VZG = ["Queijo","Travessões","Ângulo Reto","Plataforma","Camelos","Passagens","Pirâmides","Direto","Saco","Tubo","Janela","Areia","Labirinto","V sem V","Lomba","Caracol","Diabolo","Raio"];
-const PISTAS_PETER_VZG = ["Direto","Pedras","Caracol","Ladrão","Pedras","Fosso","Grande","Vulcão","Ângulo Aberto","Lombas","Chapa","Tabela","Duplo Robové","Direto Torto","Casota do Cão","Ângulo Fechado","V","Rampa"];
-
-window.aplicarCorPista = function(inp) {
-  const v = parseInt(inp.value)||0;
-  if(!v){inp.style.color='inherit';inp.style.background='var(--bg2)';return;}
-  if(v===1){inp.style.color='#16a34a';inp.style.background='rgba(22,163,74,0.12)';}
-  else if(v===2){inp.style.color='#dc2626';inp.style.background='rgba(220,38,38,0.12)';}
-  else{inp.style.color='#111827';inp.style.background='rgba(17,24,39,0.15)';}
-};
-
-window.atualizarTotalPistas = function(atletaId, campoId) {
-  let tot=0;
-  for(let i=1;i<=18;i++){
-    const el=document.getElementById('p_'+atletaId+'_'+campoId+'_'+i);
-    const v=parseInt(el&&el.value)||0; if(v>0) tot+=v;
-  }
-  // Actualizar campo de volta principal
-  // Garantir que atletaId é número para o ID coincidir com o template
-  const aid = parseInt(atletaId)||atletaId;
-  const inpVolta=document.getElementById('inp_'+aid+'_'+campoId);
-  if(inpVolta){
-    if(tot>0){
-      inpVolta.value=tot;
-      aplicarCorInput(inpVolta,campoId);
-      // Garantir que o emoji também actualiza
-      const emEl=document.getElementById('em_'+aid+'_'+campoId);
-      if(emEl) emEl.textContent=emojiCor(campoId,tot);
-    }
-    else{inpVolta.value=''; inpVolta.style.color='inherit'; inpVolta.style.background='var(--bg2)';}
-  }
-  // Mostrar total parcial
-  const totEl=document.getElementById('tpistas_'+atletaId+'_'+campoId);
-  if(totEl){
-    totEl.style.color=tot>0?corVolta(campoId,tot):'var(--dim)';
-    totEl.style.background=tot>0?bgVolta(campoId,tot):'transparent';
-    totEl.textContent=tot>0?String(tot):'—';
-  }
-};
-
-window.toggleDetalhe = function(atletaId, campoId) {
-  const div=document.getElementById('det_'+atletaId+'_'+campoId);
-  if(!div) return;
-  const vis=div.style.display!=='none';
-  div.style.display=vis?'none':'block';
-  const btn=document.getElementById('btndet_'+atletaId+'_'+campoId);
-  if(btn) btn.textContent=vis?'▼ Pista a pista':'▲ Fechar';
-};
-
-window.guardarDetalhePistas = async function(provaId, jornada, atletaId, campoId) {
-  const pistas={};
-  for(let i=1;i<=18;i++){
-    const el=document.getElementById('p_'+atletaId+'_'+campoId+'_'+i);
-    const v=parseInt(el&&el.value)||0; if(v>0) pistas['p'+i]=v;
-  }
-  try {
-    const snap=await getDoc(doc(db,'vizelgolfe','dados'));
-    const d=snap.exists()?snap.data():{};
-    const path='detalhe_'+provaId+'_j'+jornada;
-    if(!d[path]) d[path]={};
-    if(!d[path][atletaId]) d[path][atletaId]={};
-    d[path][atletaId][campoId]=pistas;
-    await setDoc(doc(db,'vizelgolfe','dados'),{...d,_vzgKey:'VZG-2026-SEC-K9x'});
-    mostrarNotif('✅ Pistas guardadas!');
-  } catch(e){ mostrarNotif('❌ Erro: '+e.message,true); }
-};
-
-// Construir grid de pistas com createElement - sem aspas problemáticas
-window.construirGridPistas = function(atletaId, campoId, provaId, jornada, pistasGuardadas) {
-  const nomes = campoId.startsWith('m') ? PISTAS_MINI_VZG : PISTAS_PETER_VZG;
-  const wrapper = document.createElement('div');
-
-  // Grid das 18 pistas
-  const grid = document.createElement('div');
-  grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:4px;background:var(--bg);padding:8px;border-radius:6px;border:1px solid var(--sep);margin-top:6px';
-
-  for(let i=1;i<=18;i++){
-    const pv = pistasGuardadas['p'+i]||'';
-    const col = document.createElement('div');
-    col.style.cssText = 'display:flex;flex-direction:column;gap:2px';
-
-    const lbl = document.createElement('label');
-    lbl.style.cssText = 'font-size:0.6rem;color:var(--dim);overflow:hidden;white-space:nowrap;text-overflow:ellipsis';
-    lbl.title = nomes[i-1];
-    lbl.textContent = i + '. ' + nomes[i-1];
-
-    const inp = document.createElement('input');
-    inp.type = 'number'; inp.min = '1'; inp.max = '7';
-    inp.id = 'p_'+atletaId+'_'+campoId+'_'+i;
-    inp.style.cssText = 'padding:3px;border:1px solid var(--sep);border-radius:4px;width:100%;text-align:center;font-size:0.85rem;font-weight:700';
-    if(pv){ inp.value = String(pv); aplicarCorPista(inp); }
-    inp.addEventListener('input', function(){
-      aplicarCorPista(this);
-      atualizarTotalPistas(atletaId, campoId);
-    });
-
-    col.appendChild(lbl);
-    col.appendChild(inp);
-    grid.appendChild(col);
-  }
-  wrapper.appendChild(grid);
-
-  // Barra de total + botão guardar
-  const barra = document.createElement('div');
-  barra.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:6px';
-
-  const lblTot = document.createElement('span');
-  lblTot.style.cssText = 'font-size:0.72rem;color:var(--dim)';
-  lblTot.textContent = 'Total:';
-
-  const spanTot = document.createElement('span');
-  spanTot.id = 'tpistas_'+atletaId+'_'+campoId;
-  spanTot.style.cssText = 'font-family:Bebas Neue,sans-serif;font-size:1rem;padding:2px 8px;border-radius:4px';
-  spanTot.textContent = '—';
-
-  const btnGravar = document.createElement('button');
-  btnGravar.style.cssText = 'font-size:0.7rem;padding:3px 8px;border:1px solid var(--orange);border-radius:4px;background:transparent;color:var(--orange);cursor:pointer';
-  btnGravar.textContent = '💾 Guardar pistas';
-  btnGravar.addEventListener('click', function(){
-    guardarDetalhePistas(provaId, jornada, atletaId, campoId);
-  });
-
-  barra.appendChild(lblTot);
-  barra.appendChild(spanTot);
-  barra.appendChild(btnGravar);
-  wrapper.appendChild(barra);
-
-  // Se já há pistas guardadas, actualizar o total
-  const totalGuardado = Object.values(pistasGuardadas).reduce((s,v)=>s+(parseInt(v)||0),0);
-  if(totalGuardado>0){
-    spanTot.style.color = corVolta(campoId, totalGuardado);
-    spanTot.style.background = bgVolta(campoId, totalGuardado);
-    spanTot.textContent = String(totalGuardado);
-  }
-
-  return wrapper;
-};
-
-function renderFormInserir(provaId, jornada) {
-  if (!dadosInt) return;
-  const prova = (dadosInt.provas||[]).find(p=>p.id===provaId);
-  if (!prova) return;
-  const atletas = dadosInt.atletas||[];
-  const esp = prova.jornadaEspecial?.[jornada];
-  const campos = esp?.tipo==='peter4voltas'
-    ? [{id:'pV1',l:'Peter V1'},{id:'pV2',l:'Peter V2'},{id:'pV3',l:'Peter V3'},{id:'pV4',l:'Peter V4'}]
-    : [{id:'mV1',l:'Mini V1'},{id:'mV2',l:'Mini V2'},{id:'pV1',l:'Peter V1'},{id:'pV2',l:'Peter V2'}];
-
-  let html = '';
-  CATEGORIAS.forEach(cat => {
-    const catAtl = atletas.filter(a=>a.categoria===cat);
-    if (!catAtl.length) return;
-    html += `<div class="card"><div class="card-titulo">${cat}</div>`;
-    catAtl.forEach(a => {
-      const res = prova.resultados?.[jornada]?.[a.id]||{};
-      html += `<div style="background:var(--bg);border-radius:8px;padding:12px;margin-bottom:8px">
-        <div style="font-weight:700;margin-bottom:8px">${a.nome}</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${campos.map(c=>`<div style="display:flex;flex-direction:column;gap:4px;min-width:80px">
-            <label style="font-size:0.68rem;color:var(--dim);text-transform:uppercase">${c.l}</label>
-            <input type="number" id="inp_${a.id}_${c.id}" value="${res[c.id]||''}"
-              style="padding:6px 8px;border:1px solid var(--sep);border-radius:6px;width:80px;text-align:center;font-size:0.95rem;font-weight:700;background:${bgVolta(c.id,res[c.id])||'var(--bg2)'};color:${corVolta(c.id,res[c.id])||'inherit'}"
-              oninput="aplicarCorInput(this,'${c.id}')">
-            <div id="em_${a.id}_${c.id}" style="text-align:center;font-size:0.8rem;height:16px">${emojiCor(c.id,res[c.id])}</div>
-            <button id="btndet_${a.id}_${c.id}" onclick="toggleDetalhe(${a.id},'${c.id}')"
-              style="font-size:0.65rem;padding:2px 6px;border:1px solid var(--sep);border-radius:4px;background:var(--bg2);cursor:pointer;color:var(--dim);margin-top:2px;width:80px">▼ Pista a pista</button>
-          </div>`).join('')}
-        </div>
-        ${campos.map(c=>`<div id="det_${a.id}_${c.id}" style="display:none;padding:0 4px"></div>`).join('')}
-        ${(()=>{
-          const isCViz = prova.nome&&prova.nome.includes('Vizela')&&prova.tipo==='campeonato';
-          if(!isCViz) return '';
-          const res2 = prova.resultados?.[jornada]?.[a.id]||{};
-          let bh = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;padding:4px 8px;background:var(--bg);border-radius:6px;border:1px solid var(--sep);font-size:0.72rem;color:var(--dim)">';
-          bh += '<span style="align-self:center">Bónus automático:</span>';
-          bh += res2.bonusMini  ? '<span style="color:#16a34a;font-weight:700">🏌️ Mini ✅</span>' : '<span>🏌️ Mini —</span>';
-          bh += res2.bonusPeter ? '<span style="color:#16a34a;font-weight:700">⛳ Peter ✅</span>' : '<span>⛳ Peter —</span>';
-          bh += '</div>';
-          return bh;
-        })()}
-      </div>`;
-    });
-    html += '</div>';
-  });
-
-  html += `<div style="position:sticky;bottom:0;background:var(--bg);padding:12px 0;z-index:10">
-    <button class="btn btn-primary" onclick="guardarResultados(${provaId},${jornada})">💾 Guardar Tudo</button>
-  </div>`;
-
-  document.getElementById('inserir-conteudo').innerHTML = html;
-
-  // Preencher grids de pistas com createElement (evita problemas de aspas)
-  atletas.forEach(a => {
-    campos.forEach(c => {
-      const detDiv = document.getElementById('det_'+a.id+'_'+c.id);
-      if(!detDiv) return;
-      const detPath = 'detalhe_'+provaId+'_j'+jornada;
-      const pistasGuardadas = ((dadosInt[detPath]||{})[a.id]||{})[c.id]||{};
-      detDiv.appendChild(construirGridPistas(a.id, c.id, provaId, jornada, pistasGuardadas));
+function calcularBonusAuto(prova,jornada,atletas){
+  if(!_isCampVizela(prova))return null;
+  const jRes=prova.resultados?.[jornada]||{},empEx=dadosInt.empates||{};
+  const res={bonusMini:{},bonusPeter:{},bonusManha:{},bonusTarde:{},empates:[]};
+  const grupos=[...new Set(atletas.map(a=>CAT_GRUPO[a.categoria]||a.categoria))];
+  grupos.forEach(grupo=>{
+    const comRes=atletas.filter(a=>(CAT_GRUPO[a.categoria]||a.categoria)===grupo&&(jRes[String(a.id)]||jRes[a.id]));
+    if(!comRes.length)return;
+    const p4=prova.jornadaEspecial?.[jornada]?.tipo==='peter4voltas';
+    const pares=p4?[['bonusManha','pV1','pV2'],['bonusTarde','pV3','pV4']]:[['bonusMini','mV1','mV2'],['bonusPeter','pV1','pV2']];
+    pares.forEach(([key,c1,c2])=>{
+      const rank=comRes.map(a=>{const r=jRes[String(a.id)]||jRes[a.id]||{};return{id:a.id,nome:a.nome,melhor:_melhorVoltaIndividual(r,c1,c2)};}).filter(x=>x.melhor!==null).sort((a,b)=>a.melhor-b.melhor);
+      if(!rank.length)return;
+      const mv=rank[0].melhor,emp=rank.filter(x=>x.melhor===mv);
+      const keyEmp=`${prova.id}_j${jornada}_${key}_${grupo.replace(/ /g,'_')}`;
+      if(emp.length===1){res[key][emp[0].id]=true;}
+      else{const rv=empEx[keyEmp];if(rv){res[key][parseInt(rv)]=true;}else{res.empates.push({key:keyEmp,tipo:key,grupo,jornada,descricao:`Bónus J${jornada} — ${grupo}`,atletas:emp,total:mv,label:`Melhor volta: ${mv}`});}}
     });
   });
+  return res;
 }
-
-window.aplicarCorInput = function(inp, campoId) {
-  const v = parseInt(inp.value);
-  const c = corVolta(campoId, v);
-  const bg = bgVolta(campoId, v);
-  inp.style.color = c || 'inherit';
-  inp.style.background = bg || 'var(--bg2)';
-  // Emoji
-  const emId = inp.id.replace('inp_','em_');
-  const em = document.getElementById(emId);
-  if(em) em.textContent = emojiCor(campoId, v);
-};
-
-// ── BÓNUS AUTOMÁTICOS E EMPATES ──
-// Regras intocáveis:
-// - Bónus = melhor volta INDIVIDUAL (menor das 2 voltas)
-// - Juniores competem COM Homens para bónus (CAT_GRUPO)
-// - Bónus são por GRUPO (não por categoria individual)
-// - Apenas para o Campeonato de Vizela
-
-function _isCampVizela(prova) {
-  return prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
+function aplicarBonusNosResultados(prova,jornada,bonusCalc){
+  if(!bonusCalc)return;const jRes=prova.resultados?.[jornada];if(!jRes)return;
+  Object.keys(jRes).forEach(id=>{if(jRes[id]){delete jRes[id].bonusMini;delete jRes[id].bonusPeter;delete jRes[id].bonusPeterManha;delete jRes[id].bonusPeterTarde;}});
+  const ap=(obj,campo)=>Object.keys(obj||{}).forEach(id=>{const r=jRes[id]||jRes[String(id)];if(r)r[campo]=true;});
+  ap(bonusCalc.bonusMini,'bonusMini');ap(bonusCalc.bonusPeter,'bonusPeter');ap(bonusCalc.bonusManha,'bonusPeterManha');ap(bonusCalc.bonusTarde,'bonusPeterTarde');
 }
-
-function _melhorVoltaMini(res) {
-  const vals = [parseInt(res.mV1)||0, parseInt(res.mV2)||0].filter(v => v > 0 && v !== 126);
-  return vals.length > 0 ? Math.min(...vals) : null;
+async function recalcularTodosBonusAuto(){
+  const atletas=dadosInt.atletas||[];
+  (dadosInt.provas||[]).forEach(prova=>{if(!_isCampVizela(prova))return;for(let j=1;j<=(prova.jornadas||1);j++){const jRes=prova.resultados?.[j];if(!jRes||!Object.keys(jRes).length)continue;aplicarBonusNosResultados(prova,j,calcularBonusAuto(prova,j,atletas));}});
+  await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt,_vzgKey:'VZG-2026-SEC-K9x'});
 }
-
-function _melhorVoltaPeter(res) {
-  const vals = [parseInt(res.pV1)||0, parseInt(res.pV2)||0].filter(v => v > 0 && v !== 126);
-  return vals.length > 0 ? Math.min(...vals) : null;
-}
-
-function calcularBonusAuto(prova, jornada, atletas) {
-  if (!_isCampVizela(prova)) return null;
-  const jRes = prova.resultados?.[jornada] || {};
-  const empatesExistentes = dadosInt.empates || {};
-  const resultado = { bonusMini: {}, bonusPeter: {}, empates: [] };
-
-  // Grupos únicos (ex: 'Homens' inclui Juniores, 'Senhoras', etc.)
-  const grupos = [...new Set(atletas.map(a => CAT_GRUPO[a.categoria] || a.categoria))];
-
-  grupos.forEach(grupo => {
-    // Todos os atletas do grupo que têm resultados nesta jornada
-    const grupoAtl = atletas.filter(a => (CAT_GRUPO[a.categoria]||a.categoria) === grupo);
-    const comRes = grupoAtl.filter(a => jRes[String(a.id)] || jRes[a.id]);
-
-    if (!comRes.length) return;
-
-    // ── BÓNUS MINI ──
-    const rankMini = comRes.map(a => {
-      const res = jRes[String(a.id)] || jRes[a.id] || {};
-      const melhor = _melhorVoltaMini(res);
-      return { id: a.id, nome: a.nome, melhor };
-    }).filter(x => x.melhor !== null).sort((a,b) => a.melhor - b.melhor);
-
-    if (rankMini.length > 0) {
-      const melhorVal = rankMini[0].melhor;
-      const empatados = rankMini.filter(x => x.melhor === melhorVal);
-      const keyMini = `${prova.id}_j${jornada}_bonusMini_${grupo.replace(/ /g,'_')}`;
-
-      if (empatados.length === 1) {
-        resultado.bonusMini[empatados[0].id] = true;
-      } else {
-        const resolucao = empatesExistentes[keyMini];
-        if (resolucao) {
-          resultado.bonusMini[parseInt(resolucao)] = true;
-        } else {
-          resultado.empates.push({
-            key: keyMini, tipo: 'bonusMini', grupo, jornada,
-            descricao: `Bónus Mini J${jornada} — ${grupo}`,
-            atletas: empatados, total: melhorVal,
-            label: `Melhor volta Mini: ${melhorVal} tacadas`
-          });
-        }
-      }
-    }
-
-    // ── BÓNUS PETER ──
-    const rankPeter = comRes.map(a => {
-      const res = jRes[String(a.id)] || jRes[a.id] || {};
-      const melhor = _melhorVoltaPeter(res);
-      return { id: a.id, nome: a.nome, melhor };
-    }).filter(x => x.melhor !== null).sort((a,b) => a.melhor - b.melhor);
-
-    if (rankPeter.length > 0) {
-      const melhorVal = rankPeter[0].melhor;
-      const empatados = rankPeter.filter(x => x.melhor === melhorVal);
-      const keyPeter = `${prova.id}_j${jornada}_bonusPeter_${grupo.replace(/ /g,'_')}`;
-
-      if (empatados.length === 1) {
-        resultado.bonusPeter[empatados[0].id] = true;
-      } else {
-        const resolucao = empatesExistentes[keyPeter];
-        if (resolucao) {
-          resultado.bonusPeter[parseInt(resolucao)] = true;
-        } else {
-          resultado.empates.push({
-            key: keyPeter, tipo: 'bonusPeter', grupo, jornada,
-            descricao: `Bónus Peter J${jornada} — ${grupo}`,
-            atletas: empatados, total: melhorVal,
-            label: `Melhor volta Peter: ${melhorVal} tacadas`
-          });
-        }
-      }
-    }
-  });
-
-  return resultado;
-}
-
-function aplicarBonusNosResultados(prova, jornada, bonusCalc) {
-  if (!bonusCalc) return;
-  const jRes = prova.resultados?.[jornada];
-  if (!jRes) return;
-
-  // Limpar todos os bónus anteriores
-  Object.keys(jRes).forEach(id => {
-    if (jRes[id]) { delete jRes[id].bonusMini; delete jRes[id].bonusPeter; }
-  });
-
-  // Aplicar novos — garantir que o ID (string ou número) é encontrado
-  Object.entries(bonusCalc.bonusMini || {}).forEach(([id, val]) => {
-    if (jRes[id]) { jRes[id].bonusMini = true; }
-    else if (jRes[String(id)]) { jRes[String(id)].bonusMini = true; }
-  });
-  Object.entries(bonusCalc.bonusPeter || {}).forEach(([id, val]) => {
-    if (jRes[id]) { jRes[id].bonusPeter = true; }
-    else if (jRes[String(id)]) { jRes[String(id)].bonusPeter = true; }
-  });
-}
-
-async function recalcularTodosBonusAuto() {
-  const atletas = dadosInt.atletas || [];
-  (dadosInt.provas || []).forEach(prova => {
-    if (!_isCampVizela(prova)) return;
-    for (let j = 1; j <= (prova.jornadas || 1); j++) {
-      if (!prova.resultados?.[j] || !Object.keys(prova.resultados[j]).length) continue;
-      const bonusCalc = calcularBonusAuto(prova, j, atletas);
-      aplicarBonusNosResultados(prova, j, bonusCalc);
-    }
-  });
-  await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
-}
-
-function atualizarBadgeEmpates() {
-  const btn = document.getElementById('nav-empates');
-  if (!btn) return;
-  const atletas = dadosInt?.atletas || [];
-  let pend = 0;
-  (dadosInt?.provas || []).forEach(prova => {
-    if (!_isCampVizela(prova)) return;
-    for (let j = 1; j <= (prova.jornadas||1); j++) {
-      const bc = calcularBonusAuto(prova, j, atletas);
-      if (bc) pend += bc.empates.length;
-    }
-  });
-  btn.querySelector('.label').textContent = 'Empates' + (pend ? ` (${pend}⚠️)` : '');
-}
-
-function renderEmpates() {
-  if (!dadosInt || !modoAdmin) return;
-  const div = document.getElementById('empates-conteudo');
-  if (!div) return;
-
-  const atletas = dadosInt.atletas || [];
-  const empatesResolvidos = dadosInt.empates || {};
-  let html = '';
-  let totalItems = 0;
-
-  (dadosInt.provas || []).forEach(prova => {
-    if (!_isCampVizela(prova)) return;
-
-    for (let j = 1; j <= (prova.jornadas || 1); j++) {
-      if (!prova.resultados?.[j] || !Object.keys(prova.resultados[j]).length) continue;
-      const jRes = prova.resultados[j];
-
-      // ── Empates de BÓNUS ──
-      const bonusCalc = calcularBonusAuto(prova, j, atletas);
-      if (bonusCalc?.empates?.length) {
-        bonusCalc.empates.forEach(emp => {
-          totalItems++;
-          const resolvido = empatesResolvidos[emp.key];
-          const nomeResolvido = resolvido ? atletas.find(a => a.id == resolvido)?.nome || resolvido : null;
-          html += _renderEmpateCard(emp.key, emp.descricao, emp.label, emp.atletas,
-            resolvido, nomeResolvido, '#d4820a');
-        });
-      }
-
-      // ── Empates de POSIÇÃO ──
-      const grupos = [...new Set(atletas.map(a => CAT_GRUPO[a.categoria]||a.categoria))];
-      grupos.forEach(grupo => {
-        const grupoAtl = atletas.filter(a => (CAT_GRUPO[a.categoria]||a.categoria) === grupo);
-        const comRes = grupoAtl.filter(a => jRes[String(a.id)] || jRes[a.id]);
-
-        // Calcular totais
-        const totais = comRes.map(a => {
-          const res = jRes[String(a.id)] || jRes[a.id] || {};
-          const m1=parseInt(res.mV1)||0, m2=parseInt(res.mV2)||0;
-          const p1=parseInt(res.pV1)||0, p2=parseInt(res.pV2)||0;
-          const vals = [m1,m2,p1,p2].filter(v=>v>0);
-          const tot = vals.length === 4 ? vals.reduce((s,v)=>s+v,0) : null;
-          return { id: a.id, nome: a.nome, tot };
-        }).filter(x => x.tot !== null).sort((a,b) => a.tot - b.tot);
-
-        // Encontrar empates
-        const vistos = new Set();
-        totais.forEach(x => {
-          if (vistos.has(x.id)) return;
-          const emp = totais.filter(y => y.tot === x.tot);
-          if (emp.length < 2) return;
-          emp.forEach(y => vistos.add(y.id));
-
-          const key = `${prova.id}_j${j}_pos_${grupo.replace(/ /g,'_')}_${x.tot}`;
-          const resolvido = empatesResolvidos[key];
-          const nomeResolvido = resolvido ? atletas.find(a => a.id == resolvido)?.nome : null;
-          totalItems++;
-          html += _renderEmpateCard(key,
-            `Empate de Posição J${j} — ${grupo}`,
-            `Total: ${x.tot} tacadas`, emp,
-            resolvido, nomeResolvido, '#1e5fa8');
-        });
-      });
-    }
-  });
-
-  if (!totalItems) {
-    html = '<div style="color:var(--dim);padding:24px;text-align:center">✅ Sem empates pendentes.</div>';
-  }
-  div.innerHTML = html;
-}
-
-function _renderEmpateCard(key, titulo, subtitulo, atletaList, resolvido, nomeResolvido, cor) {
-  let h = `<div class="card" style="margin-bottom:12px;border-left:4px solid ${resolvido?'#16a34a':cor}">`;
-  h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">`;
-  h += `<div><span style="font-weight:700;color:var(--navy)">${titulo}</span>`;
-  h += `<span style="font-size:0.72rem;color:var(--dim);margin-left:8px">${subtitulo}</span></div>`;
-  h += resolvido
-    ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:700">✅ ${nomeResolvido}</span>`
-    : `<span style="font-size:0.75rem;color:${cor};font-weight:700">⚠️ Pendente</span>`;
-  h += `</div><div style="display:flex;gap:8px;flex-wrap:wrap">`;
-  atletaList.forEach(a => {
-    const sel = resolvido == a.id;
-    h += `<button onclick="resolverEmpate('${key}',${a.id})"
-      style="padding:6px 14px;border-radius:6px;font-size:0.82rem;cursor:pointer;
-      border:2px solid ${sel?'#16a34a':'var(--sep)'};
-      background:${sel?'rgba(22,163,74,0.1)':'var(--bg)'};
-      color:${sel?'#16a34a':'var(--text)'}">
-      ${sel?'✅ ':''}${a.nome}</button>`;
-  });
-  if (resolvido) {
-    h += `<button onclick="resolverEmpate('${key}',null)"
-      style="padding:6px 10px;border-radius:6px;font-size:0.75rem;cursor:pointer;
-      border:1px solid var(--sep);background:var(--bg);color:var(--dim)">↩️ Anular</button>`;
-  }
-  h += `</div></div>`;
-  return h;
-}
-
-window.resolverEmpate = async function(key, atletaId) {
-  if (!dadosInt) return;
-  if (!dadosInt.empates) dadosInt.empates = {};
-  if (atletaId === null) { delete dadosInt.empates[key]; }
-  else { dadosInt.empates[key] = parseInt(atletaId); }
-  try {
-    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
-    await recalcularTodosBonusAuto();
-    atualizarBadgeEmpates();
-    renderEmpates();
-    mostrarNotif('✅ Empate resolvido!');
-  } catch(e) { mostrarNotif('❌ Erro: '+e.message, true); }
-};
-
-
-
-window.guardarResultados = async function(provaId, jornada) {
-  if (!dadosInt) return;
-  const prova = (dadosInt.provas||[]).find(p=>p.id===provaId);
-  if (!prova) return;
-  const atletas = dadosInt.atletas||[];
-  const esp = prova.jornadaEspecial?.[jornada];
-  const campos = esp?.tipo==='peter4voltas'
-    ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
-
-  const jRes = {};
-  atletas.forEach(a => {
-    const res = {};
-    campos.forEach(c => {
-      const el = document.getElementById(`inp_${a.id}_${c}`);
-      if (el&&el.value&&!isNaN(parseInt(el.value))) res[c]=parseInt(el.value);
-    });
-    // Bónus calculados automaticamente por calcularBonusAuto()
-    if (Object.keys(res).length>0) jRes[a.id]=res;
-  });
-
-  if (!prova.resultados) prova.resultados={};
-  prova.resultados[jornada] = jRes;
-
-  try {
-    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
-    await recalcularTodosBonusAuto();
-    atualizarBadgeEmpates();
-    mostrarNotif('✅ Resultados guardados!');
-  } catch(e) {
-    mostrarNotif('❌ Erro ao guardar', true);
-  }
-};
 
 // ── GERIR ──
 function renderGerir() {
@@ -2637,12 +1697,6 @@ function renderGerir() {
         <option value="ativo"${p.estado==='ativo'?' selected':''}>Ativo</option>
         <option value="concluido"${p.estado==='concluido'?' selected':''}>Concluído</option>
       </select>
-      <div style="display:flex;align-items:center;gap:4px">
-        <label style="font-size:0.72rem;color:var(--dim)">Jornadas:</label>
-        <select onchange="alterarJornadas(${p.id},this.value)" style="padding:4px 8px;border:1px solid var(--sep);border-radius:6px;font-size:0.78rem;width:60px">
-          ${[1,2,3,4,5,6].map(n=>`<option value="${n}"${(p.jornadas||1)==n?' selected':''}>${n}</option>`).join('')}
-        </select>
-      </div>
     </div>`).join('');
 }
 
@@ -2660,21 +1714,6 @@ window.criarProva = async function() {
   await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
   mostrarNotif('✅ Prova criada!');
   document.getElementById('nova-prova-nome').value='';
-};
-
-window.alterarJornadas = async function(id, val) {
-  if (!dadosInt) return;
-  const p = (dadosInt.provas||[]).find(p=>p.id==id);
-  if (!p) return;
-  p.jornadas = parseInt(val);
-  // Garantir que resultados existem para todas as jornadas
-  if(!p.resultados) p.resultados={};
-  for(let j=1;j<=p.jornadas;j++){
-    if(!p.resultados[j]) p.resultados[j]={};
-  }
-  await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt,_vzgKey:'VZG-2026-SEC-K9x'});
-  mostrarNotif('✅ Jornadas actualizadas para '+val);
-  renderGerir();
 };
 
 window.alterarEstado = async function(id, val) {
