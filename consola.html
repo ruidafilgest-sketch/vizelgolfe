@@ -569,7 +569,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -641,10 +641,75 @@ const PASS_ATLETA = 'Vizelgolfe2009*';
 const PASS_VIEW   = 'Vizela2026View*';
 let _passAtleta = PASS_ATLETA;
 let modoView = false; // pode ser actualizada pelo admin via Firebase
-const PONTUACAO   = [25,18,15,12,10,8,6,4,2,1];
-const CATEGORIAS  = ['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos','Juniores'];
-const CAT_GRUPO   = {'Homens':'Homens','Juniores':'Homens','Senhoras':'Senhoras','Seniores Masculinos':'Seniores Masculinos','Veteranos Masculinos':'Veteranos Masculinos'};
-const CAT_ORDEM_NAC = ['Homens','Senhoras','Juniores Masculinos','Juniores Femininos','Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos','Veteranos Masculinos','Veteranos Femininos'];
+// ════════════════════════════════════════════════════════════════
+// REGRAS IMUTÁVEIS — VIZELGOLFE 2026
+// NÃO ALTERAR EM NENHUMA CIRCUNSTÂNCIA
+// ════════════════════════════════════════════════════════════════
+
+// ── PONTUAÇÃO POR POSIÇÃO (Campeonato de Vizela + todos os torneios) ──
+// 1º=25 · 2º=18 · 3º=15 · 4º=12 · 5º=10 · 6º=8 · 7º=6 · 8º=4 · 9º=2 · 10º=1
+const PONTUACAO = [25,18,15,12,10,8,6,4,2,1];
+
+// ── CATEGORIAS INTERNAS DO CLUBE ──
+const CATEGORIAS = ['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos','Juniores'];
+
+// ── GRUPOS DE COMPETIÇÃO ──
+// REGRA ABSOLUTA: Juniores competem COM Homens para posição E bónus
+// Classificação e pontos são SEPARADOS por categoria
+// mas posição na jornada e bónus são calculados no grupo conjunto
+const CAT_GRUPO = {
+  'Homens':               'Homens',   // grupo Mini
+  'Juniores':             'Homens',   // JUNTOS com Homens para posição e bónus
+  'Senhoras':             'Senhoras', // grupo Mini separado
+  'Seniores Masculinos':  'Seniores Masculinos',
+  'Veteranos Masculinos': 'Veteranos Masculinos',
+};
+
+// ── CORES — REGRAS ABSOLUTAS (aplicar em TODO o sistema sem excepção) ──
+// Por PISTA individual:   🟢 1 tacada · 🔴 2 tacadas · ⚫ 3–7 tacadas
+// Por VOLTA Minigolfe:    🔵 18–19 · 🟢 20–24 · 🔴 25–29 · ⚫ 30+
+// Por VOLTA Peter/Felt:   🔵 18–24 · 🟢 25–29 · 🔴 30–35 · ⚫ 36+
+// Totais/médias: cor pela MÉDIA por volta
+// Grupo Mini:   Homens + Senhoras + Juniores
+// Grupo Peter:  Seniores + Veteranos (e Felt = mesmas regras Peter)
+
+// ── BÓNUS — REGRAS ABSOLUTAS ──
+// Apenas para o Campeonato de Vizela
+// Bónus Mini:  atleta com MELHOR VOLTA INDIVIDUAL Mini (min de mV1 e mV2)
+// Bónus Peter: atleta com MELHOR VOLTA INDIVIDUAL Peter (min de pV1 e pV2)
+// Calculado por GRUPO (Juniores entram com Homens)
+// Em caso de empate → editor ⚖️ decide manualmente
+// Valor: +1 ponto por bónus (configurável em prova.bonusMini / prova.bonusPeter)
+// +5 pontos participação completa (todas as jornadas) — prova.bonusCompleto
+
+// ── VALORES INVÁLIDOS / AUSENTES ──
+// Qualquer valor >= 100 significa "não jogou" (convenção: 126)
+// Valores 0 ou ausentes também são ignorados
+// Um atleta só entra na classificação se tiver TODAS as 4 voltas válidas (<100 e >0)
+const VALOR_AUSENTE_MIN = 100; // valores >= 100 são ignorados
+
+// ── DESEMPATE DE POSIÇÃO ──
+// 1º critério: menor total de tacadas
+// 2º critério: resolução manual via ⚖️ Empates (desempate em pista)
+// Empates são POR JORNADA, nunca acumulados
+
+// ── CAMPEONATO DE VIZELA — IDENTIFICAÇÃO ──
+// Uma prova é Campeonato de Vizela se: nome contém 'Vizela' E tipo === 'campeonato'
+// Todos os outros torneios usam tabela F1 simples (PONTUACAO) sem bónus
+
+// ── CATEGORIAS NACIONAIS FPM (10 categorias) ──
+const CAT_ORDEM_NAC = [
+  'Homens','Senhoras',
+  'Juniores Masculinos','Juniores Femininos',
+  'Infantis Masculinos','Infantis Femininos',
+  'Seniores Masculinos','Seniores Femininos',
+  'Veteranos Masculinos','Veteranos Femininos'
+];
+// Categorias sem atletas ficam ocultas automaticamente
+
+// ════════════════════════════════════════════════════════════════
+// FIM DAS REGRAS IMUTÁVEIS
+// ════════════════════════════════════════════════════════════════
 
 let modoAdmin  = false;
 let dadosInt   = null; // dados internos
@@ -2220,99 +2285,95 @@ window.aplicarCorInput = function(inp, campoId) {
 };
 
 // ── BÓNUS AUTOMÁTICOS E EMPATES ──
+// Regras intocáveis:
+// - Bónus = melhor volta INDIVIDUAL (menor das 2 voltas)
+// - Juniores competem COM Homens para bónus (CAT_GRUPO)
+// - Bónus são por GRUPO (não por categoria individual)
+// - Apenas para o Campeonato de Vizela
 
-// Calcular bónus automáticos após guardar resultados
-// Retorna: { bonusMini: {atletaId: true}, bonusPeter: {atletaId: true}, empates: [...] }
+function _isCampVizela(prova) {
+  return prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
+}
+
+function _melhorVoltaMini(res) {
+  const vals = [parseInt(res.mV1)||0, parseInt(res.mV2)||0].filter(v => v > 0 && v < 100);
+  return vals.length > 0 ? Math.min(...vals) : null;
+}
+
+function _melhorVoltaPeter(res) {
+  const vals = [parseInt(res.pV1)||0, parseInt(res.pV2)||0].filter(v => v > 0 && v < 100);
+  return vals.length > 0 ? Math.min(...vals) : null;
+}
+
 function calcularBonusAuto(prova, jornada, atletas) {
+  if (!_isCampVizela(prova)) return null;
   const jRes = prova.resultados?.[jornada] || {};
-  const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
-  if (!isCampVizela) return null;
-
-  const resultado = { bonusMini: {}, bonusPeter: {}, empates: [] };
   const empatesExistentes = dadosInt.empates || {};
+  const resultado = { bonusMini: {}, bonusPeter: {}, empates: [] };
 
-  // Por GRUPO (Juniores entram com Homens, etc.)
-  // Bónus calculado por grupo CAT_GRUPO, não por categoria individual
-  const GRUPOS = [...new Set(atletas.map(a => CAT_GRUPO[a.categoria] || a.categoria))];
+  // Grupos únicos (ex: 'Homens' inclui Juniores, 'Senhoras', etc.)
+  const grupos = [...new Set(atletas.map(a => CAT_GRUPO[a.categoria] || a.categoria))];
 
-  GRUPOS.forEach(grupo => {
-    // Todos os atletas do grupo (ex: Homens + Juniores juntos)
-    const catAtl = atletas.filter(a => (CAT_GRUPO[a.categoria]||a.categoria) === grupo && jRes[a.id]);
-    if (!catAtl.length) return;
-    // Usar o grupo como chave (não a categoria individual)
-    const cat = grupo;
+  grupos.forEach(grupo => {
+    // Todos os atletas do grupo que têm resultados nesta jornada
+    const grupoAtl = atletas.filter(a => (CAT_GRUPO[a.categoria]||a.categoria) === grupo);
+    const comRes = grupoAtl.filter(a => jRes[String(a.id)] || jRes[a.id]);
 
-    // ── BÓNUS MINI — melhor volta individual (menor das 2 voltas Mini) ──
-    const totaisMini = catAtl.map(a => {
-      const res = jRes[a.id] || {};
-      const m1 = parseInt(res.mV1) || 0;
-      const m2 = parseInt(res.mV2) || 0;
-      // Filtrar valores inválidos (0 ou >=100 = ausente)
-      const vals = [m1, m2].filter(v => v > 0 && v < 100);
-      const melhor = vals.length > 0 ? Math.min(...vals) : null;
-      return { id: a.id, nome: a.nome, tot: melhor };
-    }).filter(x => x.tot !== null).sort((a, b) => a.tot - b.tot);
+    if (!comRes.length) return;
 
-    if (totaisMini.length > 0) {
-      const melhorMini = totaisMini[0].tot;
-      const comMelhorMini = totaisMini.filter(x => x.tot === melhorMini);
-      const keyEmpMini = `${prova.id}_j${jornada}_bonusMini_${cat.replace(/ /g,'_')}`;
+    // ── BÓNUS MINI ──
+    const rankMini = comRes.map(a => {
+      const res = jRes[String(a.id)] || jRes[a.id] || {};
+      const melhor = _melhorVoltaMini(res);
+      return { id: a.id, nome: a.nome, melhor };
+    }).filter(x => x.melhor !== null).sort((a,b) => a.melhor - b.melhor);
 
-      if (comMelhorMini.length === 1) {
-        // Sem empate — atribui automático
-        resultado.bonusMini[comMelhorMini[0].id] = true;
+    if (rankMini.length > 0) {
+      const melhorVal = rankMini[0].melhor;
+      const empatados = rankMini.filter(x => x.melhor === melhorVal);
+      const keyMini = `${prova.id}_j${jornada}_bonusMini_${grupo.replace(/ /g,'_')}`;
+
+      if (empatados.length === 1) {
+        resultado.bonusMini[empatados[0].id] = true;
       } else {
-        // Empate — ver se já foi resolvido
-        const resolucao = empatesExistentes[keyEmpMini];
+        const resolucao = empatesExistentes[keyMini];
         if (resolucao) {
-          resultado.bonusMini[resolucao] = true;
+          resultado.bonusMini[parseInt(resolucao)] = true;
         } else {
           resultado.empates.push({
-            key: keyEmpMini,
-            tipo: 'bonusMini',
-            cat,
-            jornada,
-            descricao: `Bónus Mini J${jornada} — ${cat}`,
-            atletas: comMelhorMini,
-            total: melhorMini,
-            label: `Melhor volta Mini: ${melhorMini} tacadas`
+            key: keyMini, tipo: 'bonusMini', grupo, jornada,
+            descricao: `Bónus Mini J${jornada} — ${grupo}`,
+            atletas: empatados, total: melhorVal,
+            label: `Melhor volta Mini: ${melhorVal} tacadas`
           });
         }
       }
     }
 
-    // ── BÓNUS PETER — melhor volta individual (menor das 2 voltas Peter) ──
-    const totaisPeter = catAtl.map(a => {
-      const res = jRes[a.id] || {};
-      const p1 = parseInt(res.pV1) || 0;
-      const p2 = parseInt(res.pV2) || 0;
-      // Filtrar valores inválidos (0 ou >=100 = ausente)
-      const vals = [p1, p2].filter(v => v > 0 && v < 100);
-      const melhor = vals.length > 0 ? Math.min(...vals) : null;
-      return { id: a.id, nome: a.nome, tot: melhor };
-    }).filter(x => x.tot !== null).sort((a, b) => a.tot - b.tot);
+    // ── BÓNUS PETER ──
+    const rankPeter = comRes.map(a => {
+      const res = jRes[String(a.id)] || jRes[a.id] || {};
+      const melhor = _melhorVoltaPeter(res);
+      return { id: a.id, nome: a.nome, melhor };
+    }).filter(x => x.melhor !== null).sort((a,b) => a.melhor - b.melhor);
 
-    if (totaisPeter.length > 0) {
-      const melhorPeter = totaisPeter[0].tot;
-      const comMelhorPeter = totaisPeter.filter(x => x.tot === melhorPeter);
-      const keyEmpPeter = `${prova.id}_j${jornada}_bonusPeter_${cat.replace(/ /g,'_')}`;
+    if (rankPeter.length > 0) {
+      const melhorVal = rankPeter[0].melhor;
+      const empatados = rankPeter.filter(x => x.melhor === melhorVal);
+      const keyPeter = `${prova.id}_j${jornada}_bonusPeter_${grupo.replace(/ /g,'_')}`;
 
-      if (comMelhorPeter.length === 1) {
-        resultado.bonusPeter[comMelhorPeter[0].id] = true;
+      if (empatados.length === 1) {
+        resultado.bonusPeter[empatados[0].id] = true;
       } else {
-        const resolucao = empatesExistentes[keyEmpPeter];
+        const resolucao = empatesExistentes[keyPeter];
         if (resolucao) {
-          resultado.bonusPeter[resolucao] = true;
+          resultado.bonusPeter[parseInt(resolucao)] = true;
         } else {
           resultado.empates.push({
-            key: keyEmpPeter,
-            tipo: 'bonusPeter',
-            cat,
-            jornada,
-            descricao: `Bónus Peter J${jornada} — ${cat}`,
-            atletas: comMelhorPeter,
-            total: melhorPeter,
-            label: `Melhor volta Peter: ${melhorPeter} tacadas`
+            key: keyPeter, tipo: 'bonusPeter', grupo, jornada,
+            descricao: `Bónus Peter J${jornada} — ${grupo}`,
+            atletas: empatados, total: melhorVal,
+            label: `Melhor volta Peter: ${melhorVal} tacadas`
           });
         }
       }
@@ -2322,27 +2383,55 @@ function calcularBonusAuto(prova, jornada, atletas) {
   return resultado;
 }
 
-// Aplicar bónus calculados nos resultados
 function aplicarBonusNosResultados(prova, jornada, bonusCalc) {
   if (!bonusCalc) return;
   const jRes = prova.resultados?.[jornada];
   if (!jRes) return;
 
-  // Limpar bónus anteriores desta jornada
-  Object.values(jRes).forEach(res => {
-    if (res) { delete res.bonusMini; delete res.bonusPeter; }
+  // Limpar todos os bónus anteriores
+  Object.keys(jRes).forEach(id => {
+    if (jRes[id]) { delete jRes[id].bonusMini; delete jRes[id].bonusPeter; }
   });
 
-  // Aplicar novos
+  // Aplicar novos — garantir que o ID (string ou número) é encontrado
   Object.entries(bonusCalc.bonusMini || {}).forEach(([id, val]) => {
-    if (jRes[id]) jRes[id].bonusMini = val;
+    if (jRes[id]) { jRes[id].bonusMini = true; }
+    else if (jRes[String(id)]) { jRes[String(id)].bonusMini = true; }
   });
   Object.entries(bonusCalc.bonusPeter || {}).forEach(([id, val]) => {
-    if (jRes[id]) jRes[id].bonusPeter = val;
+    if (jRes[id]) { jRes[id].bonusPeter = true; }
+    else if (jRes[String(id)]) { jRes[String(id)].bonusPeter = true; }
   });
 }
 
-// Render do editor de empates expandido
+async function recalcularTodosBonusAuto() {
+  const atletas = dadosInt.atletas || [];
+  (dadosInt.provas || []).forEach(prova => {
+    if (!_isCampVizela(prova)) return;
+    for (let j = 1; j <= (prova.jornadas || 1); j++) {
+      if (!prova.resultados?.[j] || !Object.keys(prova.resultados[j]).length) continue;
+      const bonusCalc = calcularBonusAuto(prova, j, atletas);
+      aplicarBonusNosResultados(prova, j, bonusCalc);
+    }
+  });
+  await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+}
+
+function atualizarBadgeEmpates() {
+  const btn = document.getElementById('nav-empates');
+  if (!btn) return;
+  const atletas = dadosInt?.atletas || [];
+  let pend = 0;
+  (dadosInt?.provas || []).forEach(prova => {
+    if (!_isCampVizela(prova)) return;
+    for (let j = 1; j <= (prova.jornadas||1); j++) {
+      const bc = calcularBonusAuto(prova, j, atletas);
+      if (bc) pend += bc.empates.length;
+    }
+  });
+  btn.querySelector('.label').textContent = 'Empates' + (pend ? ` (${pend}⚠️)` : '');
+}
+
 function renderEmpates() {
   if (!dadosInt || !modoAdmin) return;
   const div = document.getElementById('empates-conteudo');
@@ -2351,139 +2440,111 @@ function renderEmpates() {
   const atletas = dadosInt.atletas || [];
   const empatesResolvidos = dadosInt.empates || {};
   let html = '';
-  let totalEmpates = 0;
+  let totalItems = 0;
 
   (dadosInt.provas || []).forEach(prova => {
-    const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
-    if (!isCampVizela) return;
+    if (!_isCampVizela(prova)) return;
 
     for (let j = 1; j <= (prova.jornadas || 1); j++) {
       if (!prova.resultados?.[j] || !Object.keys(prova.resultados[j]).length) continue;
+      const jRes = prova.resultados[j];
 
+      // ── Empates de BÓNUS ──
       const bonusCalc = calcularBonusAuto(prova, j, atletas);
-      if (!bonusCalc || !bonusCalc.empates.length) continue;
+      if (bonusCalc?.empates?.length) {
+        bonusCalc.empates.forEach(emp => {
+          totalItems++;
+          const resolvido = empatesResolvidos[emp.key];
+          const nomeResolvido = resolvido ? atletas.find(a => a.id == resolvido)?.nome || resolvido : null;
+          html += _renderEmpateCard(emp.key, emp.descricao, emp.label, emp.atletas,
+            resolvido, nomeResolvido, '#d4820a');
+        });
+      }
 
-      bonusCalc.empates.forEach(emp => {
-        totalEmpates++;
-        const resolvido = empatesResolvidos[emp.key];
-        const atletaResolvido = resolvido ? atletas.find(a => a.id == resolvido) : null;
+      // ── Empates de POSIÇÃO ──
+      const grupos = [...new Set(atletas.map(a => CAT_GRUPO[a.categoria]||a.categoria))];
+      grupos.forEach(grupo => {
+        const grupoAtl = atletas.filter(a => (CAT_GRUPO[a.categoria]||a.categoria) === grupo);
+        const comRes = grupoAtl.filter(a => jRes[String(a.id)] || jRes[a.id]);
 
-        html += `<div class="card" style="margin-bottom:12px;border-left:4px solid ${resolvido ? '#16a34a' : '#d4820a'}">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div>
-              <span style="font-weight:700;color:var(--navy)">${emp.descricao}</span>
-              <span style="font-size:0.72rem;color:var(--dim);margin-left:8px">${emp.label}</span>
-            </div>
-            ${resolvido ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:700">✅ Resolvido — ${atletaResolvido?.nome || resolvido}</span>` : '<span style="font-size:0.75rem;color:var(--orange);font-weight:700">⚠️ Pendente</span>'}
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            ${emp.atletas.map(a => `
-              <button onclick="resolverEmpate('${emp.key}',${a.id})"
-                style="padding:6px 14px;border-radius:6px;font-size:0.82rem;cursor:pointer;font-family:Barlow Condensed,sans-serif;font-weight:700;
-                border:2px solid ${resolvido == a.id ? '#16a34a' : 'var(--sep)'};
-                background:${resolvido == a.id ? 'rgba(22,163,74,0.1)' : 'var(--bg)'};
-                color:${resolvido == a.id ? '#16a34a' : 'var(--text)'}">
-                ${resolvido == a.id ? '✅ ' : ''}${a.nome}
-              </button>`).join('')}
-            ${resolvido ? `<button onclick="resolverEmpate('${emp.key}',null)"
-              style="padding:6px 14px;border-radius:6px;font-size:0.75rem;cursor:pointer;border:1px solid var(--sep);background:var(--bg);color:var(--dim)">
-              ↩️ Anular</button>` : ''}
-          </div>
-        </div>`;
-      });
-    }
+        // Calcular totais
+        const totais = comRes.map(a => {
+          const res = jRes[String(a.id)] || jRes[a.id] || {};
+          const m1=parseInt(res.mV1)||0, m2=parseInt(res.mV2)||0;
+          const p1=parseInt(res.pV1)||0, p2=parseInt(res.pV2)||0;
+          const vals = [m1,m2,p1,p2].filter(v=>v>0&&v<100);
+          const tot = vals.length === 4 ? vals.reduce((s,v)=>s+v,0) : null;
+          return { id: a.id, nome: a.nome, tot };
+        }).filter(x => x.tot !== null).sort((a,b) => a.tot - b.tot);
 
-    // Empates de posição (classificação geral por jornada)
-    for (let j = 1; j <= (prova.jornadas || 1); j++) {
-      if (!prova.resultados?.[j]) continue;
-      const CATS = [...new Set(atletas.map(a => a.categoria))];
-      CATS.forEach(cat => {
-        const catAtl = atletas.filter(a => a.categoria === cat);
-        const jRes = prova.resultados[j];
-        const grupo = CAT_GRUPO[cat];
-        const totais = catAtl
-          .filter(a => jRes?.[a.id] && calcTotal(prova, j, jRes[a.id]) != null)
-          .map(a => ({ id: a.id, nome: a.nome, tot: calcTotal(prova, j, jRes[a.id]) }))
-          .sort((a, b) => a.tot - b.tot);
-
-        // Encontrar grupos empatados
+        // Encontrar empates
         const vistos = new Set();
-        totais.forEach((x, i) => {
+        totais.forEach(x => {
           if (vistos.has(x.id)) return;
-          const empatados = totais.filter(y => y.tot === x.tot);
-          if (empatados.length < 2) return;
-          empatados.forEach(y => vistos.add(y.id));
+          const emp = totais.filter(y => y.tot === x.tot);
+          if (emp.length < 2) return;
+          emp.forEach(y => vistos.add(y.id));
 
-          const keyEmp = `${prova.id}_j${j}_pos_${cat.replace(/ /g,'_')}_${x.tot}`;
-          const resolvido = empatesResolvidos[keyEmp];
-          const atletaResolvido = resolvido ? atletas.find(a => a.id == resolvido) : null;
-          totalEmpates++;
-
-          html += `<div class="card" style="margin-bottom:12px;border-left:4px solid ${resolvido ? '#16a34a' : '#1e5fa8'}">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-              <div>
-                <span style="font-weight:700;color:var(--navy)">Empate de Posição J${j} — ${cat}</span>
-                <span style="font-size:0.72rem;color:var(--dim);margin-left:8px">Total: ${x.tot} tacadas</span>
-              </div>
-              ${resolvido ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:700">✅ ${atletaResolvido?.nome || resolvido} à frente</span>` : '<span style="font-size:0.75rem;color:#1e5fa8;font-weight:700">⚠️ Pendente</span>'}
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              ${empatados.map(a => `
-                <button onclick="resolverEmpate('${keyEmp}',${a.id})"
-                  style="padding:6px 14px;border-radius:6px;font-size:0.82rem;cursor:pointer;font-family:Barlow Condensed,sans-serif;font-weight:700;
-                  border:2px solid ${resolvido == a.id ? '#16a34a' : 'var(--sep)'};
-                  background:${resolvido == a.id ? 'rgba(22,163,74,0.1)' : 'var(--bg)'};
-                  color:${resolvido == a.id ? '#16a34a' : 'var(--text)'}">
-                  ${resolvido == a.id ? '✅ ' : ''}${a.nome}
-                </button>`).join('')}
-              ${resolvido ? `<button onclick="resolverEmpate('${keyEmp}',null)"
-                style="padding:6px 14px;border-radius:6px;font-size:0.75rem;cursor:pointer;border:1px solid var(--sep);background:var(--bg);color:var(--dim)">
-                ↩️ Anular</button>` : ''}
-            </div>
-          </div>`;
+          const key = `${prova.id}_j${j}_pos_${grupo.replace(/ /g,'_')}_${x.tot}`;
+          const resolvido = empatesResolvidos[key];
+          const nomeResolvido = resolvido ? atletas.find(a => a.id == resolvido)?.nome : null;
+          totalItems++;
+          html += _renderEmpateCard(key,
+            `Empate de Posição J${j} — ${grupo}`,
+            `Total: ${x.tot} tacadas`, emp,
+            resolvido, nomeResolvido, '#1e5fa8');
         });
       });
     }
   });
 
-  if (!totalEmpates) {
-    html = '<div style="color:var(--dim);padding:20px;text-align:center">Sem empates detectados nas provas activas.</div>';
+  if (!totalItems) {
+    html = '<div style="color:var(--dim);padding:24px;text-align:center">✅ Sem empates pendentes.</div>';
   }
-
   div.innerHTML = html;
+}
+
+function _renderEmpateCard(key, titulo, subtitulo, atletaList, resolvido, nomeResolvido, cor) {
+  let h = `<div class="card" style="margin-bottom:12px;border-left:4px solid ${resolvido?'#16a34a':cor}">`;
+  h += `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">`;
+  h += `<div><span style="font-weight:700;color:var(--navy)">${titulo}</span>`;
+  h += `<span style="font-size:0.72rem;color:var(--dim);margin-left:8px">${subtitulo}</span></div>`;
+  h += resolvido
+    ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:700">✅ ${nomeResolvido}</span>`
+    : `<span style="font-size:0.75rem;color:${cor};font-weight:700">⚠️ Pendente</span>`;
+  h += `</div><div style="display:flex;gap:8px;flex-wrap:wrap">`;
+  atletaList.forEach(a => {
+    const sel = resolvido == a.id;
+    h += `<button onclick="resolverEmpate('${key}',${a.id})"
+      style="padding:6px 14px;border-radius:6px;font-size:0.82rem;cursor:pointer;
+      border:2px solid ${sel?'#16a34a':'var(--sep)'};
+      background:${sel?'rgba(22,163,74,0.1)':'var(--bg)'};
+      color:${sel?'#16a34a':'var(--text)'}">
+      ${sel?'✅ ':''}${a.nome}</button>`;
+  });
+  if (resolvido) {
+    h += `<button onclick="resolverEmpate('${key}',null)"
+      style="padding:6px 10px;border-radius:6px;font-size:0.75rem;cursor:pointer;
+      border:1px solid var(--sep);background:var(--bg);color:var(--dim)">↩️ Anular</button>`;
+  }
+  h += `</div></div>`;
+  return h;
 }
 
 window.resolverEmpate = async function(key, atletaId) {
   if (!dadosInt) return;
   if (!dadosInt.empates) dadosInt.empates = {};
-  if (atletaId === null) {
-    delete dadosInt.empates[key];
-  } else {
-    dadosInt.empates[key] = atletaId;
-  }
+  if (atletaId === null) { delete dadosInt.empates[key]; }
+  else { dadosInt.empates[key] = parseInt(atletaId); }
   try {
     await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
-    // Recalcular bónus de todas as provas após resolver empate
     await recalcularTodosBonusAuto();
+    atualizarBadgeEmpates();
     renderEmpates();
     mostrarNotif('✅ Empate resolvido!');
-  } catch(e){ mostrarNotif('❌ Erro: '+e.message, true); }
+  } catch(e) { mostrarNotif('❌ Erro: '+e.message, true); }
 };
 
-// Recalcular e aplicar bónus automáticos em todas as jornadas
-async function recalcularTodosBonusAuto() {
-  const atletas = dadosInt.atletas || [];
-  (dadosInt.provas || []).forEach(prova => {
-    const isCampVizela = prova.nome && prova.nome.includes('Vizela') && prova.tipo === 'campeonato';
-    if (!isCampVizela) return;
-    for (let j = 1; j <= (prova.jornadas || 1); j++) {
-      if (!prova.resultados?.[j]) continue;
-      const bonusCalc = calcularBonusAuto(prova, j, atletas);
-      aplicarBonusNosResultados(prova, j, bonusCalc);
-    }
-  });
-  await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
-}
 
 
 window.guardarResultados = async function(provaId, jornada) {
@@ -2512,12 +2573,8 @@ window.guardarResultados = async function(provaId, jornada) {
   try {
     await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
     await recalcularTodosBonusAuto();
+    atualizarBadgeEmpates();
     mostrarNotif('✅ Resultados guardados!');
-    // Actualizar badge de empates pendentes
-    const empBadge = document.getElementById('nav-empates');
-    if(empBadge) { const atletas=dadosInt.atletas||[]; let pend=0;
-      (dadosInt.provas||[]).forEach(prova=>{const isCViz=prova.nome&&prova.nome.includes('Vizela')&&prova.tipo==='campeonato';if(!isCViz)return;for(let j=1;j<=(prova.jornadas||1);j++){const bc=calcularBonusAuto(prova,j,atletas);if(bc&&bc.empates.length)pend+=bc.empates.length;}});
-      empBadge.querySelector('.label').textContent='Empates'+(pend?` (${pend}⚠️)`:''); }
   } catch(e) {
     mostrarNotif('❌ Erro ao guardar', true);
   }
