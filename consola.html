@@ -266,7 +266,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       <div class="nav-item admin-only" onclick="irPara('gerir')">
         <span class="ico">⚙️</span><span class="label">Gerir Provas</span>
       </div>
-      <div class="nav-item admin-only" id="nav-empates" onclick="irPara('empates');renderEmpates()">
+      <div class="nav-item admin-only" id="nav-empates" onclick="irPara('empates')">
         <span class="ico">⚖️</span><span class="label">Empates</span>
       </div>
       <div class="nav-section">Outros</div>
@@ -569,7 +569,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -658,12 +658,17 @@ const CATEGORIAS = ['Homens','Senhoras','Seniores Masculinos','Veteranos Masculi
 // Classificação e pontos são SEPARADOS por categoria
 // mas posição na jornada e bónus são calculados no grupo conjunto
 const CAT_GRUPO = {
-  'Homens':               'Homens',   // grupo Mini
-  'Juniores':             'Homens',   // JUNTOS com Homens para posição e bónus
-  'Senhoras':             'Senhoras', // grupo Mini separado
+  'Homens':               'Homens',
+  'Juniores':             'Homens',   // Juniores competem com Homens: mesmas posições, mesmos pontos
+  'Senhoras':             'Senhoras',
   'Seniores Masculinos':  'Seniores Masculinos',
   'Veteranos Masculinos': 'Veteranos Masculinos',
 };
+
+// Categorias que têm classificação DUPLA:
+// - aparecem no grupo principal (com os Homens) para posição e pontos
+// - E têm separador próprio para pódio da categoria
+const CAT_DUPLA = ['Juniores'];
 
 // ── CORES — REGRAS ABSOLUTAS (aplicar em TODO o sistema sem excepção) ──
 // Por PISTA individual:   🟢 1 tacada · 🔴 2 tacadas · ⚫ 3–7 tacadas
@@ -1469,6 +1474,7 @@ window.irPara = function(sec) {
   if (sec === 'atletas') renderAtletas();
   if (sec === 'inserir') renderInserir();
   if (sec === 'gerir') renderGerir();
+  if (sec === 'empates') renderEmpates();
   if (sec === 'nacional') renderNacional();
   if (sec === 'stats') renderStats();
 };
@@ -1612,13 +1618,30 @@ window.renderRankingAnual = function(btn) {
   const cont = document.getElementById('class-conteudo');
   let html = '<div style="margin-bottom:8px;font-size:0.78rem;color:var(--dim);letter-spacing:1px">Pontuação acumulada de todas as provas da época · Campeonato de Vizela com regras próprias · Torneios com tabela F1</div>';
 
+  // Grupos principais + separador Juniores
+  const gruposRank = [];
+  const gruposVistosR = new Set();
   CATEGORIAS.forEach(cat => {
+    const grupo = CAT_GRUPO[cat]||cat;
+    if (gruposVistosR.has(grupo)) return;
+    gruposVistosR.add(grupo);
+    const grupoAtl = atletas.filter(a => (CAT_GRUPO[a.categoria]||a.categoria)===grupo);
+    gruposRank.push({label: grupo, atls: grupoAtl});
+  });
+  CATEGORIAS.forEach(cat => {
+    if (!CAT_DUPLA.includes(cat)) return;
     const catAtl = atletas.filter(a=>a.categoria===cat);
+    if (catAtl.length) gruposRank.push({label: cat+' — Classificação Própria', atls: catAtl});
+  });
+
+  gruposRank.forEach(({label, atls}) => {
+    const catAtl = atls;
     if (!catAtl.length) return;
     const ranked = catAtl.map(a => ({
-      ...a, pts: calcPontosAtletaEpoca(a.id, cat)
+      ...a, pts: calcPontosAtletaEpoca(a.id, a.categoria)
     })).filter(a=>a.pts>0).sort((a,b)=>b.pts-a.pts);
     if (!ranked.length) return;
+    const cat = label;
     html += `<div style="margin-bottom:24px">
       <div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);padding:8px 0;border-bottom:2px solid var(--orange);margin-bottom:8px">${cat}</div>
       <div class="tabela-wrap"><table>
@@ -1698,8 +1721,27 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
     html += '</div>';
   }
 
+  // Renderizar grupos (Homens inclui Juniores, depois separador Juniores)
+  const gruposRend = [];
+  // Primeiro os grupos principais com todos os atletas do grupo
+  const gruposVistos = new Set();
   CATEGORIAS.forEach(cat => {
+    const grupo = CAT_GRUPO[cat]||cat;
+    if (gruposVistos.has(grupo)) return;
+    gruposVistos.add(grupo);
+    // Atletas do grupo inteiro (ex: Homens + Juniores)
+    const grupoAtl = atletas.filter(a => (CAT_GRUPO[a.categoria]||a.categoria)===grupo);
+    gruposRend.push({label: grupo, atls: grupoAtl, isGrupo: true});
+  });
+  // Depois os separadores de categorias com dupla classificação
+  CATEGORIAS.forEach(cat => {
+    if (!CAT_DUPLA.includes(cat)) return;
     const catAtl = atletas.filter(a=>a.categoria===cat);
+    if (catAtl.length) gruposRend.push({label: cat+' — Classificação Própria', atls: catAtl, isGrupo: false});
+  });
+
+  gruposRend.forEach(({label, atls, isGrupo}) => {
+    const catAtl = atls;
     if (!catAtl.length) return;
 
     const ranked = catAtl.map(a => {
@@ -1712,7 +1754,7 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
         const tot=calcTotal(prova,j,res);
         if (tot==null) continue;
         jPart++;
-        const pos=calcPos(prova,j,a.id,CAT_GRUPO[cat],atletas,empates);
+        const pos=calcPos(prova,j,a.id,CAT_GRUPO[a.categoria]||a.categoria,atletas,empates);
         if (pos>=1&&pos<=PONTUACAO.length) pts+=PONTUACAO[pos-1];
         if (res.bonusMini) pts+=(prova.bonusMini||0);
         if (res.bonusPeter) pts+=(prova.bonusPeter||0);
@@ -1721,6 +1763,7 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
     }).filter(a=>a.jPart>0).sort((a,b)=>b.pts-a.pts);
 
     if (!ranked.length) return;
+    const cat = label;
     html += `<div style="margin-bottom:24px">
       <div style="font-family:Bebas Neue,sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);padding:8px 0;border-bottom:2px solid var(--orange);margin-bottom:8px">${cat}</div>
       <div class="tabela-wrap"><table>
