@@ -1329,38 +1329,50 @@ window.alterarSenhaAtleta = async function() {
 // Tarde: Cassiano(4), Cristina(18), J.Ferreira(20), M.Pinto(26)
 window.forceBonusJ1 = async function() {
   if (!dadosInt) { mostrarNotif('Dados não carregados', true); return; }
-  const prova = (dadosInt.provas||[]).find(p => p.id === 1);
-  if (!prova) { mostrarNotif('Prova não encontrada', true); return; }
 
-  const jRes = prova.resultados?.['1'] || prova.resultados?.[1];
-  if (!jRes) { mostrarNotif('Sem resultados J1', true); return; }
-
-  // Limpar bónus anteriores
-  Object.values(jRes).forEach(r => {
-    if (r && typeof r === 'object') {
-      delete r.bonusMini; delete r.bonusPeter;
-      delete r.bonusMiniManha; delete r.bonusMiniTarde;
-      delete r.bonusPeterManha; delete r.bonusPeterTarde;
-    }
-  });
-
-  // Bónus Manhã (menor pV1+pV2)
-  [12, 18, 23, 29].forEach(id => {
-    const chave = jRes[id] !== undefined ? id : (jRes[String(id)] !== undefined ? String(id) : null);
-    if (chave !== null) jRes[chave].bonusPeterManha = true;
-  });
-
-  // Bónus Tarde (menor pV3+pV4)
-  [4, 18, 20, 26].forEach(id => {
-    const chave = jRes[id] !== undefined ? id : (jRes[String(id)] !== undefined ? String(id) : null);
-    if (chave !== null) jRes[chave].bonusPeterTarde = true;
-  });
-
+  // Ler directamente do Firebase para garantir dados frescos
   try {
-    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
-    mostrarNotif('✅ Bónus J1 corrigidos!');
+    const snap = await getDoc(doc(db,'vizelgolfe','dados'));
+    if (!snap.exists()) { mostrarNotif('Sem dados', true); return; }
+    const d = snap.data();
+
+    const prova = (d.provas||[]).find(p => p.id === 1);
+    if (!prova) { mostrarNotif('Prova não encontrada', true); return; }
+
+    const jChave = prova.resultados?.['1'] ? '1' : (prova.resultados?.[1] ? 1 : null);
+    if (jChave === null) { mostrarNotif('Sem resultados J1', true); return; }
+    const jRes = prova.resultados[jChave];
+
+    // Limpar bónus anteriores
+    Object.values(jRes).forEach(r => {
+      if (r && typeof r === 'object') {
+        delete r.bonusMini; delete r.bonusPeter;
+        delete r.bonusMiniManha; delete r.bonusMiniTarde;
+        delete r.bonusPeterManha; delete r.bonusPeterTarde;
+      }
+    });
+
+    // Bónus Manhã: Uwe(12), Cristina(18), Carneiro(23), M.Sousa(29)
+    [12, 18, 23, 29].forEach(id => {
+      const chave = jRes[id] !== undefined ? id : (jRes[String(id)] !== undefined ? String(id) : null);
+      if (chave !== null) jRes[chave].bonusPeterManha = true;
+    });
+
+    // Bónus Tarde: Cassiano(4), Cristina(18), J.Ferreira(20), M.Pinto(26)
+    [4, 18, 20, 26].forEach(id => {
+      const chave = jRes[id] !== undefined ? id : (jRes[String(id)] !== undefined ? String(id) : null);
+      if (chave !== null) jRes[chave].bonusPeterTarde = true;
+    });
+
+    window._fbPaused = true;
+    await setDoc(doc(db,'vizelgolfe','dados'), {...d, _vzgKey:'VZG-2026-SEC-K9x'});
+    // Actualizar dadosInt local com os dados recém gravados
+    dadosInt = d;
     renderTudo();
-  } catch(e) { mostrarNotif('❌ Erro: ' + e.message, true); }
+    mostrarNotif('✅ Bónus J1 corrigidos!');
+    // Retomar listener após 3 segundos
+    setTimeout(() => { window._fbPaused = false; }, 3000);
+  } catch(e) { window._fbPaused = false; mostrarNotif('❌ Erro: ' + e.message, true); }
 };
 
 function iniciarApp(modo) {
@@ -1409,7 +1421,8 @@ function iniciarApp(modo) {
   }
 
   // Firebase listener
-  onSnapshot(doc(db,'vizelgolfe','dados'), snap => {
+  window._fbListener = onSnapshot(doc(db,'vizelgolfe','dados'), snap => {
+    if (window._fbPaused) return; // pausado durante gravação directa
     if (snap.exists()) {
       dadosInt = snap.data();
       renderTudo();
