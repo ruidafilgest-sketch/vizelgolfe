@@ -511,6 +511,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
         <div class="card" id="card-diag" style="border:2px dashed var(--orange)">
           <div class="card-titulo">🔍 Diagnóstico Bónus J1</div>
           <button class="btn btn-secondary" onclick="diagBonusJ1()">▶ Executar diagnóstico</button>
+          <button class="btn btn-primary" onclick="forceBonusJ1()" style="margin-left:8px">🔧 Corrigir Bónus J1</button>
           <pre id="diag-output" style="margin-top:12px;font-size:0.72rem;line-height:1.6;white-space:pre-wrap;color:var(--text)"></pre>
         </div>
       </div>
@@ -574,7 +575,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1321,6 +1322,45 @@ window.alterarSenhaAtleta = async function() {
     msg.style.color='#cc2222';
     msg.textContent='❌ Erro ao guardar: ' + e.message;
   }
+};
+
+// Forçar bónus J1 correctos directamente no Firebase
+// Manhã: Uwe(12), Cristina(18), Carneiro(23), M.Sousa(29)
+// Tarde: Cassiano(4), Cristina(18), J.Ferreira(20), M.Pinto(26)
+window.forceBonusJ1 = async function() {
+  if (!dadosInt) { mostrarNotif('Dados não carregados', true); return; }
+  const prova = (dadosInt.provas||[]).find(p => p.id === 1);
+  if (!prova) { mostrarNotif('Prova não encontrada', true); return; }
+
+  const jRes = prova.resultados?.['1'] || prova.resultados?.[1];
+  if (!jRes) { mostrarNotif('Sem resultados J1', true); return; }
+
+  // Limpar bónus anteriores
+  Object.values(jRes).forEach(r => {
+    if (r && typeof r === 'object') {
+      delete r.bonusMini; delete r.bonusPeter;
+      delete r.bonusMiniManha; delete r.bonusMiniTarde;
+      delete r.bonusPeterManha; delete r.bonusPeterTarde;
+    }
+  });
+
+  // Bónus Manhã (menor pV1+pV2)
+  [12, 18, 23, 29].forEach(id => {
+    const chave = jRes[id] !== undefined ? id : (jRes[String(id)] !== undefined ? String(id) : null);
+    if (chave !== null) jRes[chave].bonusPeterManha = true;
+  });
+
+  // Bónus Tarde (menor pV3+pV4)
+  [4, 18, 20, 26].forEach(id => {
+    const chave = jRes[id] !== undefined ? id : (jRes[String(id)] !== undefined ? String(id) : null);
+    if (chave !== null) jRes[chave].bonusPeterTarde = true;
+  });
+
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    mostrarNotif('✅ Bónus J1 corrigidos!');
+    renderTudo();
+  } catch(e) { mostrarNotif('❌ Erro: ' + e.message, true); }
 };
 
 function iniciarApp(modo) {
