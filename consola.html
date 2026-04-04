@@ -569,7 +569,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -683,10 +683,11 @@ const CAT_GRUPO = {
 // +5 pontos participação completa (todas as jornadas) — prova.bonusCompleto
 
 // ── VALORES INVÁLIDOS / AUSENTES ──
-// Qualquer valor >= 100 significa "não jogou" (convenção: 126)
-// Valores 0 ou ausentes também são ignorados
-// Um atleta só entra na classificação se tiver TODAS as 4 voltas válidas (<100 e >0)
-const VALOR_AUSENTE_MIN = 100; // valores >= 100 são ignorados
+// 126 = NÃO JOGOU a volta (ausente) → excluído de TODOS os cálculos
+// 1 a 125 = jogou (valor válido, mesmo que parcialmente)
+// 0 ou vazio = não inserido ainda
+// REGRA ABSOLUTA: volta com valor 126 é tratada como ausência total
+const VALOR_AUSENTE = 126;
 
 // ── DESEMPATE DE POSIÇÃO ──
 // 1º critério: menor total de tacadas
@@ -1742,7 +1743,7 @@ function calcTotal(prova, j, res) {
   if (!res) return null;
   const esp = prova.jornadaEspecial?.[j];
   const campos = esp?.tipo==='peter4voltas' ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
-  const vals = campos.map(c=>Number(res[c])).filter(v=>!isNaN(v)&&v>0&&v<100);
+  const vals = campos.map(c=>Number(res[c])).filter(v=>!isNaN(v)&&v>0&&v!==126);
   return vals.length ? vals.reduce((a,b)=>a+b,0) : null;
 }
 
@@ -2296,12 +2297,12 @@ function _isCampVizela(prova) {
 }
 
 function _melhorVoltaMini(res) {
-  const vals = [parseInt(res.mV1)||0, parseInt(res.mV2)||0].filter(v => v > 0 && v < 100);
+  const vals = [parseInt(res.mV1)||0, parseInt(res.mV2)||0].filter(v => v > 0 && v !== 126);
   return vals.length > 0 ? Math.min(...vals) : null;
 }
 
 function _melhorVoltaPeter(res) {
-  const vals = [parseInt(res.pV1)||0, parseInt(res.pV2)||0].filter(v => v > 0 && v < 100);
+  const vals = [parseInt(res.pV1)||0, parseInt(res.pV2)||0].filter(v => v > 0 && v !== 126);
   return vals.length > 0 ? Math.min(...vals) : null;
 }
 
@@ -2472,7 +2473,7 @@ function renderEmpates() {
           const res = jRes[String(a.id)] || jRes[a.id] || {};
           const m1=parseInt(res.mV1)||0, m2=parseInt(res.mV2)||0;
           const p1=parseInt(res.pV1)||0, p2=parseInt(res.pV2)||0;
-          const vals = [m1,m2,p1,p2].filter(v=>v>0&&v<100);
+          const vals = [m1,m2,p1,p2].filter(v=>v>0&&v!==126);
           const tot = vals.length === 4 ? vals.reduce((s,v)=>s+v,0) : null;
           return { id: a.id, nome: a.nome, tot };
         }).filter(x => x.tot !== null).sort((a,b) => a.tot - b.tot);
