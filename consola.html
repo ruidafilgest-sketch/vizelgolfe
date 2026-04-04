@@ -1687,8 +1687,12 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
         jPart++;
         const pos=calcPos(prova,j,a.id,CAT_GRUPO[cat],atletas,empates);
         if (pos>=1&&pos<=PONTUACAO.length){ const pp=PONTUACAO[pos-1]; pts+=pp; ptsPosTotal+=pp; }
-        if (res.bonusMini){ const bm=prova.bonusMini||0; pts+=bm; ptsBonusMini+=bm; }
-        if (res.bonusPeter){ const bp=prova.bonusPeter||0; pts+=bp; ptsBonusPeter+=bp; }
+        if (res.bonusMini)       { const bm=prova.bonusMini||0; pts+=bm; ptsBonusMini+=bm; }
+        if (res.bonusPeter)      { const bp=prova.bonusPeter||0; pts+=bp; ptsBonusPeter+=bp; }
+        if (res.bonusPeterManha) { const bp=prova.bonusPeter||0; pts+=bp; ptsBonusPeter+=bp; }
+        if (res.bonusPeterTarde) { const bp=prova.bonusPeter||0; pts+=bp; ptsBonusPeter+=bp; }
+        if (res.bonusMiniManha)  { const bm=prova.bonusMini||0; pts+=bm; ptsBonusMini+=bm; }
+        if (res.bonusMiniTarde)  { const bm=prova.bonusMini||0; pts+=bm; ptsBonusMini+=bm; }
       }
       return {...a, pts, jPart, ptsPosTotal, ptsBonusMini, ptsBonusPeter};
     }).filter(a=>a.jPart>0).sort((a,b)=>b.pts-a.pts);
