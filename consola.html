@@ -585,7 +585,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1622,7 +1622,7 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
         if (tot==null) continue;
         jPart++;
         // Ajuste manual tem prioridade
-        const ajJ = ajustes?.[prova.id]?.[a.id]?.[j] ?? ajustes?.[prova.id]?.[String(a.id)]?.[j];
+        const ajJ = ajustes?.[prova.id]?.[a.id]?.[j] ?? ajustes?.[prova.id]?.[a.id]?.[String(j)] ?? ajustes?.[prova.id]?.[String(a.id)]?.[j] ?? ajustes?.[prova.id]?.[String(a.id)]?.[String(j)];
         if (ajJ != null) { pts += Number(ajJ); continue; }
         const pos=calcPos(prova,j,a.id,CAT_GRUPO[cat],atletas,empates);
         if (pos>=1&&pos<=PONTUACAO.length) pts+=PONTUACAO[pos-1];
@@ -2010,7 +2010,7 @@ window.renderAjuste = function() {
         totalAuto += autoJ;
 
         // Valor manual guardado
-        const manualJ = ajustes?.[provaId]?.[a.id]?.[j];
+        const manualJ = ajustes?.[provaId]?.[a.id]?.[j] ?? ajustes?.[provaId]?.[a.id]?.[String(j)] ?? ajustes?.[provaId]?.[String(a.id)]?.[j] ?? ajustes?.[provaId]?.[String(a.id)]?.[String(j)];
         const temManual = manualJ != null && manualJ !== '';
         const valorInput = temManual ? manualJ : '';
         const ptsMostrar = temManual ? manualJ : (autoJ || '');
@@ -2103,9 +2103,10 @@ window.guardarAjustes = async function(provaId) {
       if (!el) continue;
       const v = el.value.trim();
       if (v !== '' && !isNaN(Number(v))) {
-        dadosInt.ajustesPontos[provaId][a.id][j] = Number(v);
+        dadosInt.ajustesPontos[provaId][a.id][String(j)] = Number(v);
       } else {
-        delete dadosInt.ajustesPontos[provaId][a.id][j];
+        delete dadosInt.ajustesPontos[provaId][a.id][String(j)];
+        delete dadosInt.ajustesPontos[provaId][a.id][j]; // limpar chave numérica antiga
       }
     }
   });
@@ -2385,7 +2386,7 @@ function calcPontosAtletaEpoca(atletaId,categoria){
     const isCViz=_isCampVizela(p);
     for(let j=1;j<=(p.jornadas||1);j++){
       // Verificar se há ajuste manual para esta jornada
-      const ajJ=ajustes?.[p.id]?.[atletaId]?.[j]??ajustes?.[p.id]?.[String(atletaId)]?.[j];
+      const ajJ=ajustes?.[p.id]?.[atletaId]?.[j]??ajustes?.[p.id]?.[atletaId]?.[String(j)]??ajustes?.[p.id]?.[String(atletaId)]?.[j]??ajustes?.[p.id]?.[String(atletaId)]?.[String(j)];
       if(ajJ!=null){
         pts+=Number(ajJ);
         continue;
