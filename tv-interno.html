@@ -206,27 +206,33 @@ function calcPos(prova,j,atletaId,grupo,atletas,empates){
 function calcPontosAtleta(prova,atleta,atletas,empates){
   let pts=0;
   const isCampVizela=prova.nome&&prova.nome.includes('Vizela')&&prova.tipo==='campeonato';
+  const ajustesAtleta=allDataInt?.ajustesPontos?.[prova.id]?.[atleta.id]
+    ?? allDataInt?.ajustesPontos?.[prova.id]?.[String(atleta.id)];
   for(let j=1;j<=(prova.jornadas||1);j++){
     const res=prova.resultados?.[j]?.[atleta.id];
     const tot=calcTotal(prova,j,res);if(tot==null)continue;
+    // Ajuste manual substitui o cálculo automático desta jornada
+    const ajJ=ajustesAtleta?.[j]??ajustesAtleta?.[String(j)];
+    if(ajJ!=null){pts+=Number(ajJ);continue;}
     const pos=calcPos(prova,j,atleta.id,CAT_GRUPO[atleta.categoria],atletas,empates);
     if(pos>=1&&pos<=PONTUACAO.length)pts+=PONTUACAO[pos-1];
     if(isCampVizela){
-      if(res.bonusMini)pts+=(prova.bonusMini||0);
-      if(res.bonusPeter)pts+=(prova.bonusPeter||0);
-      if(res.bonusMiniManha)pts+=(prova.bonusMini||0);
-      if(res.bonusMiniTarde)pts+=(prova.bonusMini||0);
+      // Formato peter4voltas: só bonusPeterManha/Tarde (nunca bonusPeter também)
+      // Formato normal: só bonusMini ou bonusPeter (nunca manha/tarde também)
       if(res.bonusPeterManha)pts+=(prova.bonusPeter||0);
+      else if(res.bonusMiniManha)pts+=(prova.bonusMini||0);
       if(res.bonusPeterTarde)pts+=(prova.bonusPeter||0);
+      else if(res.bonusMiniTarde)pts+=(prova.bonusMini||0);
+      if(!res.bonusPeterManha&&!res.bonusPeterTarde&&!res.bonusMiniManha&&!res.bonusMiniTarde){
+        if(res.bonusPeter)pts+=(prova.bonusPeter||0);
+        else if(res.bonusMini)pts+=(prova.bonusMini||0);
+      }
     }
   }
   if(isCampVizela&&prova.bonusCompleto){
     const jPart=Object.keys(prova.resultados||{}).filter(j=>prova.resultados[j]?.[atleta.id]&&calcTotal(prova,parseInt(j),prova.resultados[j][atleta.id])!=null).length;
     if(jPart===prova.jornadas)pts+=(prova.bonusCompleto||0);
   }
-  // Aplicar ajustes manuais de pontos (mesma lógica do consola.html)
-  const ajustes=allDataInt?.ajustesPontos?.[prova.id]?.[atleta.id];
-  if(ajustes){Object.values(ajustes).forEach(v=>{pts+=Number(v)||0;});}
   return pts;
 }
 
