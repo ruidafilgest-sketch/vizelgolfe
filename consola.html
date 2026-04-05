@@ -585,7 +585,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1649,6 +1649,167 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
     </div>`;
   });
   cont.innerHTML = html || '<div style="color:var(--dim);padding:20px">Sem resultados.</div>';
+};
+
+// ── FUNÇÕES DE COR ──
+function corVolta(campo, v) {
+  const n = Number(v); if (!n || n <= 0) return '';
+  const isMini = campo && campo.startsWith('m');
+  if (isMini) {
+    if (n <= 19) return '#2563eb'; if (n <= 24) return '#16a34a';
+    if (n <= 29) return '#dc2626'; return '#444';
+  } else {
+    if (n <= 24) return '#2563eb'; if (n <= 29) return '#16a34a';
+    if (n <= 35) return '#dc2626'; return '#444';
+  }
+}
+function bgVolta(campo, v) {
+  const n = Number(v); if (!n || n <= 0) return 'transparent';
+  const isMini = campo && campo.startsWith('m');
+  if (isMini) {
+    if (n <= 19) return 'rgba(37,99,235,0.1)'; if (n <= 24) return 'rgba(22,163,74,0.1)';
+    if (n <= 29) return 'rgba(220,38,38,0.1)'; return 'rgba(68,68,68,0.08)';
+  } else {
+    if (n <= 24) return 'rgba(37,99,235,0.1)'; if (n <= 29) return 'rgba(22,163,74,0.1)';
+    if (n <= 35) return 'rgba(220,38,38,0.1)'; return 'rgba(68,68,68,0.08)';
+  }
+}
+function emojiCor(campo, v) {
+  const n = Number(v); if (!n || n <= 0) return '';
+  const isMini = campo && campo.startsWith('m');
+  if (isMini) {
+    if (n <= 19) return '🔵'; if (n <= 24) return '🟢'; if (n <= 29) return '🔴'; return '⚫';
+  } else {
+    if (n <= 24) return '🔵'; if (n <= 29) return '🟢'; if (n <= 35) return '🔴'; return '⚫';
+  }
+}
+function corPista(v) {
+  const n = Number(v); if (!n) return '';
+  if (n === 1) return '#16a34a'; if (n === 2) return '#dc2626'; return '#555';
+}
+function emojPista(v) {
+  const n = Number(v); if (!n) return '';
+  if (n === 1) return '🟢'; if (n === 2) return '🔴'; return '⚫';
+}
+
+// ── PERFIL ATLETA (clique na classificação) ──
+window.abrirPerfilAtleta = function(atletaId) {
+  if (!dadosInt) return;
+  const atleta = (dadosInt.atletas || []).find(a => a.id == atletaId);
+  if (!atleta) return;
+  const provas = dadosInt.provas || [];
+  const empates = dadosInt.empates || {};
+  const ajustes = dadosInt.ajustesPontos || {};
+
+  document.getElementById('modal-nome').textContent = atleta.nome;
+  document.getElementById('modal-meta').textContent = atleta.categoria;
+
+  let html = '';
+
+  provas.forEach(prova => {
+    const nJ = prova.jornadas || 1;
+    let temAlgum = false;
+    let provaHtml = `<div style="margin-bottom:20px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);border-bottom:2px solid var(--orange);padding-bottom:6px;margin-bottom:10px">${prova.nome}</div>`;
+
+    for (let j = 1; j <= nJ; j++) {
+      const res = prova.resultados?.[j]?.[atletaId] || prova.resultados?.[j]?.[String(atletaId)];
+      if (!res) continue;
+      const tot = calcTotal(prova, j, res);
+      if (tot == null) continue;
+      temAlgum = true;
+
+      const esp = prova.jornadaEspecial?.[j];
+      const isP4 = esp?.tipo === 'peter4voltas';
+      const campos = isP4
+        ? [{id:'pV1',l:'P1'},{id:'pV2',l:'P2'},{id:'pV3',l:'P3'},{id:'pV4',l:'P4'}]
+        : [{id:'mV1',l:'M1'},{id:'mV2',l:'M2'},{id:'pV1',l:'P1'},{id:'pV2',l:'P2'}];
+
+      const ajJ = ajustes?.[prova.id]?.[atletaId]?.[j]
+        ?? ajustes?.[prova.id]?.[atletaId]?.[String(j)]
+        ?? ajustes?.[prova.id]?.[String(atletaId)]?.[j]
+        ?? ajustes?.[prova.id]?.[String(atletaId)]?.[String(j)];
+
+      const pos = calcPos(prova, j, atletaId, CAT_GRUPO[atleta.categoria], dadosInt.atletas, empates);
+      const pontos = ajJ != null ? Number(ajJ)
+        : (pos >= 1 && pos <= PONTUACAO.length ? PONTUACAO[pos - 1] : 0);
+
+      // Bónus desta jornada
+      let bonusHtml = '';
+      if (_isCampVizela(prova)) {
+        const bons = [];
+        if (res.bonusMini) bons.push(`🎯 Bónus Mini (+${prova.bonusMini||1})`);
+        if (res.bonusPeter) bons.push(`🎯 Bónus Peter (+${prova.bonusPeter||1})`);
+        if (res.bonusPeterManha) bons.push(`🎯 Bónus Manhã (+${prova.bonusPeter||1})`);
+        if (res.bonusPeterTarde) bons.push(`🎯 Bónus Tarde (+${prova.bonusPeter||1})`);
+        if (bons.length) bonusHtml = `<div style="font-size:0.78rem;color:var(--orange);margin-top:4px">${bons.join(' · ')}</div>`;
+      }
+
+      provaHtml += `<div style="background:var(--bg);border-radius:8px;padding:12px 14px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-weight:700;font-size:0.85rem">${nJ > 1 ? `Jornada ${j}` : 'Resultado'}</span>
+          <span style="font-size:0.78rem;color:var(--dim)">${pos <= PONTUACAO.length ? pos+'º lugar' : '—'} · <strong style="color:var(--orange)">${pontos} pts</strong>${ajJ != null ? ' <em style="font-size:0.7rem;color:var(--silver)">(ajuste)</em>' : ''}</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${campos.map(c => {
+            const v = res[c.id];
+            if (!v) return '';
+            const cor = corVolta(c.id, v);
+            const bg = bgVolta(c.id, v);
+            const em = emojiCor(c.id, v);
+            return `<div style="text-align:center;background:${bg};border-radius:6px;padding:6px 10px;min-width:52px">
+              <div style="font-size:0.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px">${c.l}</div>
+              <div style="font-size:1.1rem;font-weight:700;color:${cor}">${em} ${v}</div>
+            </div>`;
+          }).join('')}
+          <div style="text-align:center;background:rgba(212,130,10,0.08);border-radius:6px;padding:6px 10px;min-width:52px;border:1px solid rgba(212,130,10,0.2)">
+            <div style="font-size:0.6rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px">Total</div>
+            <div style="font-size:1.1rem;font-weight:700;color:var(--orange)">${tot}</div>
+          </div>
+        </div>
+        ${bonusHtml}
+      </div>`;
+    }
+
+    if (!temAlgum) return;
+
+    // Total de pontos nesta prova
+    let totalPts = 0;
+    for (let j = 1; j <= nJ; j++) {
+      const res = prova.resultados?.[j]?.[atletaId] || prova.resultados?.[j]?.[String(atletaId)];
+      const tot = calcTotal(prova, j, res); if (tot == null) continue;
+      const ajJ = ajustes?.[prova.id]?.[atletaId]?.[j]
+        ?? ajustes?.[prova.id]?.[atletaId]?.[String(j)]
+        ?? ajustes?.[prova.id]?.[String(atletaId)]?.[j]
+        ?? ajustes?.[prova.id]?.[String(atletaId)]?.[String(j)];
+      if (ajJ != null) { totalPts += Number(ajJ); continue; }
+      const pos = calcPos(prova, j, atletaId, CAT_GRUPO[atleta.categoria], dadosInt.atletas, empates);
+      if (pos >= 1 && pos <= PONTUACAO.length) totalPts += PONTUACAO[pos - 1];
+      if (_isCampVizela(prova) && res) {
+        const b = prova.bonusMini || 1;
+        if (res.bonusMini) totalPts += b;
+        if (res.bonusPeter) totalPts += (prova.bonusPeter || b);
+        if (res.bonusPeterManha) totalPts += (prova.bonusPeter || b);
+        if (res.bonusPeterTarde) totalPts += (prova.bonusPeter || b);
+      }
+    }
+    if (_isCampVizela(prova) && prova.bonusCompleto) {
+      const jPart = Object.keys(prova.resultados || {}).filter(j => {
+        const r = prova.resultados[j]?.[atletaId] || prova.resultados[j]?.[String(atletaId)];
+        return r && calcTotal(prova, parseInt(j), r) != null;
+      }).length;
+      if (jPart >= nJ) totalPts += (prova.bonusCompleto || 0);
+    }
+
+    provaHtml += `<div style="text-align:right;font-size:0.82rem;color:var(--silver);margin-top:2px">
+      Total na prova: <strong style="color:var(--navy);font-family:'Bebas Neue',sans-serif;font-size:1.1rem">${totalPts} pontos</strong>
+    </div></div>`;
+    html += provaHtml;
+  });
+
+  if (!html) html = '<div style="color:var(--dim);padding:20px">Sem resultados registados para este atleta.</div>';
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('on');
 };
 
 // ── INSERIR RESULTADOS ──
