@@ -266,6 +266,9 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       <div class="nav-item admin-only" onclick="irPara('gerir')">
         <span class="ico">⚙️</span><span class="label">Gerir Provas</span>
       </div>
+      <div class="nav-item admin-only" onclick="irPara('desempates')">
+        <span class="ico">⚖️</span><span class="label">Desempates</span>
+      </div>
       <div class="nav-section">Outros</div>
       <div class="nav-item" onclick="irPara('stats')">
         <span class="ico">📈</span><span class="label">Estatísticas</span>
@@ -455,6 +458,12 @@ tr:hover td{background:rgba(0,0,0,0.02);}
         <div id="inserir-conteudo"></div>
       </div>
 
+      <!-- DESEMPATES (admin) -->
+      <div class="secao" id="sec-desempates">
+        <div class="card-titulo" style="margin-bottom:16px">⚖️ Desempates</div>
+        <div id="desempates-conteudo"><div style="padding:40px;text-align:center;color:var(--dim)">A carregar...</div></div>
+      </div>
+
       <!-- GERIR (admin) -->
       <div class="secao" id="sec-gerir">
         <div class="card">
@@ -556,7 +565,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1391,6 +1400,7 @@ window.irPara = function(sec) {
   if (sec === 'atletas') renderAtletas();
   if (sec === 'inserir') renderInserir();
   if (sec === 'gerir') renderGerir();
+  if (sec === 'desempates') renderDesempates();
   if (sec === 'nacional') renderNacional();
   if (sec === 'stats') renderStats();
 };
@@ -1901,40 +1911,198 @@ function calcTotal(prova,j,res){
   if(vals.length<campos.length)return null;
   return vals.reduce((a,b)=>a+b,0);
 }
-function calcPos(prova,j,atletaId,grupo,atletas,empates){
-  const jRes=prova.resultados?.[j];if(!jRes)return 999;
-  const doGrupo=atletas.filter(a=>(CAT_GRUPO[a.categoria]||a.categoria)===grupo);
-  const totais=doGrupo.map(a=>{const r=jRes[String(a.id)]||jRes[a.id];const t=r?(calcTotal(prova,j,r)??9999):9999;return{id:a.id,t};}).filter(x=>x.t<9999);
+// ── DESEMPATES ──
+function renderDesempates() {
+  const div = document.getElementById('desempates-conteudo');
+  if (!dadosInt) { div.innerHTML = '<div style="padding:40px;text-align:center;color:var(--dim)">A carregar...</div>'; return; }
+  if (!modoAdmin) { div.innerHTML = '<div style="padding:40px;text-align:center;color:var(--dim)">Sem permissões.</div>'; return; }
 
-  // Agrupar atletas por total para detectar empates
-  const porTotal={};
-  totais.forEach(x=>{if(!porTotal[x.t])porTotal[x.t]=[];porTotal[x.t].push(x.id);});
+  const atletas = dadosInt.atletas || [];
+  const empatesGravados = dadosInt.empates || {};
+  const provas = dadosInt.provas || [];
 
-  // Para cada grupo empatado, atribuir ordem explícita via empates[k]
-  // A chave regista o ID do vencedor do desempate; os restantes ficam ordenados por id (estável)
-  totais.sort((a,b)=>{
-    if(a.t!==b.t) return a.t-b.t;
-    // Mesmo total — verificar desempate registado
-    const k=`${prova.id}_j${j}_pos_${grupo.replace(/ /g,'_')}_${a.t}`;
-    const v=empates?.[k]; // v é array JSON ou id do vencedor (legado: string com id)
-    if(v){
-      // Suporte a formato array: ["id1","id2",...] ordem explícita
-      if(Array.isArray(v)){
-        const posA=v.indexOf(String(a.id));
-        const posB=v.indexOf(String(b.id));
-        if(posA!==-1&&posB!==-1) return posA-posB;
-        if(posA!==-1) return -1;
-        if(posB!==-1) return 1;
-      }
-      // Formato legado: string com id do vencedor
-      const vid=parseInt(v);
-      if(a.id===vid&&b.id!==vid) return -1;
-      if(b.id===vid&&a.id!==vid) return 1;
+  // Recolher todos os empates possíveis (totais e bónus) em todas as provas/jornadas
+  const todosEmpates = [];
+
+  provas.forEach(prova => {
+    const isCViz = _isCampVizela(prova);
+    for (let j = 1; j <= (prova.jornadas || 1); j++) {
+      const jRes = prova.resultados?.[j];
+      if (!jRes || !Object.keys(jRes).length) continue;
+
+      const grupos = [...new Set(atletas.map(a => CAT_GRUPO[a.categoria] || a.categoria))];
+      grupos.forEach(grupo => {
+        const doGrupo = atletas.filter(a => (CAT_GRUPO[a.categoria] || a.categoria) === grupo);
+        const comRes = doGrupo.map(a => {
+          const r = jRes[String(a.id)] || jRes[a.id];
+          const t = r ? calcTotal(prova, j, r) : null;
+          return { id: a.id, nome: a.nome, t };
+        }).filter(x => x.t != null);
+
+        // Agrupar por total
+        const porTotal = {};
+        comRes.forEach(x => { if (!porTotal[x.t]) porTotal[x.t] = []; porTotal[x.t].push(x); });
+
+        Object.entries(porTotal).forEach(([tot, grupo_atl]) => {
+          if (grupo_atl.length < 2) return;
+          const k = `${prova.id}_j${j}_pos_${grupo.replace(/ /g, '_')}_${tot}`;
+          const gravado = empatesGravados[k];
+          todosEmpates.push({
+            key: k, prova, jornada: j, grupo, total: Number(tot),
+            atletas: grupo_atl, gravado, tipo: 'pos',
+            label: `${prova.nome} — J${j} — ${grupo} — Total: ${tot}`
+          });
+        });
+
+        // Bónus: empates na melhor volta (só Campeonato de Vizela)
+        if (isCViz) {
+          const esp = prova.jornadaEspecial?.[j];
+          const isP4 = esp?.tipo === 'peter4voltas';
+          const pares = isP4
+            ? [['bonusManha', 'pV1', 'pV2'], ['bonusTarde', 'pV3', 'pV4']]
+            : [['bonusMini', 'mV1', 'mV2'], ['bonusPeter', 'pV1', 'pV2']];
+
+          pares.forEach(([bonKey, c1, c2]) => {
+            const rank = comRes.map(x => {
+              const r = jRes[String(x.id)] || jRes[x.id] || {};
+              const melhor = _melhorVoltaIndividual(r, c1, c2);
+              return { ...x, melhor };
+            }).filter(x => x.melhor !== null);
+            if (!rank.length) return;
+            rank.sort((a, b) => a.melhor - b.melhor);
+            const mv = rank[0].melhor;
+            const empatados = rank.filter(x => x.melhor === mv);
+            if (empatados.length < 2) return;
+            const kb = `${prova.id}_j${j}_${bonKey}_${grupo.replace(/ /g, '_')}`;
+            const gravado = empatesGravados[kb];
+            const nomesBonus = { bonusMini: 'Bónus Mini', bonusPeter: 'Bónus Peter', bonusManha: 'Bónus Manhã', bonusTarde: 'Bónus Tarde' };
+            todosEmpates.push({
+              key: kb, prova, jornada: j, grupo, total: mv,
+              atletas: empatados, gravado, tipo: 'bonus',
+              label: `${prova.nome} — J${j} — ${grupo} — ${nomesBonus[bonKey] || bonKey} (melhor volta: ${mv})`
+            });
+          });
+        }
+      });
     }
-    return a.id-b.id; // sem desempate registado: ordem por id (estável)
   });
 
-  const i=totais.findIndex(x=>x.id==atletaId||x.id===parseInt(atletaId));return i>=0?i+1:999;
+  if (!todosEmpates.length) {
+    div.innerHTML = '<div style="padding:40px;text-align:center;color:var(--dim)">Sem empates detetados.</div>';
+    return;
+  }
+
+  // Separar resolvidos / por resolver
+  const porResolver = todosEmpates.filter(e => !e.gravado);
+  const resolvidos  = todosEmpates.filter(e =>  e.gravado);
+
+  let html = '';
+
+  if (porResolver.length) {
+    html += `<div style="margin-bottom:8px;padding:10px 14px;background:rgba(204,34,34,0.08);border-left:3px solid #cc2222;border-radius:6px;font-size:0.82rem;color:#cc2222;font-weight:600">
+      ⚠️ ${porResolver.length} empate(s) por resolver — afetam a classificação
+    </div>`;
+  }
+
+  const renderGrupoEmpates = (lista, titulo, corTitulo) => {
+    if (!lista.length) return '';
+    let h = `<div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;color:${corTitulo};margin:18px 0 10px">${titulo}</div>`;
+    lista.forEach((e, idx) => {
+      const grav = e.gravado;
+      // Determinar vencedor gravado
+      let vencedorId = null;
+      if (grav) {
+        if (Array.isArray(grav) && grav.length) vencedorId = parseInt(grav[0]);
+        else vencedorId = parseInt(grav);
+      }
+      h += `<div class="card" style="margin-bottom:12px;border-left:3px solid ${grav ? 'var(--green)' : '#cc2222'}">
+        <div style="font-size:0.78rem;color:var(--dim);margin-bottom:8px;letter-spacing:0.5px">${e.label}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">`;
+      e.atletas.forEach(a => {
+        const isVenc = vencedorId === a.id;
+        h += `<button onclick="resolverEmpate('${e.key}',${a.id})"
+          style="padding:7px 16px;border-radius:20px;border:2px solid ${isVenc ? 'var(--green)' : 'var(--sep)'};
+          background:${isVenc ? 'rgba(26,138,74,0.15)' : 'var(--bg2)'};
+          color:${isVenc ? 'var(--green)' : 'var(--text)'};
+          font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;font-weight:${isVenc ? '700' : '400'};
+          cursor:pointer;transition:all 0.15s">
+          ${isVenc ? '✅ ' : ''}${a.nome}${e.tipo === 'pos' ? '' : ` (${a.melhor})`}
+        </button>`;
+      });
+      if (grav) {
+        h += `<button onclick="limparEmpate('${e.key}')"
+          style="padding:5px 12px;border-radius:20px;border:1px solid var(--sep);background:transparent;color:var(--dim);font-size:0.78rem;cursor:pointer">
+          🗑️ Limpar
+        </button>`;
+      }
+      h += `</div></div>`;
+    });
+    return h;
+  };
+
+  html += renderGrupoEmpates(porResolver, '⚠️ Por Resolver', '#cc2222');
+  html += renderGrupoEmpates(resolvidos,  '✅ Resolvidos',   'var(--green)');
+
+  div.innerHTML = html;
+}
+
+window.resolverEmpate = async function(key, atletaId) {
+  if (!dadosInt || !modoAdmin) return;
+  if (!dadosInt.empates) dadosInt.empates = {};
+  dadosInt.empates[key] = String(atletaId);
+  try {
+    await setDoc(doc(db, 'vizelgolfe', 'dados'), { ...dadosInt, _vzgKey: 'VZG-2026-SEC-K9x' });
+    mostrarNotif('✅ Desempate gravado!');
+    renderDesempates();
+  } catch(e) { mostrarNotif('❌ Erro: ' + e.message, true); }
+};
+
+window.limparEmpate = async function(key) {
+  if (!dadosInt || !modoAdmin) return;
+  if (dadosInt.empates) delete dadosInt.empates[key];
+  try {
+    await setDoc(doc(db, 'vizelgolfe', 'dados'), { ...dadosInt, _vzgKey: 'VZG-2026-SEC-K9x' });
+    mostrarNotif('Desempate removido.');
+    renderDesempates();
+  } catch(e) { mostrarNotif('❌ Erro: ' + e.message, true); }
+};
+
+function calcPos(prova,j,atletaId,grupo,atletas,empates){
+  const jRes=prova.resultados?.[j]; if(!jRes) return 999;
+  const doGrupo=atletas.filter(a=>(CAT_GRUPO[a.categoria]||a.categoria)===grupo);
+  const totais=doGrupo.map(a=>{
+    const r=jRes[String(a.id)]||jRes[a.id];
+    const t=r?(calcTotal(prova,j,r)??9999):9999;
+    return{id:a.id,t};
+  }).filter(x=>x.t<9999);
+
+  // Ordenação estável: primeiro por total, depois por desempate gravado
+  totais.sort((a,b)=>{
+    if(a.t!==b.t) return a.t-b.t;
+    // Mesmo total — consultar desempate
+    const k=`${prova.id}_j${j}_pos_${grupo.replace(/ /g,'_')}_${a.t}`;
+    const v=empates?.[k];
+    if(v!=null){
+      // Formato array: ordem explícita ["id1","id2",...]
+      if(Array.isArray(v)){
+        const ia=v.indexOf(String(a.id)); const ib=v.indexOf(String(b.id));
+        if(ia!==-1&&ib!==-1) return ia-ib;
+        if(ia!==-1) return -1;
+        if(ib!==-1) return 1;
+      } else {
+        // Formato string/número: id do vencedor
+        const vid=String(v).trim();
+        const aVence=String(a.id)===vid;
+        const bVence=String(b.id)===vid;
+        if(aVence&&!bVence) return -1;
+        if(bVence&&!aVence) return 1;
+      }
+    }
+    return a.id-b.id;
+  });
+
+  const i=totais.findIndex(x=>x.id==atletaId||x.id===parseInt(atletaId));
+  return i>=0?i+1:999;
 }
 function calcPontosAtletaEpoca(atletaId,categoria){
   if(!dadosInt)return 0;
