@@ -556,7 +556,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1684,6 +1684,97 @@ async function recalcularTodosBonusAuto(){
   await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt,_vzgKey:'VZG-2026-SEC-K9x'});
 }
 
+// ── ATLETAS ──
+function renderAtletas() {
+  const div = document.getElementById('atletas-conteudo');
+  if (!div) return;
+  if (!dadosInt) { div.innerHTML = '<div style="padding:40px;text-align:center;color:var(--dim)">A carregar...</div>'; return; }
+  const atletas = (dadosInt.atletas||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
+  if (!atletas.length) { div.innerHTML = '<div style="padding:40px;text-align:center;color:var(--dim)">Sem atletas registados.</div>'; return; }
+
+  // Agrupar por categoria
+  const grupos = {};
+  atletas.forEach(a => {
+    const c = a.categoria||'—';
+    if (!grupos[c]) grupos[c]=[];
+    grupos[c].push(a);
+  });
+
+  div.innerHTML = Object.keys(grupos).sort().map(cat => `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-titulo" style="font-size:0.85rem;letter-spacing:2px;margin-bottom:10px">${cat}</div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="border-bottom:2px solid var(--sep);font-size:0.72rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px">
+            <th style="padding:6px 4px;text-align:left">ID</th>
+            <th style="padding:6px 4px;text-align:left">Nome</th>
+            ${modoAdmin ? '<th style="padding:6px 4px;text-align:center">Ações</th>' : ''}
+          </tr>
+        </thead>
+        <tbody>
+          ${grupos[cat].map(a => `
+            <tr style="border-bottom:1px solid var(--sep);font-size:0.88rem">
+              <td style="padding:8px 4px;color:var(--dim);width:50px">#${a.id}</td>
+              <td style="padding:8px 4px;font-weight:600">${a.nome}</td>
+              ${modoAdmin ? `<td style="padding:8px 4px;text-align:center">
+                <button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem" onclick="editarAtleta(${a.id})">✏️</button>
+                <button class="btn btn-secondary" style="padding:3px 10px;font-size:0.75rem;color:#c0392b" onclick="removerAtleta(${a.id})">🗑️</button>
+              </td>` : ''}
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`).join('');
+}
+
+window.editarAtleta = function(id) {
+  if (!dadosInt||!modoAdmin) return;
+  const atl = (dadosInt.atletas||[]).find(a=>a.id==id);
+  if (!atl) return;
+  document.getElementById('modal-nome').textContent = 'Editar Atleta';
+  document.getElementById('modal-meta').textContent = '#'+id;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Nome</label>
+        <input type="text" id="edit-atleta-nome" value="${atl.nome}" placeholder="Nome completo">
+      </div>
+      <div class="form-group">
+        <label>Categoria</label>
+        <select id="edit-atleta-cat">
+          ${CATEGORIAS.map(c=>`<option value="${c}"${c===atl.categoria?' selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="guardarEdicaoAtleta(${id})">✅ Guardar</button>
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-overlay').classList.remove('on')">Cancelar</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('on');
+};
+
+window.guardarEdicaoAtleta = async function(id) {
+  if (!dadosInt) return;
+  const atl = (dadosInt.atletas||[]).find(a=>a.id==id);
+  if (!atl) return;
+  const nome = document.getElementById('edit-atleta-nome').value.trim();
+  if (!nome) return;
+  atl.nome = nome;
+  atl.categoria = document.getElementById('edit-atleta-cat').value;
+  await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+  document.getElementById('modal-overlay').classList.remove('on');
+  mostrarNotif('✅ Atleta atualizado!');
+  renderAtletas();
+};
+
+window.removerAtleta = async function(id) {
+  if (!dadosInt||!modoAdmin) return;
+  if (!confirm('Remover este atleta? Esta ação não pode ser desfeita.')) return;
+  dadosInt.atletas = (dadosInt.atletas||[]).filter(a=>a.id!=id);
+  await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+  mostrarNotif('Atleta removido.');
+  renderAtletas();
+};
+
 // ── GERIR ──
 function renderGerir() {
   if (!dadosInt||!modoAdmin) return;
@@ -2067,6 +2158,7 @@ window.guardarNovoAtleta = async function() {
   await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
   document.getElementById('modal-overlay').classList.remove('on');
   mostrarNotif('✅ Atleta adicionado!');
+  renderAtletas();
 };
 
 </script>
