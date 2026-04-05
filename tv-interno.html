@@ -224,6 +224,9 @@ function calcPontosAtleta(prova,atleta,atletas,empates){
     const jPart=Object.keys(prova.resultados||{}).filter(j=>prova.resultados[j]?.[atleta.id]&&calcTotal(prova,parseInt(j),prova.resultados[j][atleta.id])!=null).length;
     if(jPart===prova.jornadas)pts+=(prova.bonusCompleto||0);
   }
+  // Aplicar ajustes manuais de pontos (mesma lógica do consola.html)
+  const ajustes=allDataInt?.ajustesPontos?.[prova.id]?.[atleta.id];
+  if(ajustes){Object.values(ajustes).forEach(v=>{pts+=Number(v)||0;});}
   return pts;
 }
 
