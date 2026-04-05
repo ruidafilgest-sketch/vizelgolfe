@@ -2834,21 +2834,43 @@ window.abrirDetalheOuModal = function(a, vertente, provaUrl) {
 };
 
 window.abrirModalNac = function(a) {
-  document.getElementById('modal-nome').textContent = a.nome;
-  document.getElementById('modal-meta').textContent = a.clube + ' · ' + nacAtivo;
+  const vzg = isVzg(a.clube, a.nome);
+  document.getElementById('modal-nome').textContent = (vzg ? '🟡 ' : '') + a.nome;
+  document.getElementById('modal-meta').textContent = a.clube + ' · ' + (nacAtivo||'');
   const voltas = a.voltas||[];
-  let html = voltas.length
-    ? `<div class="tabela-wrap"><table>
-        <thead><tr>${voltas.map((_,i)=>`<th style="text-align:center">Percurso ${i+1}</th>`).join('')}<th style="text-align:right">Total</th></tr></thead>
-        <tbody><tr>
-          ${voltas.map(v=>{const vertM=(dadosNac?.vertentes||{})[nacAtivo]||(isGrupoA(nacAtivo)?'mini':'peter');const cor=corVolta(campo,v);const bg=bgVolta(campo,v);const em=emojiCor(campo,v);return (function(v,vi2){const vDet2=(a.voltasDetalhe||[])[vi2];const vt2=vDet2?.vertente||vertM;const cmp2=vt2==='mini'?'mV1':'pV1';const cor2=corVolta(cmp2,v);const bg2=bgVolta(cmp2,v);const em2=emojiCor(cmp2,v);return `<td style="text-align:center;font-size:1.1rem;font-weight:700;color:${cor2||'inherit'};background:${bg2||'transparent'}" title="${vt2}">${em2} ${v}</td>`;})(v,voltas.indexOf(v));}).join('')}
-          <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.4rem;color:var(--orange)">${a.total}</td>
-        </tr></tbody></table></div>`
-    : '<p style="color:var(--dim)">Sem detalhe de percursos.</p>';
+  const voltasDetalhe = a.voltasDetalhe||[];
+  const vertManual = (dadosNac?.vertentes||{})[nacAtivo];
+  const vertDefault = isGrupoA(nacAtivo) ? 'mini' : 'peter';
+
+  let html = '';
+  if (voltas.length) {
+    html += `<div class="tabela-wrap"><table>
+      <thead><tr>
+        ${voltas.map((_,i) => `<th style="text-align:center">Volta ${i+1}</th>`).join('')}
+        <th style="text-align:right">Total</th>
+      </tr></thead>
+      <tbody><tr>
+        ${voltas.map((v,i) => {
+          const vDet = voltasDetalhe[i];
+          const vert = vertManual || (vDet?.vertente) || vertDefault;
+          const campo = vert === 'mini' ? 'mV1' : 'pV1';
+          const cor = corVolta(campo, v);
+          const bg = bgVolta(campo, v);
+          const em = emojiCor(campo, v);
+          return `<td style="text-align:center;font-size:1.1rem;font-weight:700;color:${cor||'inherit'};background:${bg||'transparent'}" title="${vert}">${em} ${v}</td>`;
+        }).join('')}
+        <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.4rem;color:var(--orange)">${a.total}</td>
+      </tr></tbody></table></div>`;
+  } else {
+    html += '<p style="color:var(--dim);padding:12px">Sem detalhe de percursos disponível.</p>';
+  }
+
   html += `<div style="margin-top:12px;padding:10px;background:var(--bg);border-radius:8px;font-size:0.82rem;color:var(--silver)">
-    Posição: <strong>${a.rank}º</strong> · Total: <strong>${a.total}</strong> · 
-    ${a.dnf?'<span style="color:var(--red)">Não terminou</span>':a.completo?'<span style="color:var(--green)">Completou</span>':'<span style="color:var(--orange)">Em curso</span>'}
+    Posição: <strong>${a.rank}º</strong> · Total: <strong>${a.total}</strong> ·
+    ${a.dnf ? '<span style="color:var(--red)">Não terminou</span>' : a.completo ? '<span style="color:var(--green)">Completou</span>' : '<span style="color:var(--orange)">Em curso</span>'}
+    ${vzg ? ' · <span style="color:var(--orange)">🟡 Vizelgolfe</span>' : ''}
   </div>`;
+
   document.getElementById('modal-body').innerHTML = html;
   document.getElementById('modal-overlay').classList.add('on');
 };
