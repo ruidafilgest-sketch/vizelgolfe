@@ -216,17 +216,12 @@ function calcPontosAtleta(prova,atleta,atletas,empates){
     if(ajJ!=null){pts+=Number(ajJ);continue;}
     const pos=calcPos(prova,j,atleta.id,CAT_GRUPO[atleta.categoria],atletas,empates);
     if(pos>=1&&pos<=PONTUACAO.length)pts+=PONTUACAO[pos-1];
-    if(isCampVizela){
-      // Formato peter4voltas: só bonusPeterManha/Tarde (nunca bonusPeter também)
-      // Formato normal: só bonusMini ou bonusPeter (nunca manha/tarde também)
-      if(res.bonusPeterManha)pts+=(prova.bonusPeter||0);
-      else if(res.bonusMiniManha)pts+=(prova.bonusMini||0);
-      if(res.bonusPeterTarde)pts+=(prova.bonusPeter||0);
-      else if(res.bonusMiniTarde)pts+=(prova.bonusMini||0);
-      if(!res.bonusPeterManha&&!res.bonusPeterTarde&&!res.bonusMiniManha&&!res.bonusMiniTarde){
-        if(res.bonusPeter)pts+=(prova.bonusPeter||0);
-        else if(res.bonusMini)pts+=(prova.bonusMini||0);
-      }
+    if(isCampVizela&&res){
+      const b=prova.bonusMini||1;
+      if(res.bonusMini)pts+=b;
+      if(res.bonusPeter)pts+=(prova.bonusPeter||b);
+      if(res.bonusPeterManha)pts+=(prova.bonusPeter||b);
+      if(res.bonusPeterTarde)pts+=(prova.bonusPeter||b);
     }
   }
   if(isCampVizela&&prova.bonusCompleto){
@@ -361,7 +356,7 @@ function renderInterno() {
           vc+=`<td class="td-tot" style="${corTotal(a.total,nV,'peter')}">${a.total!=null?a.total:'—'}</td>`;
         }
       }
-      html+=`<tr class="${cls}"><td class="td-pos">${i+1}</td><td><div class="td-name">${a.nome}</div>${isGeral?`<div class="td-sub">${a.det}</div>`:''}</td>
+      html+=`<tr class="${cls}"><td class="td-pos">${i+1}</td><td><div class="td-name">${a.nome}</div></td>
       ${isGeral?`<td class="td-par">${a.totalTacadas}</td><td class="td-tot">${a.pts}</td>`:vc}
       </tr>`;
     });
