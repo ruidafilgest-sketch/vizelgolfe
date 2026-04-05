@@ -1655,6 +1655,11 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
 function isGrupoA(cat) {
   return cat === 'Homens' || cat === 'Senhoras';
 }
+function isVzg(clube, nome) {
+  const c = (clube||'').toLowerCase();
+  const n = (nome||'').toLowerCase();
+  return c.includes('vizela') || n.includes('vizela');
+}
 
 // ── FUNÇÕES DE COR ──
 function corVolta(campo, v) {
