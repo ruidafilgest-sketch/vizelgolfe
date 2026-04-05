@@ -269,6 +269,9 @@ tr:hover td{background:rgba(0,0,0,0.02);}
       <div class="nav-item admin-only" onclick="irPara('desempates')">
         <span class="ico">⚖️</span><span class="label">Desempates</span>
       </div>
+      <div class="nav-item admin-only" onclick="irPara('ajuste')">
+        <span class="ico">🎯</span><span class="label">Ajuste Pontos</span>
+      </div>
       <div class="nav-section">Outros</div>
       <div class="nav-item" onclick="irPara('stats')">
         <span class="ico">📈</span><span class="label">Estatísticas</span>
@@ -464,6 +467,23 @@ tr:hover td{background:rgba(0,0,0,0.02);}
         <div id="desempates-conteudo"><div style="padding:40px;text-align:center;color:var(--dim)">A carregar...</div></div>
       </div>
 
+      <!-- AJUSTE MANUAL DE PONTOS (admin) -->
+      <div class="secao" id="sec-ajuste">
+        <div class="card-titulo" style="margin-bottom:16px">🎯 Ajuste Manual de Pontos</div>
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:0.82rem;color:var(--silver);margin-bottom:12px">
+            Define pontos manualmente por atleta e por jornada. Os valores manuais têm prioridade sobre o cálculo automático. Deixa em branco para usar o cálculo automático.
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Prova</label>
+              <select id="ajuste-sel-prova" onchange="renderAjuste()"></select>
+            </div>
+          </div>
+        </div>
+        <div id="ajuste-conteudo"></div>
+      </div>
+
       <!-- GERIR (admin) -->
       <div class="secao" id="sec-gerir">
         <div class="card">
@@ -565,7 +585,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1401,6 +1421,7 @@ window.irPara = function(sec) {
   if (sec === 'inserir') renderInserir();
   if (sec === 'gerir') renderGerir();
   if (sec === 'desempates') renderDesempates();
+  if (sec === 'ajuste') renderAjusteInit();
   if (sec === 'nacional') renderNacional();
   if (sec === 'stats') renderStats();
 };
@@ -1593,12 +1614,16 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
       let pts=0, jPart=0;
       const jInicio = jFiltro||1;
       const jFim = jFiltro||(prova.jornadas||1);
+      const ajustes = dadosInt.ajustesPontos||{};
       for (let j=jInicio;j<=jFim;j++) {
         const res=prova.resultados?.[j]?.[a.id];
         if (!res) continue;
         const tot=calcTotal(prova,j,res);
         if (tot==null) continue;
         jPart++;
+        // Ajuste manual tem prioridade
+        const ajJ = ajustes?.[prova.id]?.[a.id]?.[j] ?? ajustes?.[prova.id]?.[String(a.id)]?.[j];
+        if (ajJ != null) { pts += Number(ajJ); continue; }
         const pos=calcPos(prova,j,a.id,CAT_GRUPO[cat],atletas,empates);
         if (pos>=1&&pos<=PONTUACAO.length) pts+=PONTUACAO[pos-1];
         if (res.bonusMini) pts+=(prova.bonusMini||0);
@@ -1911,6 +1936,201 @@ function calcTotal(prova,j,res){
   if(vals.length<campos.length)return null;
   return vals.reduce((a,b)=>a+b,0);
 }
+// ── AJUSTE MANUAL DE PONTOS ──
+function renderAjusteInit() {
+  if (!dadosInt) return;
+  const sel = document.getElementById('ajuste-sel-prova');
+  if (sel.options.length === 0) {
+    sel.innerHTML = '<option value="">— Escolher prova —</option>' +
+      (dadosInt.provas || []).map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  }
+  renderAjuste();
+}
+
+window.renderAjuste = function() {
+  if (!dadosInt) return;
+  const provaId = parseInt(document.getElementById('ajuste-sel-prova').value);
+  const div = document.getElementById('ajuste-conteudo');
+  if (!provaId) { div.innerHTML = ''; return; }
+  const prova = (dadosInt.provas || []).find(p => p.id === provaId);
+  if (!prova) return;
+
+  const atletas = dadosInt.atletas || [];
+  const nJ = prova.jornadas || 1;
+  const ajustes = dadosInt.ajustesPontos || {};
+  // ajustes[provaId][atletaId][j] = pontos manuais
+
+  let html = '';
+
+  // Cabeçalho de aviso
+  html += `<div style="padding:10px 14px;background:rgba(212,130,10,0.08);border-left:3px solid var(--orange);border-radius:6px;font-size:0.78rem;color:var(--orange);margin-bottom:16px">
+    ⚠️ Os valores aqui inseridos substituem o cálculo automático. Deixa em branco para manter o automático.
+  </div>`;
+
+  // Por categoria
+  CATEGORIAS.forEach(cat => {
+    const catAtl = atletas.filter(a => a.categoria === cat);
+    if (!catAtl.length) return;
+
+    // Calcular pontos automáticos para referência
+    const empates = dadosInt.empates || {};
+    const grupo = CAT_GRUPO[cat] || cat;
+
+    html += `<div class="card" style="margin-bottom:16px;overflow-x:auto">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:3px;color:var(--navy);margin-bottom:12px">${cat}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+      <thead><tr style="border-bottom:2px solid var(--sep);color:var(--dim);font-size:0.72rem;text-transform:uppercase;letter-spacing:1px">
+        <th style="padding:6px 4px;text-align:left">Atleta</th>`;
+    for (let j = 1; j <= nJ; j++) {
+      html += `<th style="padding:6px 4px;text-align:center;min-width:90px">J${j}<br><span style="font-size:0.65rem;color:var(--dim);font-weight:400">(auto)</span></th>`;
+    }
+    html += `<th style="padding:6px 4px;text-align:center">Total</th>`;
+    html += `</tr></thead><tbody>`;
+
+    catAtl.sort((a,b) => a.nome.localeCompare(b.nome,'pt')).forEach(a => {
+      html += `<tr style="border-bottom:1px solid var(--sep)" id="ajrow_${provaId}_${a.id}">`;
+      html += `<td style="padding:7px 4px;font-weight:600;white-space:nowrap">${a.nome}</td>`;
+
+      let totalManual = 0, totalAuto = 0;
+      for (let j = 1; j <= nJ; j++) {
+        // Calcular pontos automáticos desta jornada
+        const res = prova.resultados?.[j]?.[a.id] || prova.resultados?.[j]?.[String(a.id)];
+        let autoJ = 0;
+        if (res && calcTotal(prova, j, res) != null) {
+          const pos = calcPos(prova, j, a.id, grupo, atletas, empates);
+          if (pos >= 1 && pos <= PONTUACAO.length) autoJ = PONTUACAO[pos - 1];
+          if (_isCampVizela(prova)) {
+            const b = prova.bonusMini || 1;
+            if (res.bonusMini) autoJ += b;
+            if (res.bonusPeter) autoJ += b;
+            if (res.bonusPeterManha) autoJ += b;
+            if (res.bonusPeterTarde) autoJ += b;
+          }
+        }
+        totalAuto += autoJ;
+
+        // Valor manual guardado
+        const manualJ = ajustes?.[provaId]?.[a.id]?.[j];
+        const temManual = manualJ != null && manualJ !== '';
+        const valorInput = temManual ? manualJ : '';
+        const ptsMostrar = temManual ? manualJ : (autoJ || '');
+
+        html += `<td style="padding:4px 2px;text-align:center">
+          <div style="display:flex;align-items:center;justify-content:center;gap:4px">
+            <span style="font-size:0.72rem;color:var(--dim);min-width:24px">${autoJ || '—'}</span>
+            <input type="number" min="0" max="100"
+              id="aj_${provaId}_${a.id}_${j}"
+              value="${valorInput}"
+              placeholder="${autoJ || '0'}"
+              style="width:52px;text-align:center;padding:4px;border:1px solid ${temManual ? 'var(--orange)' : 'var(--sep)'};border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;background:${temManual ? 'rgba(212,130,10,0.08)' : 'var(--bg2)'}"
+              oninput="atualizarTotalAjuste(${provaId},${a.id},${nJ})">
+          </div>
+        </td>`;
+
+        totalManual += temManual ? Number(manualJ) : autoJ;
+      }
+
+      html += `<td style="padding:7px 4px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--orange)" id="ajtot_${provaId}_${a.id}">${totalManual}</td>`;
+      html += `</tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  });
+
+  html += `<div style="display:flex;gap:10px;margin-top:8px">
+    <button class="btn btn-primary" onclick="guardarAjustes(${provaId})" style="padding:8px 24px">💾 Guardar Ajustes</button>
+    <button class="btn btn-secondary" onclick="limparTodosAjustes(${provaId})" style="padding:8px 16px">🗑️ Limpar Todos os Ajustes</button>
+    <span id="ajuste-msg" style="font-size:0.82rem;color:var(--green);align-self:center"></span>
+  </div>`;
+
+  div.innerHTML = html;
+};
+
+window.atualizarTotalAjuste = function(provaId, atletaId, nJ) {
+  const prova = (dadosInt?.provas||[]).find(p=>p.id==provaId);
+  if (!prova) return;
+  const atletas = dadosInt.atletas || [];
+  const empates = dadosInt.empates || {};
+  const ajustes = dadosInt.ajustesPontos || {};
+  const grupo = CAT_GRUPO[(atletas.find(a=>a.id==atletaId)||{}).categoria] || 'Homens';
+  let total = 0;
+  for (let j = 1; j <= nJ; j++) {
+    const el = document.getElementById(`aj_${provaId}_${atletaId}_${j}`);
+    if (!el) continue;
+    const v = el.value.trim();
+    if (v !== '') {
+      total += Number(v);
+      el.style.borderColor = 'var(--orange)';
+      el.style.background = 'rgba(212,130,10,0.08)';
+    } else {
+      // usar automático
+      const res = prova.resultados?.[j]?.[atletaId] || prova.resultados?.[j]?.[String(atletaId)];
+      let autoJ = 0;
+      if (res && calcTotal(prova, j, res) != null) {
+        const pos = calcPos(prova, j, atletaId, grupo, atletas, empates);
+        if (pos >= 1 && pos <= PONTUACAO.length) autoJ = PONTUACAO[pos - 1];
+        if (_isCampVizela(prova)) {
+          const b = prova.bonusMini || 1;
+          if (res.bonusMini) autoJ += b;
+          if (res.bonusPeter) autoJ += b;
+          if (res.bonusPeterManha) autoJ += b;
+          if (res.bonusPeterTarde) autoJ += b;
+        }
+      }
+      total += autoJ;
+      el.style.borderColor = 'var(--sep)';
+      el.style.background = 'var(--bg2)';
+    }
+  }
+  const totEl = document.getElementById(`ajtot_${provaId}_${atletaId}`);
+  if (totEl) totEl.textContent = total;
+};
+
+window.guardarAjustes = async function(provaId) {
+  if (!dadosInt || !modoAdmin) return;
+  if (!dadosInt.ajustesPontos) dadosInt.ajustesPontos = {};
+  if (!dadosInt.ajustesPontos[provaId]) dadosInt.ajustesPontos[provaId] = {};
+  const prova = (dadosInt.provas||[]).find(p=>p.id==provaId);
+  if (!prova) return;
+  const atletas = dadosInt.atletas || [];
+  const nJ = prova.jornadas || 1;
+  const msg = document.getElementById('ajuste-msg');
+
+  atletas.forEach(a => {
+    if (!dadosInt.ajustesPontos[provaId][a.id]) dadosInt.ajustesPontos[provaId][a.id] = {};
+    for (let j = 1; j <= nJ; j++) {
+      const el = document.getElementById(`aj_${provaId}_${a.id}_${j}`);
+      if (!el) continue;
+      const v = el.value.trim();
+      if (v !== '' && !isNaN(Number(v))) {
+        dadosInt.ajustesPontos[provaId][a.id][j] = Number(v);
+      } else {
+        delete dadosInt.ajustesPontos[provaId][a.id][j];
+      }
+    }
+  });
+
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    if (msg) { msg.style.color='var(--green)'; msg.textContent='✅ Ajustes guardados!'; setTimeout(()=>msg.textContent='',3000); }
+    mostrarNotif('✅ Ajustes guardados!');
+  } catch(e) {
+    if (msg) { msg.style.color='#cc2222'; msg.textContent='❌ Erro: '+e.message; }
+    mostrarNotif('❌ Erro ao guardar!', true);
+  }
+};
+
+window.limparTodosAjustes = async function(provaId) {
+  if (!dadosInt || !modoAdmin) return;
+  if (!confirm('Limpar todos os ajustes manuais desta prova? O cálculo automático volta a ser usado.')) return;
+  if (dadosInt.ajustesPontos) delete dadosInt.ajustesPontos[provaId];
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    mostrarNotif('Ajustes limpos.');
+    renderAjuste();
+  } catch(e) { mostrarNotif('❌ Erro: '+e.message, true); }
+};
+
 // ── DESEMPATES ──
 function renderDesempates() {
   const div = document.getElementById('desempates-conteudo');
@@ -2159,10 +2379,17 @@ function calcPos(prova,j,atletaId,grupo,atletas,empates){
 function calcPontosAtletaEpoca(atletaId,categoria){
   if(!dadosInt)return 0;
   const provas=dadosInt.provas||[],atletas=dadosInt.atletas||[],empates=dadosInt.empates||{};
+  const ajustes=dadosInt.ajustesPontos||{};
   const grupo=CAT_GRUPO[categoria]||categoria;let pts=0;
   provas.forEach(p=>{
     const isCViz=_isCampVizela(p);
     for(let j=1;j<=(p.jornadas||1);j++){
+      // Verificar se há ajuste manual para esta jornada
+      const ajJ=ajustes?.[p.id]?.[atletaId]?.[j]??ajustes?.[p.id]?.[String(atletaId)]?.[j];
+      if(ajJ!=null){
+        pts+=Number(ajJ);
+        continue;
+      }
       const res=p.resultados?.[j]?.[atletaId]||p.resultados?.[j]?.[String(atletaId)];
       if(!calcTotal(p,j,res))continue;
       const pos=calcPos(p,j,atletaId,grupo,atletas,empates);
