@@ -565,7 +565,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1921,6 +1921,58 @@ function renderDesempates() {
   const empatesGravados = dadosInt.empates || {};
   const provas = dadosInt.provas || [];
 
+  // ── PAINEL DE DIAGNÓSTICO ──
+  let diagHtml = `<div style="margin-bottom:20px">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);margin-bottom:10px">🔍 Diagnóstico de Totais por Jornada</div>`;
+
+  provas.forEach(prova => {
+    for (let j = 1; j <= (prova.jornadas || 1); j++) {
+      const jRes = prova.resultados?.[j];
+      if (!jRes || !Object.keys(jRes).length) continue;
+
+      // Grupo Homens (inclui Juniores)
+      const doGrupo = atletas.filter(a => (CAT_GRUPO[a.categoria] || a.categoria) === 'Homens');
+      const linhas = doGrupo.map(a => {
+        const r = jRes[String(a.id)] || jRes[a.id];
+        const t = r ? calcTotal(prova, j, r) : null;
+        const campos = r ? `mV1=${r.mV1||'—'} mV2=${r.mV2||'—'} pV1=${r.pV1||'—'} pV2=${r.pV2||'—'}` : 'sem dados';
+        return { nome: a.nome, cat: a.categoria, t, campos };
+      }).sort((a, b) => {
+        if (a.t === null && b.t === null) return 0;
+        if (a.t === null) return 1;
+        if (b.t === null) return -1;
+        return a.t - b.t;
+      });
+
+      diagHtml += `<div class="card" style="margin-bottom:10px;overflow-x:auto">
+        <div style="font-size:0.8rem;font-weight:700;color:var(--orange);margin-bottom:8px">${prova.nome} — J${j} — Grupo Homens</div>
+        <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+        <thead><tr style="border-bottom:1px solid var(--sep);color:var(--dim)">
+          <th style="text-align:left;padding:4px">Pos</th>
+          <th style="text-align:left;padding:4px">Nome</th>
+          <th style="text-align:left;padding:4px">Cat</th>
+          <th style="text-align:center;padding:4px">Total</th>
+          <th style="text-align:left;padding:4px;font-size:0.7rem">Campos Firebase</th>
+        </tr></thead><tbody>`;
+
+      let pos = 0;
+      linhas.forEach(l => {
+        if (l.t !== null) pos++;
+        const corTotal = l.t === null ? 'color:var(--dim)' : 'color:var(--orange);font-weight:700';
+        diagHtml += `<tr style="border-bottom:1px solid var(--sep)">
+          <td style="padding:4px">${l.t !== null ? pos + 'º' : '—'}</td>
+          <td style="padding:4px;font-weight:600">${l.nome}</td>
+          <td style="padding:4px;color:var(--dim);font-size:0.72rem">${l.cat}</td>
+          <td style="padding:4px;text-align:center;${corTotal}">${l.t !== null ? l.t : 'SEM TOTAL'}</td>
+          <td style="padding:4px;color:var(--dim);font-size:0.7rem">${l.campos}</td>
+        </tr>`;
+      });
+
+      diagHtml += `</tbody></table></div>`;
+    }
+  });
+  diagHtml += `</div>`;
+
   // Recolher todos os empates possíveis (totais e bónus) em todas as provas/jornadas
   const todosEmpates = [];
 
@@ -2043,7 +2095,7 @@ function renderDesempates() {
   html += renderGrupoEmpates(porResolver, '⚠️ Por Resolver', '#cc2222');
   html += renderGrupoEmpates(resolvidos,  '✅ Resolvidos',   'var(--green)');
 
-  div.innerHTML = html;
+  div.innerHTML = diagHtml + html;
 }
 
 window.resolverEmpate = async function(key, atletaId) {
