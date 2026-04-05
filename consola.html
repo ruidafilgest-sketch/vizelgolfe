@@ -1651,6 +1651,11 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
   cont.innerHTML = html || '<div style="color:var(--dim);padding:20px">Sem resultados.</div>';
 };
 
+// ── GRUPO NACIONAL ──
+function isGrupoA(cat) {
+  return cat === 'Homens' || cat === 'Senhoras';
+}
+
 // ── FUNÇÕES DE COR ──
 function corVolta(campo, v) {
   const n = Number(v); if (!n || n <= 0) return '';
