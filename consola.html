@@ -556,7 +556,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
           <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
             <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
             <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
-            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+            <p><strong>Piscar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
           </div>
         </div>
         <div class="card" style="margin-bottom:14px">
@@ -1616,6 +1616,281 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
   cont.innerHTML = html || '<div style="color:var(--dim);padding:20px">Sem resultados.</div>';
 };
 
+// ── INSERIR RESULTADOS ──
+function renderInserir() {
+  if (!dadosInt) { document.getElementById('inserir-conteudo').innerHTML = '<div style="padding:40px;text-align:center;color:var(--dim)">A carregar...</div>'; return; }
+  const selProva = document.getElementById('sel-prova');
+  const provas = dadosInt.provas || [];
+  // Preencher select de provas se ainda não está preenchido
+  if (selProva.options.length === 0) {
+    selProva.innerHTML = '<option value="">— Escolher prova —</option>' +
+      provas.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  }
+  // Se há prova selecionada, garantir que jornada está em sync
+  const provaId = parseInt(selProva.value);
+  if (!provaId) {
+    document.getElementById('grp-jornada').style.display = 'none';
+    document.getElementById('inserir-conteudo').innerHTML = '<div style="padding:40px;text-align:center;color:var(--dim)">Escolhe uma prova para inserir resultados.</div>';
+    return;
+  }
+  onProvaChange();
+}
+
+window.onProvaChange = function() {
+  if (!dadosInt) return;
+  const selProva = document.getElementById('sel-prova');
+  const selJornada = document.getElementById('sel-jornada');
+  const grpJornada = document.getElementById('grp-jornada');
+  const provaId = parseInt(selProva.value);
+  if (!provaId) {
+    grpJornada.style.display = 'none';
+    document.getElementById('inserir-conteudo').innerHTML = '';
+    return;
+  }
+  const prova = (dadosInt.provas || []).find(p => p.id === provaId);
+  if (!prova) return;
+  const nJornadas = prova.jornadas || 1;
+  if (nJornadas > 1) {
+    grpJornada.style.display = '';
+    selJornada.innerHTML = Array.from({length: nJornadas}, (_,i) =>
+      `<option value="${i+1}">Jornada ${i+1}</option>`).join('');
+  } else {
+    grpJornada.style.display = 'none';
+    selJornada.innerHTML = '<option value="1">Jornada 1</option>';
+  }
+  renderFormInserir(prova, 1);
+};
+
+window.onJornadaChange = function() {
+  if (!dadosInt) return;
+  const provaId = parseInt(document.getElementById('sel-prova').value);
+  const jornada = parseInt(document.getElementById('sel-jornada').value) || 1;
+  const prova = (dadosInt.provas || []).find(p => p.id === provaId);
+  if (prova) renderFormInserir(prova, jornada);
+};
+
+function _corInserir(campo, val) {
+  const v = Number(val);
+  if (!v || v <= 0) return '';
+  if (v === 126) return 'background:#1a1e28;color:#fff';
+  if (campo.startsWith('m')) {
+    if (v <= 19) return 'background:#1e5fa8;color:#fff';
+    if (v <= 24) return 'background:#1a8a4a;color:#fff';
+    if (v <= 29) return 'background:#cc2222;color:#fff';
+    return 'background:#111;color:#fff';
+  } else {
+    if (v <= 24) return 'background:#1e5fa8;color:#fff';
+    if (v <= 29) return 'background:#1a8a4a;color:#fff';
+    if (v <= 35) return 'background:#cc2222;color:#fff';
+    return 'background:#111;color:#fff';
+  }
+}
+
+function renderFormInserir(prova, jornada) {
+  const div = document.getElementById('inserir-conteudo');
+  if (!dadosInt || !modoAdmin) {
+    div.innerHTML = '<div style="padding:30px;text-align:center;color:var(--dim)">Sem permissões de edição.</div>';
+    return;
+  }
+  const atletas = dadosInt.atletas || [];
+  const esp = prova.jornadaEspecial?.[jornada];
+  const isP4 = esp?.tipo === 'peter4voltas';
+  const isCViz = _isCampVizela(prova);
+  const campos = isP4
+    ? [{id:'pV1',l:'Peter V1'},{id:'pV2',l:'Peter V2'},{id:'pV3',l:'Peter V3'},{id:'pV4',l:'Peter V4'}]
+    : [{id:'mV1',l:'Mini V1'},{id:'mV2',l:'Mini V2'},{id:'pV1',l:'Peter V1'},{id:'pV2',l:'Peter V2'}];
+
+  // Agrupar atletas por grupo de classificação
+  const grupos = {};
+  atletas.forEach(a => {
+    const g = CAT_GRUPO[a.categoria] || a.categoria;
+    if (!grupos[g]) grupos[g] = [];
+    grupos[g].push(a);
+  });
+
+  const jRes = prova.resultados?.[jornada] || {};
+
+  let html = `<div style="margin-top:12px">`;
+  html += `<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">`;
+  html += `<button class="btn btn-primary" onclick="guardarResultados(${prova.id},${jornada})" style="padding:8px 24px">💾 Guardar Resultados</button>`;
+  if (isCViz) {
+    html += `<button class="btn btn-secondary" onclick="recalcBonusJornada(${prova.id},${jornada})" style="padding:8px 16px">⚡ Recalcular Bónus J${jornada}</button>`;
+  }
+  html += `<span id="inserir-msg" style="font-size:0.82rem;color:var(--green)"></span>`;
+  html += `</div>`;
+
+  // Tabela por grupo
+  Object.keys(grupos).forEach(grupo => {
+    const atls = grupos[grupo].sort((a,b) => a.nome.localeCompare(b.nome,'pt'));
+    html += `<div class="card" style="margin-bottom:16px;overflow-x:auto">`;
+    html += `<div style="font-family:'Bebas Neue',sans-serif;font-size:0.95rem;letter-spacing:3px;color:var(--navy);margin-bottom:10px">${grupo}</div>`;
+    html += `<table style="width:100%;border-collapse:collapse;font-size:0.85rem">`;
+    html += `<thead><tr style="border-bottom:2px solid var(--sep);color:var(--dim);font-size:0.72rem;text-transform:uppercase;letter-spacing:1px">`;
+    html += `<th style="padding:6px 4px;text-align:left">Atleta</th>`;
+    campos.forEach(c => {
+      html += `<th style="padding:6px 4px;text-align:center;min-width:72px">${c.l}</th>`;
+    });
+    html += `<th style="padding:6px 4px;text-align:center">Total</th>`;
+    if (isCViz) {
+      if (isP4) {
+        html += `<th style="padding:6px 4px;text-align:center;color:var(--orange)">Bón.Manhã</th>`;
+        html += `<th style="padding:6px 4px;text-align:center;color:var(--orange)">Bón.Tarde</th>`;
+      } else {
+        html += `<th style="padding:6px 4px;text-align:center;color:var(--orange)">Bón.Mini</th>`;
+        html += `<th style="padding:6px 4px;text-align:center;color:var(--orange)">Bón.Peter</th>`;
+      }
+    }
+    html += `</tr></thead><tbody>`;
+
+    atls.forEach(a => {
+      const r = jRes[String(a.id)] || jRes[a.id] || {};
+      const tot = calcTotal(prova, jornada, r);
+      const totStr = tot != null ? tot : '';
+      const bonM  = isP4 ? (r.bonusPeterManha ? '✅' : '') : (r.bonusMini ? '✅' : '');
+      const bonP  = isP4 ? (r.bonusPeterTarde ? '✅' : '') : (r.bonusPeter ? '✅' : '');
+
+      html += `<tr style="border-bottom:1px solid var(--sep)" data-atleta-id="${a.id}">`;
+      html += `<td style="padding:7px 4px;font-weight:600;white-space:nowrap">${a.nome}`;
+      if (CAT_DUPLA.includes(a.categoria)) html += ` <span style="font-size:0.68rem;color:var(--orange);font-weight:400">(${a.categoria})</span>`;
+      html += `</td>`;
+
+      campos.forEach(c => {
+        const val = r[c.id] != null ? r[c.id] : '';
+        const estilo = val ? _corInserir(c.id, val) : '';
+        html += `<td style="padding:4px 2px;text-align:center">
+          <input type="number" min="18" max="126"
+            id="inp_${a.id}_${c.id}"
+            value="${val}"
+            style="width:64px;text-align:center;padding:5px 4px;border:1px solid var(--sep);border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;${estilo}"
+            oninput="atualizarTotalInserir(${a.id},'${prova.id}',${jornada})"
+            onchange="atualizarTotalInserir(${a.id},'${prova.id}',${jornada})">
+        </td>`;
+      });
+
+      html += `<td style="padding:7px 4px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--orange)" id="tot_${a.id}">${totStr}</td>`;
+      if (isCViz) {
+        html += `<td style="padding:7px 4px;text-align:center;font-size:0.9rem" id="bm_${a.id}">${bonM}</td>`;
+        html += `<td style="padding:7px 4px;text-align:center;font-size:0.9rem" id="bp_${a.id}">${bonP}</td>`;
+      }
+      html += `</tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  });
+
+  html += `<div style="margin-top:8px;display:flex;gap:10px">`;
+  html += `<button class="btn btn-primary" onclick="guardarResultados(${prova.id},${jornada})" style="padding:8px 24px">💾 Guardar Resultados</button>`;
+  if (isCViz) {
+    html += `<button class="btn btn-secondary" onclick="recalcBonusJornada(${prova.id},${jornada})" style="padding:8px 16px">⚡ Recalcular Bónus J${jornada}</button>`;
+  }
+  html += `</div></div>`;
+
+  div.innerHTML = html;
+}
+
+window.atualizarTotalInserir = function(atletaId, provaId, jornada) {
+  const prova = (dadosInt?.provas||[]).find(p=>p.id==provaId);
+  if (!prova) return;
+  const esp = prova.jornadaEspecial?.[jornada];
+  const isP4 = esp?.tipo === 'peter4voltas';
+  const campos = isP4
+    ? ['pV1','pV2','pV3','pV4']
+    : ['mV1','mV2','pV1','pV2'];
+  const vals = campos.map(c => {
+    const el = document.getElementById(`inp_${atletaId}_${c}`);
+    const v = el ? Number(el.value) : 0;
+    // aplicar cor ao input
+    if (el && el.value) {
+      const sty = _corInserir(c, v);
+      el.style.cssText = `width:64px;text-align:center;padding:5px 4px;border:1px solid var(--sep);border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;${sty}`;
+    }
+    return v;
+  });
+  const completo = vals.every(v => v > 0);
+  const tot = completo ? vals.reduce((a,b)=>a+b,0) : '';
+  const totEl = document.getElementById(`tot_${atletaId}`);
+  if (totEl) totEl.textContent = tot;
+};
+
+window.guardarResultados = async function(provaId, jornada) {
+  if (!dadosInt || !modoAdmin) return;
+  const prova = (dadosInt.provas||[]).find(p=>p.id==provaId);
+  if (!prova) return;
+  const atletas = dadosInt.atletas || [];
+  const esp = prova.jornadaEspecial?.[jornada];
+  const isP4 = esp?.tipo === 'peter4voltas';
+  const campos = isP4 ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
+  const msg = document.getElementById('inserir-msg');
+
+  if (!prova.resultados) prova.resultados = {};
+  if (!prova.resultados[jornada]) prova.resultados[jornada] = {};
+  const jRes = prova.resultados[jornada];
+
+  atletas.forEach(a => {
+    const vals = {};
+    let temAlgum = false;
+    campos.forEach(c => {
+      const el = document.getElementById(`inp_${a.id}_${c}`);
+      if (el && el.value !== '') {
+        const v = Number(el.value);
+        if (v > 0) { vals[c] = v; temAlgum = true; }
+      }
+    });
+    if (temAlgum) {
+      // Manter bónus existentes ao guardar
+      const existing = jRes[String(a.id)] || jRes[a.id] || {};
+      jRes[String(a.id)] = {
+        ...existing,
+        ...vals
+      };
+    } else {
+      // Se todos os campos estão vazios, remover o atleta dos resultados desta jornada
+      delete jRes[String(a.id)];
+      delete jRes[a.id];
+    }
+  });
+
+  // Recalcular bónus automaticamente se for Campeonato de Vizela
+  if (_isCampVizela(prova)) {
+    aplicarBonusNosResultados(prova, jornada, calcularBonusAuto(prova, jornada, atletas));
+    // Atualizar indicadores de bónus no ecrã
+    atletas.forEach(a => {
+      const r = jRes[String(a.id)] || {};
+      const bmEl = document.getElementById(`bm_${a.id}`);
+      const bpEl = document.getElementById(`bp_${a.id}`);
+      if (bmEl) bmEl.textContent = isP4 ? (r.bonusPeterManha ? '✅' : '') : (r.bonusMini ? '✅' : '');
+      if (bpEl) bpEl.textContent = isP4 ? (r.bonusPeterTarde ? '✅' : '') : (r.bonusPeter ? '✅' : '');
+    });
+  }
+
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    if (msg) { msg.style.color='var(--green)'; msg.textContent='✅ Guardado com sucesso!'; setTimeout(()=>msg.textContent='',3000); }
+    mostrarNotif('✅ Resultados guardados!');
+  } catch(e) {
+    if (msg) { msg.style.color='#cc2222'; msg.textContent='❌ Erro: '+e.message; }
+    mostrarNotif('❌ Erro ao guardar!', true);
+  }
+};
+
+window.recalcBonusJornada = async function(provaId, jornada) {
+  if (!dadosInt || !modoAdmin) return;
+  const prova = (dadosInt.provas||[]).find(p=>p.id==provaId);
+  if (!prova || !_isCampVizela(prova)) return;
+  const atletas = dadosInt.atletas || [];
+  const jRes = prova.resultados?.[jornada];
+  if (!jRes || !Object.keys(jRes).length) { mostrarNotif('Sem resultados nesta jornada.',true); return; }
+  aplicarBonusNosResultados(prova, jornada, calcularBonusAuto(prova, jornada, atletas));
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    mostrarNotif('✅ Bónus recalculados!');
+    // Rerender para mostrar bónus atualizados
+    renderFormInserir(prova, jornada);
+  } catch(e) {
+    mostrarNotif('❌ Erro: '+e.message, true);
+  }
+};
+
 function _isCampVizela(p){return !!(p.nome&&p.nome.includes('Vizela')&&p.tipo==='campeonato');}
 function _melhorVoltaIndividual(res,c1,c2){const v=[Number(res[c1])||0,Number(res[c2])||0].filter(v=>v>0&&v!==126);return v.length?Math.min(...v):null;}
 function calcTotal(prova,j,res){
@@ -1630,7 +1905,35 @@ function calcPos(prova,j,atletaId,grupo,atletas,empates){
   const jRes=prova.resultados?.[j];if(!jRes)return 999;
   const doGrupo=atletas.filter(a=>(CAT_GRUPO[a.categoria]||a.categoria)===grupo);
   const totais=doGrupo.map(a=>{const r=jRes[String(a.id)]||jRes[a.id];const t=r?(calcTotal(prova,j,r)??9999):9999;return{id:a.id,t};}).filter(x=>x.t<9999);
-  totais.sort((a,b)=>{if(a.t!==b.t)return a.t-b.t;const k=`${prova.id}_j${j}_pos_${grupo.replace(/ /g,'_')}_${a.t}`;const v=empates?.[k];if(v)return parseInt(v)===a.id?-1:1;return a.id-b.id;});
+
+  // Agrupar atletas por total para detectar empates
+  const porTotal={};
+  totais.forEach(x=>{if(!porTotal[x.t])porTotal[x.t]=[];porTotal[x.t].push(x.id);});
+
+  // Para cada grupo empatado, atribuir ordem explícita via empates[k]
+  // A chave regista o ID do vencedor do desempate; os restantes ficam ordenados por id (estável)
+  totais.sort((a,b)=>{
+    if(a.t!==b.t) return a.t-b.t;
+    // Mesmo total — verificar desempate registado
+    const k=`${prova.id}_j${j}_pos_${grupo.replace(/ /g,'_')}_${a.t}`;
+    const v=empates?.[k]; // v é array JSON ou id do vencedor (legado: string com id)
+    if(v){
+      // Suporte a formato array: ["id1","id2",...] ordem explícita
+      if(Array.isArray(v)){
+        const posA=v.indexOf(String(a.id));
+        const posB=v.indexOf(String(b.id));
+        if(posA!==-1&&posB!==-1) return posA-posB;
+        if(posA!==-1) return -1;
+        if(posB!==-1) return 1;
+      }
+      // Formato legado: string com id do vencedor
+      const vid=parseInt(v);
+      if(a.id===vid&&b.id!==vid) return -1;
+      if(b.id===vid&&a.id!==vid) return 1;
+    }
+    return a.id-b.id; // sem desempate registado: ordem por id (estável)
+  });
+
   const i=totais.findIndex(x=>x.id==atletaId||x.id===parseInt(atletaId));return i>=0?i+1:999;
 }
 function calcPontosAtletaEpoca(atletaId,categoria){
