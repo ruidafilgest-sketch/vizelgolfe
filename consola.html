@@ -2875,6 +2875,140 @@ window.abrirModalNac = function(a) {
   document.getElementById('modal-overlay').classList.add('on');
 };
 
+// ── DETALHE PISTA A PISTA (nacional) ──
+window.abrirDetalheNac = async function(url, nome, clube, cat, vertente) {
+  const vzg = isVzg(clube, nome);
+  document.getElementById('modal-nome').textContent = (vzg ? '🟡 ' : '') + nome;
+  document.getElementById('modal-meta').textContent = clube + ' · ' + (cat||'') + ' · A carregar...';
+  document.getElementById('modal-body').innerHTML = '<div style="padding:24px;text-align:center;color:var(--dim)">⏳ A carregar detalhe pista a pista...</div>';
+  document.getElementById('modal-overlay').classList.add('on');
+
+  try {
+    const workerUrl = WORKER_URL + '?url=' + encodeURIComponent(url);
+    const resp = await fetch(workerUrl, {signal: AbortSignal.timeout(15000)});
+    if (!resp.ok) throw new Error('Erro ' + resp.status);
+    const html = await resp.text();
+
+    // Parse pista a pista
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Tentar extrair tabela de resultados pista a pista
+    const isMini = (vertente === 'mini');
+    const colores = isMini
+      ? {1:'#2563eb', 2:'#16a34a', 3:'#dc2626', max:'#444'}
+      : {1:'#2563eb', 2:'#2563eb', 3:'#16a34a', max:'#dc2626'};
+
+    let pistaRows = [];
+    let total = 0;
+
+    // Bangolfe: tabela com colunas Pista / Resultado / Par (ou similar)
+    const tables = doc.querySelectorAll('table');
+    let found = false;
+    tables.forEach(tbl => {
+      if (found) return;
+      const rows = Array.from(tbl.querySelectorAll('tr'));
+      if (!rows.length) return;
+      const headers = Array.from(rows[0].querySelectorAll('td,th')).map(c => c.textContent.trim().toLowerCase());
+      // Detectar tabela de pistas
+      const hasPista = headers.some(h => h.includes('pista') || h.includes('hole') || h.includes('buraco') || h === '#' || h === 'nr');
+      const hasResult = headers.some(h => h.includes('result') || h.includes('pontos') || h.includes('score') || h.includes('schläge'));
+      if (!hasPista && !hasResult && !headers.some(h => /^\d+$/.test(h))) return;
+
+      // Extrair dados linha a linha
+      const dataRows = rows.slice(1);
+      dataRows.forEach(row => {
+        const cells = Array.from(row.querySelectorAll('td,th')).map(c => c.textContent.trim());
+        if (cells.length < 2) return;
+        const pista = cells[0];
+        const val = parseInt(cells[1]);
+        if (!isNaN(val) && val >= 1 && val <= 20) {
+          pistaRows.push({pista, val});
+          total += val;
+          found = true;
+        }
+      });
+    });
+
+    // Se não encontrou tabela estruturada, tentar extrair de outro modo
+    if (!pistaRows.length) {
+      // Procurar padrão de números em sequência (resultados por pista)
+      const allText = doc.body ? doc.body.innerText : '';
+      const nums = allText.match(/\b([1-9]|1[0-9]|20)\b/g);
+      if (nums && nums.length >= 6) {
+        nums.slice(0, 18).forEach((n, i) => {
+          pistaRows.push({pista: String(i+1), val: parseInt(n)});
+          total += parseInt(n);
+        });
+      }
+    }
+
+    document.getElementById('modal-meta').textContent = clube + ' · ' + (cat||'');
+
+    let bodyHtml = '';
+
+    if (pistaRows.length) {
+      // Função de cor por pista
+      const corPista = (v) => {
+        if (v === 1) return {c:'#2563eb', bg:'rgba(37,99,235,0.12)'};
+        if (v === 2) return {c:'#16a34a', bg:'rgba(22,163,74,0.12)'};
+        if (v >= 3 && v <= 7) return {c:'#555', bg:'rgba(0,0,0,0.06)'};
+        return {c:'inherit', bg:'transparent'};
+      };
+      const emoji = (v) => v===1?'🟢':v===2?'🔴':'⚫';
+
+      // Grid de pistas (3 colunas)
+      bodyHtml += `<div style="margin-bottom:16px">
+        <div style="font-size:0.7rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">
+          Pista a Pista ${isMini?'(Mini)':'(Peter/Felt)'}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px">`;
+
+      pistaRows.forEach(({pista, val}) => {
+        const {c, bg} = corPista(val);
+        bodyHtml += `<div style="background:${bg};border:1px solid ${c}20;border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:0.72rem;color:var(--dim);font-weight:600">P${pista}</span>
+          <span style="font-size:1rem;font-weight:800;color:${c};font-family:'Bebas Neue',sans-serif">${emoji(val)} ${val}</span>
+        </div>`;
+      });
+
+      bodyHtml += `</div>`;
+
+      // Total
+      bodyHtml += `<div style="background:var(--navy);border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
+        <span style="color:rgba(255,255,255,0.7);font-size:0.8rem;letter-spacing:1px;text-transform:uppercase">Total</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--org2)">${total}</span>
+      </div>`;
+
+      // Legenda
+      bodyHtml += `<div style="display:flex;gap:12px;margin-top:10px;font-size:0.7rem;color:var(--dim)">
+        <span>🟢 1 pancada</span><span>🔴 2 pancadas</span><span>⚫ 3+</span>
+      </div>`;
+
+    } else {
+      // Fallback: mostrar link externo
+      bodyHtml = `<div style="padding:16px;background:var(--bg);border-radius:8px;text-align:center">
+        <p style="color:var(--dim);margin-bottom:12px">Não foi possível extrair o detalhe pista a pista.</p>
+        <a href="${url}" target="_blank" style="color:var(--orange);font-weight:700;text-decoration:none">
+          🔗 Ver na Bangolfe
+        </a>
+      </div>`;
+    }
+
+    document.getElementById('modal-body').innerHTML = bodyHtml;
+
+  } catch(e) {
+    document.getElementById('modal-meta').textContent = clube + ' · ' + (cat||'');
+    document.getElementById('modal-body').innerHTML = `
+      <div style="padding:16px;background:var(--bg);border-radius:8px;text-align:center">
+        <p style="color:var(--red);margin-bottom:12px">❌ Erro ao carregar detalhe: ${e.message}</p>
+        <a href="${url}" target="_blank" style="color:var(--orange);font-weight:700;text-decoration:none">
+          🔗 Ver na Bangolfe
+        </a>
+      </div>`;
+  }
+};
+
 // ── CONFIG NACIONAL (admin) ──
 function nacLog(msg, tipo) {
   const div = document.getElementById('nac-log');
