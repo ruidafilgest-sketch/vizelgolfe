@@ -1658,8 +1658,8 @@ function isGrupoA(cat) {
 }
 function isVzg(clube, nome) {
   const c = (clube||'').toLowerCase();
-  const n = (nome||'').toLowerCase();
-  return c.includes('vizela') || n.includes('vizela');
+  // Detecta: "Vizelgolfe", "Vizelglfe" (erro tipográfico bangolfe), "vizela", "vzg"
+  return c.includes('vizelg') || c.includes('vizela') || c.includes('vzg');
 }
 
 // ── FUNÇÕES DE COR ──
@@ -2824,7 +2824,180 @@ function renderNacCategoria() {
 }
 
 window.abrirDetalheOuModal = function(a, vertente, provaUrl) {
-  abrirModalNac(a);
+  if (a.linkAtleta) {
+    const base = provaUrl ? provaUrl.replace(/[^/]+$/, '') : (dadosNac?.url||'').replace(/[^/]+$/, '');
+    const urlCompleto = base + a.linkAtleta;
+    abrirDetalheNacPistaAPista(a, urlCompleto, vertente);
+  } else {
+    abrirModalNac(a);
+  }
+};
+
+window.abrirDetalheNacPistaAPista = async function(a, url, vertente) {
+  const vzg = isVzg(a.clube, a.nome);
+  document.getElementById('modal-nome').textContent = (vzg ? '🟡 ' : '') + a.nome;
+  document.getElementById('modal-meta').textContent = a.clube + ' · ' + (nacAtivo||'') + ' · A carregar...';
+  document.getElementById('modal-body').innerHTML = '<div style="padding:32px;text-align:center;color:var(--dim)">⏳ A carregar pista a pista...</div>';
+  document.getElementById('modal-overlay').classList.add('on');
+
+  try {
+    const workerUrl = WORKER_URL + '?url=' + encodeURIComponent(url);
+    const resp = await fetch(workerUrl, {signal: AbortSignal.timeout(15000)});
+    if (!resp.ok) throw new Error('Worker: ' + resp.status);
+    const htmlText = await resp.text();
+
+    // Parse da página individual do atleta (Bangolfe)
+    // Estrutura: tabela com linhas = pistas (1-18), colunas = voltas (E1..E7 ou B1..B6)
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlText, 'text/html');
+
+    // Encontrar a tabela com dados pista a pista
+    // A tabela tem: coluna 0 = nº pista, coluna 1 = nome pista, colunas 2+ = resultado por volta
+    // A penúltima linha é "Soma" com os totais por volta
+    let pistasPorVolta = []; // pistasPorVolta[voltaIdx][pistaIdx] = valor
+    let nVoltas = 0;
+    let nPistas = 0;
+    let somasPorVolta = []; // totais por volta
+
+    const tables = doc.querySelectorAll('table');
+    let encontrou = false;
+
+    for (const tbl of tables) {
+      if (encontrou) break;
+      const rows = Array.from(tbl.querySelectorAll('tr'));
+      if (rows.length < 5) continue;
+
+      // Detectar linha de cabeçalho com E1/E2.../B1/B2...
+      let headerRow = null;
+      let dataStartIdx = 0;
+      for (let ri = 0; ri < Math.min(rows.length, 5); ri++) {
+        const cells = Array.from(rows[ri].querySelectorAll('td,th')).map(c => c.textContent.trim());
+        if (cells.some(c => /^[EBF]\d+$/.test(c))) {
+          headerRow = cells;
+          dataStartIdx = ri + 1;
+          break;
+        }
+      }
+      if (!headerRow) continue;
+
+      // Identificar colunas de voltas (E1..E7 ou B1..B6 ou F1..F6)
+      const voltaCols = [];
+      headerRow.forEach((c, i) => {
+        if (/^[EBF]\d+$/.test(c)) voltaCols.push(i);
+      });
+      if (!voltaCols.length) continue;
+
+      nVoltas = voltaCols.length;
+      pistasPorVolta = Array.from({length: nVoltas}, () => []);
+
+      // Ler linhas de pistas
+      for (let ri = dataStartIdx; ri < rows.length; ri++) {
+        const cells = Array.from(rows[ri].querySelectorAll('td,th')).map(c => c.textContent.trim());
+        if (!cells.length) continue;
+
+        // Linha de Soma (totais por volta)
+        if (cells[0] === 'Soma' || cells[0] === 'Sum' || cells[0] === 'Total') {
+          somasPorVolta = voltaCols.map(ci => parseInt(cells[ci]) || 0);
+          encontrou = true;
+          break;
+        }
+
+        // Linha de pista: células[0] = nº pista (1-18)
+        const pistaNum = parseInt(cells[0]);
+        if (isNaN(pistaNum) || pistaNum < 1 || pistaNum > 18) continue;
+
+        voltaCols.forEach((ci, vi) => {
+          const val = parseInt(cells[ci]);
+          pistasPorVolta[vi].push(isNaN(val) ? null : val);
+        });
+        nPistas++;
+      }
+      if (encontrou) break;
+    }
+
+    document.getElementById('modal-meta').textContent = a.clube + ' · ' + (nacAtivo||'');
+
+    const vertCat = (dadosNac?.vertentes||{})[nacAtivo] || (isGrupoA(nacAtivo) ? 'mini' : 'peter');
+
+    let html = '';
+
+    if (encontrou && nPistas > 0 && nVoltas > 0) {
+      // Mostrar tabela pista a pista: linhas = pistas, colunas = voltas
+      const corPista = v => {
+        if (v === 1) return {c:'#16a34a', bg:'rgba(22,163,74,0.12)'};
+        if (v === 2) return {c:'#dc2626', bg:'rgba(220,38,38,0.10)'};
+        if (v != null && v >= 3) return {c:'#444', bg:'rgba(0,0,0,0.05)'};
+        return {c:'var(--dim)', bg:'transparent'};
+      };
+      const emPista = v => v===1?'🟢':v===2?'🔴':v!=null&&v>=3?'⚫':'—';
+
+      // Totais das voltas (da linha Soma ou calculados)
+      const totaisVoltas = somasPorVolta.length ? somasPorVolta
+        : pistasPorVolta.map(pv => pv.reduce((s,v) => s + (v||0), 0));
+
+      html += `<div style="overflow-x:auto;margin-bottom:12px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+          <thead>
+            <tr style="background:#f0f3f8">
+              <th style="padding:6px 8px;text-align:left;color:var(--dim);font-size:0.65rem;letter-spacing:1px;border-bottom:2px solid var(--sep)">P</th>
+              ${Array.from({length:nVoltas},(_,i)=>`<th style="padding:6px 8px;text-align:center;color:var(--navy);font-size:0.65rem;letter-spacing:1px;border-bottom:2px solid var(--sep)">V${i+1}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>`;
+
+      for (let pi = 0; pi < nPistas; pi++) {
+        html += `<tr>
+          <td style="padding:5px 8px;font-weight:700;color:var(--dim);border-bottom:1px solid var(--sep)">${pi+1}</td>`;
+        for (let vi = 0; vi < nVoltas; vi++) {
+          const v = pistasPorVolta[vi]?.[pi];
+          const {c, bg} = corPista(v);
+          const em = emPista(v);
+          html += `<td style="padding:5px 8px;text-align:center;background:${bg};border-bottom:1px solid var(--sep)20;font-weight:700;color:${c}">${v != null ? em+' '+v : '—'}</td>`;
+        }
+        html += `</tr>`;
+      }
+
+      // Linha de totais por volta
+      html += `<tr style="border-top:2px solid var(--orange)20">
+        <td style="padding:6px 8px;font-weight:700;font-size:0.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px">Total</td>`;
+      totaisVoltas.forEach(t => {
+        const campo = vertCat === 'mini' ? 'mV1' : 'pV1';
+        const cor = corVolta(campo, t);
+        const bg = bgVolta(campo, t);
+        const em = emojiCor(campo, t);
+        html += `<td style="padding:6px 8px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1rem;color:${cor||'var(--orange)'};background:${bg||'transparent'}">${em} ${t}</td>`;
+      });
+      html += `</tr></tbody></table></div>`;
+
+      // Barra total geral
+      const totalGeral = a.total || totaisVoltas.reduce((s,t)=>s+t,0);
+      html += `<div style="background:var(--navy);border-radius:10px;padding:12px 18px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:0.65rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">${nPistas} pistas · ${nVoltas} volta${nVoltas!==1?'s':''}</div>
+        <div style="text-align:right">
+          <div style="font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">Total</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--org2);line-height:1">${totalGeral}</div>
+        </div>
+      </div>`;
+
+    } else {
+      // Fallback: mostrar só totais por volta que já temos
+      abrirModalNac(a);
+      return;
+    }
+
+    html += `<div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:0.82rem;color:var(--silver)">
+      Posição: <strong>${a.rank}º</strong> · Total: <strong>${a.total}</strong> ·
+      ${a.dnf ? '<span style="color:var(--red)">Não terminou</span>' : a.completo ? '<span style="color:var(--green)">Completou</span>' : '<span style="color:var(--orange)">Em curso</span>'}
+      ${vzg ? ' · <span style="color:var(--orange)">🟡 Vizelgolfe</span>' : ''}
+    </div>`;
+
+    document.getElementById('modal-body').innerHTML = html;
+
+  } catch(e) {
+    // Fallback para modal simples com dados locais
+    document.getElementById('modal-overlay').classList.remove('on');
+    abrirModalNac(a);
+  }
 };
 
 window.abrirModalNac = function(a) {
@@ -2838,67 +3011,37 @@ window.abrirModalNac = function(a) {
 
   let html = '';
   if (voltas.length) {
-    html += `<div style="margin-bottom:6px;font-size:0.65rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase">Resultado por Volta (pista a pista)</div>`;
+    html += `<div style="margin-bottom:8px;font-size:0.65rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase">Totais por Volta</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-bottom:14px">`;
 
     voltas.forEach((v, i) => {
       const vDet = voltasDetalhe[i];
       const vert = vertManual || (vDet?.vertente) || vertDefault;
-      const isMini = vert === 'mini';
-      const vertLabel = isMini ? 'Mini' : vert === 'felt' ? 'Felt' : 'Peter';
-
-      // Cor da volta (regra per-round, não pista a pista)
-      const campo = isMini ? 'mV1' : 'pV1';
-      const corV = corVolta(campo, v);
-      const bgV = bgVolta(campo, v) || 'rgba(0,0,0,0.04)';
-      const emV = emojiCor(campo, v);
-
-      html += `<div style="margin-bottom:14px">
-        <div style="font-size:0.7rem;font-weight:700;color:var(--navy);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
-          <span>Volta ${i+1} <span style="font-weight:400;color:var(--dim);font-size:0.65rem">(${vertLabel})</span></span>
-          <span style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:${corV||'var(--text)'}">${emV} ${v}</span>
-        </div>`;
-
-      // Se tiver detalhe pista a pista (voltasDetalhe[i].pistas)
-      const pistas = vDet?.pistas || [];
-      if (pistas.length) {
-        html += `<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px">`;
-        pistas.forEach((p, pi) => {
-          const pVal = Number(p);
-          const pCor = pVal===1?'#16a34a':pVal===2?'#dc2626':'#444';
-          const pBg  = pVal===1?'rgba(22,163,74,0.1)':pVal===2?'rgba(220,38,38,0.1)':'rgba(0,0,0,0.05)';
-          const pEm  = pVal===1?'🟢':pVal===2?'🔴':'⚫';
-          html += `<div style="text-align:center;background:${pBg};border-radius:6px;padding:5px 2px">
-            <div style="font-size:0.55rem;color:var(--dim)">${pi+1}</div>
-            <div style="font-size:0.82rem;font-weight:800;color:${pCor}">${pEm}${pVal}</div>
-          </div>`;
-        });
-        html += `</div>`;
-      } else {
-        // Sem pista a pista — mostrar só o total da volta colorido
-        html += `<div style="background:${bgV};border-radius:8px;padding:10px 14px;text-align:center;border:1px solid ${corV||'var(--sep)'}20">
-          <span style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:${corV||'var(--text)'};">${emV} ${v}</span>
-          <div style="font-size:0.65rem;color:var(--dim);margin-top:2px">Total da volta (sem detalhe por pista)</div>
-        </div>`;
-      }
-      html += `</div>`;
+      const campo = vert === 'mini' ? 'mV1' : 'pV1';
+      const cor = corVolta(campo, v);
+      const bg = bgVolta(campo, v) || 'rgba(0,0,0,0.04)';
+      const em = emojiCor(campo, v);
+      const label = vert === 'mini' ? 'Mini' : vert === 'felt' ? 'Felt' : 'Peter';
+      html += `<div style="background:${bg};border:1px solid ${cor||'var(--sep)'}40;border-radius:10px;padding:10px 8px;text-align:center">
+        <div style="font-size:0.6rem;color:var(--dim);letter-spacing:1px;text-transform:uppercase">V${i+1} ${label}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:${cor||'var(--text)'};line-height:1.1">${em} ${v}</div>
+      </div>`;
     });
+    html += `</div>`;
 
-    // Barra de total
-    const somaVoltas = voltas.reduce((s,v)=>s+Number(v),0);
-    html += `<div style="background:var(--navy);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-      <div>
-        <div style="font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">${voltas.length} volta${voltas.length!==1?'s':''} · ${voltas.join(' + ')}</div>
-      </div>
+    const totalGeral = a.total || voltas.reduce((s,v)=>s+Number(v),0);
+    html += `<div style="background:var(--navy);border-radius:10px;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:0.7rem;color:rgba(255,255,255,0.5)">${voltas.join(' + ')}</div>
       <div style="text-align:right">
         <div style="font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">Total</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--org2);line-height:1">${a.total||somaVoltas}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--org2);line-height:1">${totalGeral}</div>
       </div>
     </div>`;
   } else {
-    html += '<p style="color:var(--dim);padding:12px">Sem detalhe de percursos disponível.</p>';
+    html += '<p style="color:var(--dim);padding:12px">Sem detalhe disponível.</p>';
   }
 
-  html += `<div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:0.82rem;color:var(--silver)">
+  html += `<div style="padding:10px;background:var(--bg);border-radius:8px;font-size:0.82rem;color:var(--silver)">
     Posição: <strong>${a.rank}º</strong> · Total: <strong>${a.total}</strong> ·
     ${a.dnf ? '<span style="color:var(--red)">Não terminou</span>' : a.completo ? '<span style="color:var(--green)">Completou</span>' : '<span style="color:var(--orange)">Em curso</span>'}
     ${vzg ? ' · <span style="color:var(--orange)">🟡 Vizelgolfe</span>' : ''}
