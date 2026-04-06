@@ -211,22 +211,24 @@ function calcPontosAtleta(prova,atleta,atletas,empates){
   for(let j=1;j<=(prova.jornadas||1);j++){
     const res=prova.resultados?.[j]?.[atleta.id];
     const tot=calcTotal(prova,j,res);if(tot==null)continue;
-    // Ajuste manual substitui o cálculo automático desta jornada
+    // Ajuste manual substitui o cálculo automático desta jornada (pontos + bónus)
     const ajJ=ajustesAtleta?.[j]??ajustesAtleta?.[String(j)];
     if(ajJ!=null){pts+=Number(ajJ);continue;}
     const pos=calcPos(prova,j,atleta.id,CAT_GRUPO[atleta.categoria],atletas,empates);
     if(pos>=1&&pos<=PONTUACAO.length)pts+=PONTUACAO[pos-1];
     if(isCampVizela&&res){
       const b=prova.bonusMini||1;
+      // Usar sempre b (bonusMini) para todos os bónus — igual ao consola
       if(res.bonusMini)pts+=b;
-      if(res.bonusPeter)pts+=(prova.bonusPeter||b);
-      if(res.bonusPeterManha)pts+=(prova.bonusPeter||b);
-      if(res.bonusPeterTarde)pts+=(prova.bonusPeter||b);
+      if(res.bonusPeter)pts+=b;
+      if(res.bonusPeterManha)pts+=b;
+      if(res.bonusPeterTarde)pts+=b;
     }
   }
   if(isCampVizela&&prova.bonusCompleto){
+    // Usar >= igual ao consola (não === que pode falhar em edge cases)
     const jPart=Object.keys(prova.resultados||{}).filter(j=>prova.resultados[j]?.[atleta.id]&&calcTotal(prova,parseInt(j),prova.resultados[j][atleta.id])!=null).length;
-    if(jPart===prova.jornadas)pts+=(prova.bonusCompleto||0);
+    if(jPart>=(prova.jornadas||1))pts+=(prova.bonusCompleto||0);
   }
   return pts;
 }
