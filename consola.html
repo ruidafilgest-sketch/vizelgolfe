@@ -161,9 +161,9 @@ tr:hover td{background:rgba(0,0,0,0.02);}
 .badge-agendado{background:rgba(212,130,10,0.15);color:var(--orange);border:1px solid rgba(212,130,10,0.3);}
 
 /* NACIONAL */
-.vzg-row td{background:rgba(255,200,0,0.13);border-top:1px solid rgba(212,130,10,0.25);}
+.vzg-row td{background:rgba(255,200,0,0.14);}
 .vzg-row td:first-child{border-left:3px solid var(--orange);}
-.vzg-row:hover td{background:rgba(255,200,0,0.22)!important;}
+.vzg-row:hover td{background:rgba(255,200,0,0.25)!important;}
 .cat-tab{padding:5px 14px;border:1px solid var(--sep);border-radius:20px;font-size:0.75rem;cursor:pointer;background:var(--bg2);transition:all 0.15s;letter-spacing:1px;}
 .cat-tab:hover{border-color:var(--orange);}
 .cat-tab.on{background:var(--navy);color:#fff;border-color:var(--navy);}
@@ -2824,7 +2824,6 @@ function renderNacCategoria() {
 }
 
 window.abrirDetalheOuModal = function(a, vertente, provaUrl) {
-  // Usar sempre os dados locais (voltas já extraídas pelo parseBangolfe)
   abrirModalNac(a);
 };
 
@@ -2839,47 +2838,67 @@ window.abrirModalNac = function(a) {
 
   let html = '';
   if (voltas.length) {
-    // Cards de voltas em grelha
-    html += `<div style="margin-bottom:16px">
-      <div style="font-size:0.65rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px">Resultado por Volta</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:14px">`;
+    html += `<div style="margin-bottom:6px;font-size:0.65rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase">Resultado por Volta (pista a pista)</div>`;
 
     voltas.forEach((v, i) => {
       const vDet = voltasDetalhe[i];
       const vert = vertManual || (vDet?.vertente) || vertDefault;
-      const campo = vert === 'mini' ? 'mV1' : 'pV1';
-      const cor = corVolta(campo, v);
-      const bg = bgVolta(campo, v) || 'rgba(0,0,0,0.04)';
-      const em = emojiCor(campo, v);
-      const vertLabel = vert === 'mini' ? 'Mini' : vert === 'felt' ? 'Felt' : 'Peter';
-      html += `<div style="background:${bg};border:1px solid ${cor||'var(--sep)'};border-radius:10px;padding:10px 8px;text-align:center">
-        <div style="font-size:0.62rem;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">Volta ${i+1}</div>
-        <div style="font-size:1.5rem;font-weight:900;font-family:'Bebas Neue',sans-serif;color:${cor||'var(--text)'};line-height:1">${em} ${v}</div>
-        <div style="font-size:0.58rem;color:var(--dim);margin-top:3px">${vertLabel}</div>
-      </div>`;
+      const isMini = vert === 'mini';
+      const vertLabel = isMini ? 'Mini' : vert === 'felt' ? 'Felt' : 'Peter';
+
+      // Cor da volta (regra per-round, não pista a pista)
+      const campo = isMini ? 'mV1' : 'pV1';
+      const corV = corVolta(campo, v);
+      const bgV = bgVolta(campo, v) || 'rgba(0,0,0,0.04)';
+      const emV = emojiCor(campo, v);
+
+      html += `<div style="margin-bottom:14px">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--navy);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center">
+          <span>Volta ${i+1} <span style="font-weight:400;color:var(--dim);font-size:0.65rem">(${vertLabel})</span></span>
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:1rem;color:${corV||'var(--text)'}">${emV} ${v}</span>
+        </div>`;
+
+      // Se tiver detalhe pista a pista (voltasDetalhe[i].pistas)
+      const pistas = vDet?.pistas || [];
+      if (pistas.length) {
+        html += `<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px">`;
+        pistas.forEach((p, pi) => {
+          const pVal = Number(p);
+          const pCor = pVal===1?'#16a34a':pVal===2?'#dc2626':'#444';
+          const pBg  = pVal===1?'rgba(22,163,74,0.1)':pVal===2?'rgba(220,38,38,0.1)':'rgba(0,0,0,0.05)';
+          const pEm  = pVal===1?'🟢':pVal===2?'🔴':'⚫';
+          html += `<div style="text-align:center;background:${pBg};border-radius:6px;padding:5px 2px">
+            <div style="font-size:0.55rem;color:var(--dim)">${pi+1}</div>
+            <div style="font-size:0.82rem;font-weight:800;color:${pCor}">${pEm}${pVal}</div>
+          </div>`;
+        });
+        html += `</div>`;
+      } else {
+        // Sem pista a pista — mostrar só o total da volta colorido
+        html += `<div style="background:${bgV};border-radius:8px;padding:10px 14px;text-align:center;border:1px solid ${corV||'var(--sep)'}20">
+          <span style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:${corV||'var(--text)'};">${emV} ${v}</span>
+          <div style="font-size:0.65rem;color:var(--dim);margin-top:2px">Total da volta (sem detalhe por pista)</div>
+        </div>`;
+      }
+      html += `</div>`;
     });
 
-    html += `</div>`;
-
     // Barra de total
-    html += `<div style="background:var(--navy);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    const somaVoltas = voltas.reduce((s,v)=>s+Number(v),0);
+    html += `<div style="background:var(--navy);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;margin-top:4px">
       <div>
-        <div style="font-size:0.62rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">${voltas.length} volta${voltas.length!==1?'s':''}</div>
-        <div style="font-size:0.75rem;color:rgba(255,255,255,0.6);margin-top:2px">
-          ${voltas.map((v,i)=>v).join(' + ')} = <strong style="color:var(--org2)">${a.total}</strong>
-        </div>
+        <div style="font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">${voltas.length} volta${voltas.length!==1?'s':''} · ${voltas.join(' + ')}</div>
       </div>
       <div style="text-align:right">
-        <div style="font-size:0.62rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">Total</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--org2);line-height:1">${a.total}</div>
+        <div style="font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">Total</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--org2);line-height:1">${a.total||somaVoltas}</div>
       </div>
     </div>`;
-
   } else {
     html += '<p style="color:var(--dim);padding:12px">Sem detalhe de percursos disponível.</p>';
   }
 
-  html += `<div style="padding:10px;background:var(--bg);border-radius:8px;font-size:0.82rem;color:var(--silver)">
+  html += `<div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:0.82rem;color:var(--silver)">
     Posição: <strong>${a.rank}º</strong> · Total: <strong>${a.total}</strong> ·
     ${a.dnf ? '<span style="color:var(--red)">Não terminou</span>' : a.completo ? '<span style="color:var(--green)">Completou</span>' : '<span style="color:var(--orange)">Em curso</span>'}
     ${vzg ? ' · <span style="color:var(--orange)">🟡 Vizelgolfe</span>' : ''}
