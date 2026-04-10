@@ -272,7 +272,11 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <select id="filter-cat" onchange="renderSocios()">
           <option value="">Todas as categorias</option>
           <option>Atleta</option>
-          <option>Geral</option>
+          <option>Normal</option>
+          <option>Reformado</option>
+          <option>Fundador</option>
+          <option>Socio beneficios</option>
+          <option>Socio Falecido</option>
           <option>Honorário</option>
           <option>Júnior</option>
         </select>
@@ -365,7 +369,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <div class="form-grid">
         <div class="form-group"><label>Número de Sócio</label><input id="s-num" type="text" placeholder="Ex: 208" /></div>
         <div class="form-group"><label>Categoria</label>
-          <select id="s-cat"><option>Atleta</option><option>Geral</option><option>Honorário</option><option>Júnior</option></select>
+          <select id="s-cat"><option>Atleta</option><option>Normal</option><option>Reformado</option><option>Fundador</option><option>Socio beneficios</option><option>Honorário</option><option>Júnior</option></select>
         </div>
         <div class="form-group full"><label>Nome Completo</label><input id="s-nome" type="text" placeholder="Nome e apelido" /></div>
         <div class="form-group"><label>Email</label><input id="s-email" type="email" placeholder="email@exemplo.com" /></div>
@@ -870,8 +874,8 @@ window.confirmarImport = async function() {
       numero: row['Número']||row['Numero']||row['numero']||row['num']||'',
       nome: row['Nome']||row['nome']||'',
       email: row['Email']||row['email']||'',
-      telefone: row['Telefone']||row['telefone']||row['Telef']||'',
-      categoria: row['Categoria']||row['categoria']||'Geral',
+      telefone: String(row['Telefone']||row['telefone']||row['Telef']||'').replace(/\.0$/,'').trim(),
+      categoria: row['Categoria']||row['categoria']||'Normal',
       nif: row['NIF']||row['nif']||'',
       nascimento: row['Data Nascimento']||row['nascimento']||'',
       estado: 'Ativo', inscricao: new Date().toISOString().slice(0,10)
