@@ -246,6 +246,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <button class="nav-tab" onclick="showPage('recibos')">🧾 Recibos</button>
     <button class="nav-tab" onclick="showPage('importar')">📥 Importar</button>
     <button class="nav-tab" onclick="showPage('contabilidade')">📊 Contabilidade</button>
+    <button class="nav-tab" onclick="showPage('secretaria')">📝 Secretaria</button>
+    <button class="nav-tab" onclick="showPage('biblioteca')">📁 Biblioteca</button>
     <button class="nav-tab" onclick="showPage('configuracoes')">⚙️ Configurações</button>
   </nav>
 
@@ -613,7 +615,158 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
     </div><!-- /page-configuracoes -->
 
+    <!-- SECRETARIA -->
+    <div id="page-secretaria" class="page">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <h2 style="margin:0;font-size:1.3rem">📝 Secretaria</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-accent" onclick="novoDocumento('convocatoria')">+ Convocatória</button>
+          <button class="btn btn-accent" onclick="novoDocumento('ata')">+ Ata</button>
+          <button class="btn btn-accent" onclick="novoDocumento('presenca')">+ Lista de Presença</button>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <select id="sec-filtro-tipo" onchange="renderSecretaria()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text);font-size:.9rem">
+          <option value="">Todos os tipos</option>
+          <option value="convocatoria">Convocatórias</option>
+          <option value="ata">Atas</option>
+          <option value="presenca">Listas de Presença</option>
+        </select>
+        <select id="sec-filtro-reuniao" onchange="renderSecretaria()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text);font-size:.9rem">
+          <option value="">Todos os tipos de reunião</option>
+          <option value="AGO">Assembleia Geral Ordinária</option>
+          <option value="AGE">Assembleia Geral Extraordinária</option>
+          <option value="DIR">Reunião de Direção</option>
+        </select>
+        <input type="number" id="sec-filtro-ano" placeholder="Ano" style="width:90px;padding:8px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text);font-size:.9rem" onchange="renderSecretaria()">
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Tipo</th>
+            <th>Reunião</th>
+            <th>Data</th>
+            <th>Local</th>
+            <th>Estado</th>
+            <th>Ações</th>
+          </tr></thead>
+          <tbody id="table-secretaria"><tr><td colspan="6" class="loading">A carregar...</td></tr></tbody>
+        </table>
+      </div>
+    </div><!-- /page-secretaria -->
+
+    <!-- BIBLIOTECA -->
+    <div id="page-biblioteca" class="page">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <h2 style="margin:0;font-size:1.3rem">📁 Biblioteca de Documentos</h2>
+        <button class="btn btn-accent" onclick="abrirUploadBiblioteca()">+ Upload Documento</button>
+      </div>
+
+      <!-- Filtros -->
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <select id="bib-filtro-cat" onchange="renderBiblioteca()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text);font-size:.9rem">
+          <option value="">Todas as categorias</option>
+          <option value="Estatutos">Estatutos</option>
+          <option value="Regulamentos">Regulamentos</option>
+          <option value="Escritura">Escritura</option>
+          <option value="Seguros">Seguros</option>
+          <option value="Outros">Outros</option>
+        </select>
+        <input type="text" id="bib-filtro-search" placeholder="🔍 Pesquisar..." oninput="renderBiblioteca()" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text);font-size:.9rem;min-width:200px">
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Nome</th>
+            <th>Categoria</th>
+            <th>Data Upload</th>
+            <th>Tamanho</th>
+            <th>Ações</th>
+          </tr></thead>
+          <tbody id="table-biblioteca"><tr><td colspan="5" class="loading">A carregar...</td></tr></tbody>
+        </table>
+      </div>
+    </div><!-- /page-biblioteca -->
+
   </main>
+</div>
+
+<!-- MODAL SECRETARIA: CONVOCATÓRIA / ATA / PRESENÇA -->
+<div class="modal-overlay" id="modal-secretaria">
+  <div class="modal" style="max-width:720px;width:95%">
+    <div class="modal-header">
+      <h3 id="modal-sec-title">Novo Documento</h3>
+      <button class="modal-close" onclick="closeModal('modal-secretaria')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-sec-body" style="max-height:75vh;overflow-y:auto">
+      <!-- preenchido via JS -->
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border2)">
+      <button class="btn btn-outline" onclick="closeModal('modal-secretaria')">Cancelar</button>
+      <button class="btn btn-outline" id="btn-sec-preview" onclick="previewDocumento()">👁 Pré-visualizar</button>
+      <button class="btn btn-accent" id="btn-sec-guardar" onclick="guardarDocumento()">💾 Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PREVIEW DOCUMENTO -->
+<div class="modal-overlay" id="modal-preview-doc">
+  <div class="modal" style="max-width:800px;width:95%">
+    <div class="modal-header">
+      <h3>Pré-visualização</h3>
+      <button class="modal-close" onclick="closeModal('modal-preview-doc')">✕</button>
+    </div>
+    <div class="modal-body" id="modal-preview-doc-body" style="max-height:80vh;overflow-y:auto;background:#fff;color:#000;padding:40px;font-family:Georgia,serif">
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border2)">
+      <button class="btn btn-outline" onclick="closeModal('modal-preview-doc')">Fechar</button>
+      <button class="btn btn-accent" onclick="imprimirDocumento()">🖨 Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL UPLOAD BIBLIOTECA -->
+<div class="modal-overlay" id="modal-upload-bib">
+  <div class="modal" style="max-width:500px;width:95%">
+    <div class="modal-header">
+      <h3>Upload de Documento</h3>
+      <button class="modal-close" onclick="closeModal('modal-upload-bib')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:24px;display:flex;flex-direction:column;gap:16px">
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Nome do documento</label>
+        <input type="text" id="bib-nome" placeholder="Ex: Estatutos Vizelgolfe 2023" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:.9rem;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Categoria</label>
+        <select id="bib-cat" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text);font-size:.9rem">
+          <option value="Estatutos">Estatutos</option>
+          <option value="Regulamentos">Regulamentos</option>
+          <option value="Escritura">Escritura</option>
+          <option value="Seguros">Seguros</option>
+          <option value="Outros">Outros</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Ficheiro PDF</label>
+        <input type="file" id="bib-ficheiro" accept=".pdf,.doc,.docx" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:.9rem;box-sizing:border-box">
+      </div>
+      <div id="bib-upload-progress" style="display:none">
+        <div style="background:var(--border2);border-radius:4px;height:8px;overflow:hidden">
+          <div id="bib-progress-bar" style="background:var(--accent);height:100%;width:0%;transition:width .3s"></div>
+        </div>
+        <p id="bib-progress-txt" style="font-size:.8rem;color:var(--text2);margin-top:6px;text-align:center">A fazer upload...</p>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border2)">
+      <button class="btn btn-outline" onclick="closeModal('modal-upload-bib')">Cancelar</button>
+      <button class="btn btn-accent" onclick="executarUploadBiblioteca()">⬆ Fazer Upload</button>
+    </div>
+  </div>
 </div>
 
 <!-- MODAL SÓCIO -->
@@ -802,6 +955,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
+// Expor funções Firebase para módulos internos
+window._dbRef = (path) => ref(db, path);
+window._set = set;
+window._push = (r) => push(r);
+window._onValue = onValue;
+
 // ─── ESTADO ───────────────────────────────────────
 const ADMIN_PASS = "Vizela2026***";
 let socios = {};
@@ -846,6 +1005,8 @@ function carregarDados() {
   });
   carregarContabilidade();
   carregarConfiguracoes();
+  carregarSecretaria();
+  carregarBiblioteca();
 }
 
 // ─── NAVEGAÇÃO ─────────────────────────────────────
@@ -2051,6 +2212,548 @@ window.emitirRecibo = function(key, mode) {
 
   openModal("modal-recibo");
 };
+
+
+// ══════════════════════════════════════════════════════
+// SECRETARIA
+// ══════════════════════════════════════════════════════
+
+let documentosSecretaria = {};
+let docSecAtual = null; // {tipo, modo:'novo'|'editar', key}
+
+// Carregar documentos do Firebase
+function carregarSecretaria() {
+  const ref = window._dbRef('/portal/secretaria');
+  window._onValue(ref, snap => {
+    documentosSecretaria = snap.val() || {};
+    renderSecretaria();
+  });
+}
+
+window.renderSecretaria = function() {
+  const tipo = document.getElementById('sec-filtro-tipo').value;
+  const reuniao = document.getElementById('sec-filtro-reuniao').value;
+  const ano = document.getElementById('sec-filtro-ano').value;
+  const tbody = document.getElementById('table-secretaria');
+
+  let docs = Object.entries(documentosSecretaria).map(([k,v]) => ({key:k,...v}));
+
+  if (tipo) docs = docs.filter(d => d.tipo === tipo);
+  if (reuniao) docs = docs.filter(d => d.tipoReuniao === reuniao);
+  if (ano) docs = docs.filter(d => d.data && d.data.startsWith(ano));
+
+  docs.sort((a,b) => (b.data||'').localeCompare(a.data||''));
+
+  if (!docs.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="loading">Sem documentos</td></tr>';
+    return;
+  }
+
+  const labelTipo = {convocatoria:'📢 Convocatória', ata:'📋 Ata', presenca:'✅ Lista Presença'};
+  const labelReuniao = {AGO:'AG Ordinária', AGE:'AG Extraordinária', DIR:'Reunião Direção'};
+
+  tbody.innerHTML = docs.map(d => `
+    <tr>
+      <td>${labelTipo[d.tipo]||d.tipo}</td>
+      <td>${labelReuniao[d.tipoReuniao]||d.tipoReuniao||'—'}</td>
+      <td>${d.data||'—'}</td>
+      <td>${d.local||'—'}</td>
+      <td><span class="badge badge-${d.estado==='rascunho'?'pendente':'pago'}">${d.estado||'rascunho'}</span></td>
+      <td style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-outline" onclick="editarDocumento('${d.key}')">✏️</button>
+        <button class="btn btn-sm btn-outline" onclick="previewDocumentoKey('${d.key}')">👁</button>
+        <button class="btn btn-sm btn-outline" onclick="imprimirDocumentoKey('${d.key}')">🖨</button>
+        <button class="btn btn-sm btn-outline" style="color:#e53e3e" onclick="apagarDocumento('${d.key}')">🗑</button>
+      </td>
+    </tr>`).join('');
+};
+
+window.novoDocumento = function(tipo) {
+  docSecAtual = {tipo, modo:'novo', key: null};
+  renderFormSecretaria(tipo, null);
+  openModal('modal-secretaria');
+};
+
+window.editarDocumento = function(key) {
+  const doc = documentosSecretaria[key];
+  if (!doc) return;
+  docSecAtual = {tipo: doc.tipo, modo:'editar', key};
+  renderFormSecretaria(doc.tipo, doc);
+  openModal('modal-secretaria');
+};
+
+function renderFormSecretaria(tipo, dados) {
+  const titles = {convocatoria:'📢 Convocatória', ata:'📋 Ata', presenca:'✅ Lista de Presença'};
+  document.getElementById('modal-sec-title').textContent = (dados?'Editar ':'Nova ') + (titles[tipo]||tipo);
+
+  const d = dados || {};
+  const tiposReuniao = ['AGO','AGE','DIR'];
+  const labelsReuniao = {AGO:'Assembleia Geral Ordinária', AGE:'Assembleia Geral Extraordinária', DIR:'Reunião de Direção'};
+
+  let html = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:24px">
+      <div style="grid-column:1/-1">
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Tipo de Reunião</label>
+        <select id="sec-tipo-reuniao" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text);font-size:.9rem">
+          ${tiposReuniao.map(t => `<option value="${t}" ${d.tipoReuniao===t?'selected':''}>${labelsReuniao[t]}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Data</label>
+        <input type="date" id="sec-data" value="${d.data||''}" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:.9rem;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Hora</label>
+        <input type="time" id="sec-hora" value="${d.hora||''}" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:.9rem;box-sizing:border-box">
+      </div>
+      <div style="grid-column:1/-1">
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Local</label>
+        <input type="text" id="sec-local" value="${d.local||''}" placeholder="Ex: Sede da Associação, Vizela" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:.9rem;box-sizing:border-box">
+      </div>`;
+
+  if (tipo === 'convocatoria' || tipo === 'ata') {
+    const pontos = d.pontos || [''];
+    html += `
+      <div style="grid-column:1/-1">
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Ordem de Trabalhos</label>
+        <div id="sec-pontos-list">
+          ${pontos.map((p,i) => `
+            <div style="display:flex;gap:8px;margin-bottom:8px" id="ponto-row-${i}">
+              <span style="padding-top:10px;font-size:.85rem;color:var(--text2);min-width:20px">${i+1}.</span>
+              <input type="text" class="sec-ponto" value="${p||''}" placeholder="Ponto ${i+1}" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:.9rem">
+              ${i>0?`<button onclick="removerPonto(${i})" style="background:none;border:none;cursor:pointer;color:#e53e3e;font-size:1.1rem">✕</button>`:''}
+            </div>`).join('')}
+        </div>
+        <button onclick="adicionarPonto()" class="btn btn-outline" style="font-size:.85rem;padding:6px 14px;margin-top:4px">+ Adicionar ponto</button>
+      </div>`;
+  }
+
+  if (tipo === 'ata') {
+    const deliberacoes = d.deliberacoes || [''];
+    html += `
+      <div style="grid-column:1/-1">
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Deliberações</label>
+        <div id="sec-delib-list">
+          ${deliberacoes.map((p,i) => `
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <span style="padding-top:10px;font-size:.85rem;color:var(--text2);min-width:20px">${i+1}.</span>
+              <textarea class="sec-delib" rows="2" placeholder="Deliberação ${i+1}" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:.9rem;resize:vertical">${p||''}</textarea>
+              ${i>0?`<button onclick="removerDelib(${i})" style="background:none;border:none;cursor:pointer;color:#e53e3e;font-size:1.1rem">✕</button>`:''}
+            </div>`).join('')}
+        </div>
+        <button onclick="adicionarDelib()" class="btn btn-outline" style="font-size:.85rem;padding:6px 14px;margin-top:4px">+ Adicionar deliberação</button>
+      </div>
+      <div style="grid-column:1/-1">
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Notas / Observações</label>
+        <textarea id="sec-notas" rows="3" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:.9rem;resize:vertical;box-sizing:border-box">${d.notas||''}</textarea>
+      </div>`;
+  }
+
+  if (tipo === 'presenca' || tipo === 'ata') {
+    // Carrega lista sócios
+    const listaSocios = Object.entries(socios)
+      .map(([k,v]) => ({key:k,...v}))
+      .filter(s => s.estado === 'Ativo')
+      .sort((a,b) => (a.nome||'').localeCompare(b.nome||''));
+
+    const presentes = d.presentes || {};
+
+    html += `
+      <div style="grid-column:1/-1">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <label style="font-size:.85rem;color:var(--text2)">Lista de Presenças <span id="sec-cnt-presentes" style="color:var(--accent);font-weight:600">(${Object.values(presentes).filter(Boolean).length} presentes)</span></label>
+          <div style="display:flex;gap:8px">
+            <button onclick="marcarTodosPresenca(true)" class="btn btn-sm btn-outline" style="font-size:.8rem">Todos ✓</button>
+            <button onclick="marcarTodosPresenca(false)" class="btn btn-sm btn-outline" style="font-size:.8rem">Nenhum ✗</button>
+          </div>
+        </div>
+        <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border2);border-radius:8px;padding:8px">
+          ${listaSocios.map(s => `
+            <label style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:6px;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--border2)'" onmouseout="this.style.background=''">
+              <input type="checkbox" class="sec-presenca-cb" data-key="${s.key}" ${presentes[s.key]?'checked':''} onchange="atualizarContadorPresencas()">
+              <span style="font-size:.9rem">${s.nome||'—'}</span>
+              <span style="font-size:.8rem;color:var(--text2);margin-left:auto">${s.categoria||''} · Nº ${s.numSocio||s.key}</span>
+            </label>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  html += `
+      <div style="grid-column:1/-1">
+        <label style="display:block;margin-bottom:6px;font-size:.85rem;color:var(--text2)">Estado</label>
+        <select id="sec-estado" style="width:200px;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--card);color:var(--text);font-size:.9rem">
+          <option value="rascunho" ${(d.estado||'rascunho')==='rascunho'?'selected':''}>Rascunho</option>
+          <option value="final" ${d.estado==='final'?'selected':''}>Final</option>
+        </select>
+      </div>
+    </div>`;
+
+  document.getElementById('modal-sec-body').innerHTML = html;
+}
+
+window.adicionarPonto = function() {
+  const list = document.getElementById('sec-pontos-list');
+  const n = list.querySelectorAll('.sec-ponto').length;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:8px;margin-bottom:8px';
+  div.id = `ponto-row-${n}`;
+  div.innerHTML = `
+    <span style="padding-top:10px;font-size:.85rem;color:var(--text2);min-width:20px">${n+1}.</span>
+    <input type="text" class="sec-ponto" placeholder="Ponto ${n+1}" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:.9rem">
+    <button onclick="this.parentElement.remove();renumerarPontos()" style="background:none;border:none;cursor:pointer;color:#e53e3e;font-size:1.1rem">✕</button>`;
+  list.appendChild(div);
+};
+
+window.removerPonto = function(i) {
+  const row = document.getElementById(`ponto-row-${i}`);
+  if (row) { row.remove(); renumerarPontos(); }
+};
+
+window.renumerarPontos = function() {
+  document.querySelectorAll('#sec-pontos-list > div').forEach((row,i) => {
+    const span = row.querySelector('span');
+    if (span) span.textContent = (i+1)+'.';
+    const inp = row.querySelector('input');
+    if (inp) inp.placeholder = `Ponto ${i+1}`;
+  });
+};
+
+window.adicionarDelib = function() {
+  const list = document.getElementById('sec-delib-list');
+  const n = list.querySelectorAll('.sec-delib').length;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:8px;margin-bottom:8px';
+  div.innerHTML = `
+    <span style="padding-top:10px;font-size:.85rem;color:var(--text2);min-width:20px">${n+1}.</span>
+    <textarea class="sec-delib" rows="2" placeholder="Deliberação ${n+1}" style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:.9rem;resize:vertical"></textarea>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;color:#e53e3e;font-size:1.1rem">✕</button>`;
+  list.appendChild(div);
+};
+
+window.removerDelib = function(i) {
+  const rows = document.querySelectorAll('#sec-delib-list > div');
+  if (rows[i]) rows[i].remove();
+};
+
+window.atualizarContadorPresencas = function() {
+  const total = document.querySelectorAll('.sec-presenca-cb:checked').length;
+  const el = document.getElementById('sec-cnt-presentes');
+  if (el) el.textContent = `(${total} presentes)`;
+};
+
+window.marcarTodosPresenca = function(val) {
+  document.querySelectorAll('.sec-presenca-cb').forEach(cb => cb.checked = val);
+  atualizarContadorPresencas();
+};
+
+function recolherDadosDocumento() {
+  const tipo = docSecAtual.tipo;
+  const dados = {
+    tipo,
+    tipoReuniao: document.getElementById('sec-tipo-reuniao')?.value || '',
+    data: document.getElementById('sec-data')?.value || '',
+    hora: document.getElementById('sec-hora')?.value || '',
+    local: document.getElementById('sec-local')?.value || '',
+    estado: document.getElementById('sec-estado')?.value || 'rascunho',
+    criadoEm: docSecAtual.modo === 'novo' ? new Date().toISOString() : (documentosSecretaria[docSecAtual.key]?.criadoEm || new Date().toISOString()),
+    atualizadoEm: new Date().toISOString()
+  };
+
+  if (tipo === 'convocatoria' || tipo === 'ata') {
+    dados.pontos = [...document.querySelectorAll('.sec-ponto')].map(i => i.value.trim()).filter(Boolean);
+  }
+  if (tipo === 'ata') {
+    dados.deliberacoes = [...document.querySelectorAll('.sec-delib')].map(t => t.value.trim()).filter(Boolean);
+    dados.notas = document.getElementById('sec-notas')?.value || '';
+  }
+  if (tipo === 'presenca' || tipo === 'ata') {
+    const presentes = {};
+    document.querySelectorAll('.sec-presenca-cb').forEach(cb => {
+      presentes[cb.dataset.key] = cb.checked;
+    });
+    dados.presentes = presentes;
+  }
+  return dados;
+}
+
+window.guardarDocumento = function() {
+  const dados = recolherDadosDocumento();
+  let ref;
+  if (docSecAtual.modo === 'novo') {
+    ref = window._push(window._dbRef('/portal/secretaria'));
+  } else {
+    ref = window._dbRef('/portal/secretaria/' + docSecAtual.key);
+  }
+  window._set(ref, dados).then(() => {
+    toast('Documento guardado!');
+    closeModal('modal-secretaria');
+  }).catch(e => toast('Erro: ' + e.message, 'error'));
+};
+
+window.apagarDocumento = function(key) {
+  if (!confirm('Apagar este documento definitivamente?')) return;
+  window._set(window._dbRef('/portal/secretaria/' + key), null)
+    .then(() => toast('Documento apagado'))
+    .catch(e => toast('Erro: ' + e.message, 'error'));
+};
+
+window.previewDocumento = function() {
+  const dados = recolherDadosDocumento();
+  abrirPreviewDoc(dados);
+};
+
+window.previewDocumentoKey = function(key) {
+  const dados = documentosSecretaria[key];
+  if (dados) abrirPreviewDoc(dados);
+};
+
+window.imprimirDocumentoKey = function(key) {
+  const dados = documentosSecretaria[key];
+  if (!dados) return;
+  abrirPreviewDoc(dados);
+  setTimeout(() => imprimirDocumento(), 300);
+};
+
+function abrirPreviewDoc(dados) {
+  const html = gerarHTMLDocumento(dados);
+  document.getElementById('modal-preview-doc-body').innerHTML = html;
+  openModal('modal-preview-doc');
+}
+
+window.imprimirDocumento = function() {
+  const conteudo = document.getElementById('modal-preview-doc-body').innerHTML;
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Documento</title>
+    <style>body{font-family:Georgia,serif;color:#000;max-width:800px;margin:40px auto;font-size:11pt;line-height:1.6}
+    h1{font-size:14pt}h2{font-size:12pt}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ccc;padding:6px;font-size:10pt}
+    @media print{body{margin:10mm}}</style></head><body>${conteudo}</body></html>`);
+  win.document.close();
+  win.print();
+};
+
+function gerarHTMLDocumento(dados) {
+  const c = configuracoes;
+  const nomeAssoc = c.nome || 'Vizelgolfe — Associação de Minigolfe de Vizela';
+  const nif = c.nif || '509 227 902';
+  const labelsReuniao = {AGO:'Assembleia Geral Ordinária', AGE:'Assembleia Geral Extraordinária', DIR:'Reunião de Direção'};
+  const dataFmt = dados.data ? new Date(dados.data).toLocaleDateString('pt-PT', {day:'numeric',month:'long',year:'numeric'}) : '___/___/______';
+  const reuniaoLabel = labelsReuniao[dados.tipoReuniao] || dados.tipoReuniao || '—';
+
+  const cabecalho = `
+    <div style="text-align:center;border-bottom:2px solid #000;padding-bottom:20px;margin-bottom:30px">
+      <p style="font-size:14pt;font-weight:bold;margin:0">${nomeAssoc}</p>
+      <p style="font-size:10pt;margin:4px 0 0">NIF: ${nif}</p>
+    </div>`;
+
+  if (dados.tipo === 'convocatoria') {
+    const pontos = dados.pontos || [];
+    return `${cabecalho}
+      <h1 style="text-align:center;font-size:14pt;margin-bottom:6px">CONVOCATÓRIA</h1>
+      <h2 style="text-align:center;font-size:12pt;font-weight:normal;margin-bottom:30px">${reuniaoLabel}</h2>
+      <p>O Presidente da Mesa da Assembleia Geral convoca todos os sócios para a <strong>${reuniaoLabel}</strong> a realizar-se no dia <strong>${dataFmt}</strong>, às <strong>${dados.hora||'___:___'}</strong>, em <strong>${dados.local||'_______________'}</strong>, com a seguinte ordem de trabalhos:</p>
+      <ol style="margin:20px 0 30px;line-height:2">
+        ${pontos.map(p => `<li>${p}</li>`).join('')}
+      </ol>
+      <p>${dados.local ? dados.local + ', ' : ''}${dataFmt}</p>
+      <br><br>
+      <div style="display:flex;justify-content:space-between;margin-top:40px">
+        <div style="text-align:center;width:45%">
+          <div style="border-top:1px solid #000;padding-top:8px">O Presidente da Mesa da Assembleia Geral<br><strong>Rui Gonçalves</strong></div>
+        </div>
+      </div>`;
+  }
+
+  if (dados.tipo === 'ata') {
+    const pontos = dados.pontos || [];
+    const deliberacoes = dados.deliberacoes || [];
+    const presentesList = Object.entries(dados.presentes||{})
+      .filter(([,v]) => v)
+      .map(([k]) => socios[k]?.nome || k)
+      .sort();
+    const ausentes = Object.entries(dados.presentes||{})
+      .filter(([,v]) => !v)
+      .length;
+
+    return `${cabecalho}
+      <h1 style="text-align:center;font-size:14pt;margin-bottom:6px">ATA</h1>
+      <h2 style="text-align:center;font-size:12pt;font-weight:normal;margin-bottom:30px">${reuniaoLabel}</h2>
+      <p>Aos <strong>${dataFmt}</strong>, pelas <strong>${dados.hora||'___:___'}</strong>, no <strong>${dados.local||'_______________'}</strong>, reuniu a ${reuniaoLabel} da ${nomeAssoc}.</p>
+      <p><strong>Presentes (${presentesList.length}):</strong> ${presentesList.join(', ') || '—'}</p>
+      ${ausentes ? `<p><strong>Ausentes:</strong> ${ausentes} sócio(s)</p>` : ''}
+      ${pontos.length ? `
+        <h3 style="font-size:11pt;margin-top:20px">Ordem de Trabalhos</h3>
+        <ol>${pontos.map(p=>`<li>${p}</li>`).join('')}</ol>` : ''}
+      ${deliberacoes.length ? `
+        <h3 style="font-size:11pt;margin-top:20px">Deliberações</h3>
+        <ol>${deliberacoes.map(d=>`<li style="margin-bottom:8px">${d}</li>`).join('')}</ol>` : ''}
+      ${dados.notas ? `<p><strong>Notas:</strong> ${dados.notas}</p>` : ''}
+      <p style="margin-top:30px">E não havendo mais assuntos a tratar, a sessão foi encerrada da qual se lavrou a presente ata.</p>
+      <p>${dados.local ? dados.local + ', ' : ''}${dataFmt}</p>
+      <br><br>
+      <div style="display:flex;justify-content:space-between;margin-top:40px">
+        <div style="text-align:center;width:45%">
+          <div style="border-top:1px solid #000;padding-top:8px">O Presidente da Mesa da Assembleia Geral<br><strong>Rui Gonçalves</strong></div>
+        </div>
+        <div style="text-align:center;width:45%">
+          <div style="border-top:1px solid #000;padding-top:8px">O Secretário<br><strong>_______________</strong></div>
+        </div>
+      </div>`;
+  }
+
+  if (dados.tipo === 'presenca') {
+    const listaSocios = Object.entries(socios)
+      .map(([k,v]) => ({key:k,...v}))
+      .filter(s => s.estado === 'Ativo')
+      .sort((a,b) => (a.nome||'').localeCompare(b.nome||''));
+    const presentes = dados.presentes || {};
+    const nPresentes = Object.values(presentes).filter(Boolean).length;
+
+    return `${cabecalho}
+      <h1 style="text-align:center;font-size:14pt;margin-bottom:6px">LISTA DE PRESENÇAS</h1>
+      <h2 style="text-align:center;font-size:12pt;font-weight:normal;margin-bottom:20px">${reuniaoLabel} — ${dataFmt}</h2>
+      <p style="text-align:center;margin-bottom:20px"><strong>Presentes: ${nPresentes}</strong> de ${listaSocios.length} sócios ativos</p>
+      <table>
+        <thead><tr><th>Nº</th><th>Nome</th><th>Categoria</th><th>Presença</th><th>Assinatura</th></tr></thead>
+        <tbody>
+          ${listaSocios.map((s,i) => `
+            <tr>
+              <td style="text-align:center">${i+1}</td>
+              <td>${s.nome||'—'}</td>
+              <td>${s.categoria||'—'}</td>
+              <td style="text-align:center">${presentes[s.key]?'✓':'—'}</td>
+              <td style="width:150px">&nbsp;</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+      <p style="margin-top:30px">${dados.local ? dados.local + ', ' : ''}${dataFmt}</p>
+      <div style="display:flex;justify-content:space-between;margin-top:40px">
+        <div style="text-align:center;width:45%">
+          <div style="border-top:1px solid #000;padding-top:8px">O Presidente da Mesa da Assembleia Geral<br><strong>Rui Gonçalves</strong></div>
+        </div>
+      </div>`;
+  }
+
+  return '<p>Tipo de documento desconhecido.</p>';
+}
+
+// ══════════════════════════════════════════════════════
+// BIBLIOTECA
+// ══════════════════════════════════════════════════════
+
+let documentosBiblioteca = {};
+
+function carregarBiblioteca() {
+  const ref = window._dbRef('/portal/biblioteca');
+  window._onValue(ref, snap => {
+    documentosBiblioteca = snap.val() || {};
+    renderBiblioteca();
+  });
+}
+
+window.renderBiblioteca = function() {
+  const cat = document.getElementById('bib-filtro-cat').value;
+  const q = (document.getElementById('bib-filtro-search').value || '').toLowerCase();
+  const tbody = document.getElementById('table-biblioteca');
+
+  let docs = Object.entries(documentosBiblioteca).map(([k,v]) => ({key:k,...v}));
+  if (cat) docs = docs.filter(d => d.categoria === cat);
+  if (q) docs = docs.filter(d => (d.nome||'').toLowerCase().includes(q));
+  docs.sort((a,b) => (b.dataUpload||'').localeCompare(a.dataUpload||''));
+
+  if (!docs.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="loading">Sem documentos na biblioteca</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = docs.map(d => {
+    const tamanho = d.tamanho ? (d.tamanho > 1048576 ? (d.tamanho/1048576).toFixed(1)+' MB' : (d.tamanho/1024).toFixed(0)+' KB') : '—';
+    return `<tr>
+      <td><strong>${d.nome||'—'}</strong></td>
+      <td><span class="badge" style="background:var(--accent2,#2b6cb0);color:#fff">${d.categoria||'—'}</span></td>
+      <td>${d.dataUpload ? new Date(d.dataUpload).toLocaleDateString('pt-PT') : '—'}</td>
+      <td>${tamanho}</td>
+      <td style="display:flex;gap:6px">
+        <a href="${d.url||'#'}" target="_blank" class="btn btn-sm btn-outline" ${!d.url?'style="opacity:.4;pointer-events:none"':''}>⬇ Abrir</a>
+        <button class="btn btn-sm btn-outline" style="color:#e53e3e" onclick="apagarDocBiblioteca('${d.key}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+};
+
+window.abrirUploadBiblioteca = function() {
+  document.getElementById('bib-nome').value = '';
+  document.getElementById('bib-ficheiro').value = '';
+  document.getElementById('bib-upload-progress').style.display = 'none';
+  openModal('modal-upload-bib');
+};
+
+window.executarUploadBiblioteca = async function() {
+  const nome = document.getElementById('bib-nome').value.trim();
+  const cat = document.getElementById('bib-cat').value;
+  const ficheiro = document.getElementById('bib-ficheiro').files[0];
+
+  if (!nome) { toast('Indica um nome para o documento', 'error'); return; }
+  if (!ficheiro) { toast('Seleciona um ficheiro', 'error'); return; }
+
+  // Firebase Storage upload
+  try {
+    const { getStorage, ref: storageRef, uploadBytesResumable, getDownloadURL } =
+      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js");
+
+    const storage = getStorage();
+    const path = `portal/biblioteca/${Date.now()}_${ficheiro.name}`;
+    const sRef = storageRef(storage, path);
+
+    document.getElementById('bib-upload-progress').style.display = 'block';
+    const uploadTask = uploadBytesResumable(sRef, ficheiro);
+
+    uploadTask.on('state_changed',
+      snap => {
+        const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
+        document.getElementById('bib-progress-bar').style.width = pct + '%';
+        document.getElementById('bib-progress-txt').textContent = `A fazer upload... ${pct}%`;
+      },
+      err => { toast('Erro no upload: ' + err.message, 'error'); },
+      async () => {
+        const url = await getDownloadURL(uploadTask.snapshot.ref);
+        const ref = window._push(window._dbRef('/portal/biblioteca'));
+        await window._set(ref, {
+          nome, categoria: cat,
+          url, tamanho: ficheiro.size,
+          tipo: ficheiro.type,
+          dataUpload: new Date().toISOString()
+        });
+        toast('Documento carregado com sucesso!');
+        closeModal('modal-upload-bib');
+      }
+    );
+  } catch(e) {
+    toast('Erro: ' + e.message, 'error');
+  }
+};
+
+window.apagarDocBiblioteca = async function(key) {
+  if (!confirm('Apagar este documento da biblioteca?')) return;
+  const doc = documentosBiblioteca[key];
+  // Remove do DB
+  await window._set(window._dbRef('/portal/biblioteca/' + key), null);
+  // Tenta apagar do Storage também
+  if (doc?.url) {
+    try {
+      const { getStorage, ref: storageRef, deleteObject } =
+        await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js");
+      const storage = getStorage();
+      // Extrai path do URL
+      const match = doc.url.match(/o\/(.+?)\?/);
+      if (match) {
+        const path = decodeURIComponent(match[1]);
+        await deleteObject(storageRef(storage, path));
+      }
+    } catch(e) { /* ignora erro storage, já foi do DB */ }
+  }
+  toast('Documento apagado');
+};
+
 
 window.toast = function(msg, type='success') {
   const t = document.getElementById('toast');
