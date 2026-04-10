@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vizelgolfe — Portal de Sócios</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a1628;
+  --bg2: #0f1e35;
+  --bg3: #162444;
+  --card: #1a2a45;
+  --card2: #1f3050;
+  --accent: #d4820a;
+  --accent2: #f0a030;
+  --green: #2ecc71;
+  --red: #e74c3c;
+  --blue: #3498db;
+  --text: #e8f0fe;
+  --text2: #8fa8c8;
+  --border: rgba(212,130,10,0.2);
+  --border2: rgba(255,255,255,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── HEADER ── */
+header {
+  background: var(--bg2);
+  border-bottom: 2px solid var(--accent);
+  padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 60px; position: sticky; top: 0; z-index: 100;
+}
+.logo { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 2px; color: var(--accent); }
+.logo span { color: var(--text2); font-size: 14px; margin-left: 8px; font-family: 'DM Sans', sans-serif; letter-spacing: 0; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.badge-live { background: var(--accent); color: #000; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 3px; letter-spacing: 1px; }
+#btn-logout { background: transparent; border: 1px solid var(--border); color: var(--text2); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; transition: all .2s; }
+#btn-logout:hover { border-color: var(--red); color: var(--red); }
+
+/* ── LOGIN ── */
+#login-screen {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; background: var(--bg);
+}
+.login-box {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; padding: 48px 40px; width: 380px; text-align: center;
+}
+.login-box h1 { font-family: 'Bebas Neue'; font-size: 36px; color: var(--accent); letter-spacing: 3px; margin-bottom: 4px; }
+.login-box p { color: var(--text2); font-size: 13px; margin-bottom: 32px; }
+.login-box input {
+  width: 100%; padding: 12px 16px; background: var(--bg2);
+  border: 1px solid var(--border2); border-radius: 8px; color: var(--text);
+  font-size: 14px; margin-bottom: 12px; outline: none; transition: border .2s;
+}
+.login-box input:focus { border-color: var(--accent); }
+.btn-primary {
+  width: 100%; padding: 13px; background: var(--accent); color: #000;
+  font-weight: 700; font-size: 14px; border: none; border-radius: 8px;
+  cursor: pointer; letter-spacing: 1px; transition: background .2s;
+}
+.btn-primary:hover { background: var(--accent2); }
+.login-error { color: var(--red); font-size: 12px; margin-top: 8px; display: none; }
+
+/* ── MAIN LAYOUT ── */
+#app { display: none; }
+nav {
+  background: var(--bg2); border-bottom: 1px solid var(--border2);
+  display: flex; gap: 4px; padding: 0 24px; overflow-x: auto;
+}
+.nav-tab {
+  padding: 14px 20px; font-size: 13px; font-weight: 500; color: var(--text2);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  transition: all .2s; white-space: nowrap; background: none; border-left: none; border-right: none; border-top: none;
+}
+.nav-tab:hover { color: var(--text); }
+.nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+main { padding: 24px; max-width: 1200px; margin: 0 auto; }
+
+/* ── CARDS ── */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 20px; position: relative; overflow: hidden;
+}
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
+.stat-card .val { font-family: 'Bebas Neue'; font-size: 40px; color: var(--accent); line-height: 1; }
+.stat-card .lbl { font-size: 12px; color: var(--text2); margin-top: 4px; }
+
+/* ── TOOLBAR ── */
+.toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+.toolbar input[type=text], .toolbar select {
+  padding: 9px 14px; background: var(--card); border: 1px solid var(--border2);
+  border-radius: 8px; color: var(--text); font-size: 13px; outline: none; transition: border .2s;
+}
+.toolbar input[type=text]:focus, .toolbar select:focus { border-color: var(--accent); }
+.toolbar input[type=text] { flex: 1; min-width: 200px; }
+.btn { padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
+.btn-accent { background: var(--accent); color: #000; }
+.btn-accent:hover { background: var(--accent2); }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text2); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+.btn-danger:hover { background: var(--red); color: #fff; }
+.btn-green { background: var(--green); color: #000; }
+.btn-green:hover { opacity: .85; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+/* ── TABLE ── */
+.table-wrap { background: var(--card); border: 1px solid var(--border2); border-radius: 12px; overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+th { background: var(--bg2); color: var(--text2); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 12px 16px; text-align: left; font-weight: 600; }
+td { padding: 12px 16px; font-size: 13px; border-top: 1px solid var(--border2); vertical-align: middle; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-pago { background: rgba(46,204,113,0.15); color: var(--green); }
+.badge-pendente { background: rgba(231,76,60,0.15); color: var(--red); }
+.badge-parcial { background: rgba(212,130,10,0.15); color: var(--accent); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 20px; display: none;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 16px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto;
+}
+.modal-header {
+  padding: 20px 24px; border-bottom: 1px solid var(--border2);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.modal-header h3 { font-family: 'Bebas Neue'; font-size: 22px; letter-spacing: 1px; color: var(--accent); }
+.modal-close { background: none; border: none; color: var(--text2); font-size: 22px; cursor: pointer; line-height: 1; }
+.modal-body { padding: 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border2); display: flex; gap: 10px; justify-content: flex-end; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-group.full { grid-column: 1/-1; }
+.form-group label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+.form-group input, .form-group select, .form-group textarea {
+  padding: 10px 14px; background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: 8px; color: var(--text); font-size: 13px; outline: none; transition: border .2s;
+  font-family: 'DM Sans', sans-serif;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+.form-group select option { background: var(--bg2); }
+
+/* ── TABS INSIDE PAGE ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── QUOTA CARDS ── */
+.quota-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.quota-card {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 20px;
+}
+.quota-card h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.quota-amount { font-family: 'Bebas Neue'; font-size: 32px; color: var(--accent); }
+.quota-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.progress-bar { height: 6px; background: var(--bg2); border-radius: 3px; margin-top: 12px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; background: var(--accent); transition: width .5s; }
+
+/* ── IMPORT ── */
+.import-zone {
+  border: 2px dashed var(--border); border-radius: 12px;
+  padding: 48px; text-align: center; cursor: pointer;
+  transition: border-color .2s; margin-bottom: 20px;
+}
+.import-zone:hover, .import-zone.drag { border-color: var(--accent); }
+.import-zone p { color: var(--text2); font-size: 14px; margin-top: 8px; }
+.import-zone .icon { font-size: 40px; }
+
+/* ── RECIBO ── */
+.recibo-preview {
+  background: #fff; color: #000; border-radius: 12px;
+  padding: 32px; max-width: 500px; margin: 0 auto; font-family: 'DM Sans', sans-serif;
+}
+.recibo-preview h2 { color: #d4820a; font-family: 'Bebas Neue'; font-size: 28px; letter-spacing: 2px; }
+.recibo-line { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px; }
+.recibo-total { font-weight: 700; font-size: 16px; color: #d4820a; }
+
+/* ── EMPTY STATE ── */
+.empty { text-align: center; padding: 60px 20px; color: var(--text2); }
+.empty .icon { font-size: 48px; margin-bottom: 12px; }
+.empty p { font-size: 14px; }
+
+/* ── LOADING ── */
+.loading { text-align: center; padding: 40px; color: var(--text2); font-size: 14px; }
+
+/* ── TOAST ── */
+#toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--card2); border: 1px solid var(--border);
+  color: var(--text); padding: 12px 20px; border-radius: 10px;
+  font-size: 13px; z-index: 9999; transform: translateY(100px);
+  transition: transform .3s; pointer-events: none;
+}
+#toast.show { transform: translateY(0); }
+#toast.success { border-color: var(--green); }
+#toast.error { border-color: var(--red); }
+
+/* ── RESPONSIVE ── */
+@media(max-width:600px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  main { padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <h1>⛳ VIZELGOLFE</h1>
+    <p>Portal de Gestão de Sócios</p>
+    <input type="password" id="login-pass" placeholder="Password de administrador" />
+    <button class="btn-primary" onclick="doLogin()">ENTRAR</button>
+    <p class="login-error" id="login-err">Password incorreta</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <header>
+    <div class="logo">⛳ VIZELGOLFE <span>Portal de Sócios</span></div>
+    <div class="header-right">
+      <span class="badge-live">ADMIN</span>
+      <button id="btn-logout" onclick="doLogout()">Sair</button>
+    </div>
+  </header>
+
+  <nav>
+    <button class="nav-tab active" onclick="showPage('dashboard')">📊 Dashboard</button>
+    <button class="nav-tab" onclick="showPage('socios')">👥 Sócios</button>
+    <button class="nav-tab" onclick="showPage('quotas')">💰 Quotas</button>
+    <button class="nav-tab" onclick="showPage('recibos')">🧾 Recibos</button>
+    <button class="nav-tab" onclick="showPage('importar')">📥 Importar</button>
+  </nav>
+
+  <main>
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat-card"><div class="val" id="stat-total">—</div><div class="lbl">Total de Sócios</div></div>
+        <div class="stat-card"><div class="val" id="stat-ativos">—</div><div class="lbl">Sócios Ativos</div></div>
+        <div class="stat-card"><div class="val" id="stat-pagos">—</div><div class="lbl">Quotas Pagas 2026</div></div>
+        <div class="stat-card"><div class="val" id="stat-pendentes">—</div><div class="lbl">Quotas Pendentes</div></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>Categoria</th><th>Estado 2026</th><th>Último pagamento</th></tr></thead>
+          <tbody id="dash-table"><tr><td colspan="4" class="loading">A carregar...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- SÓCIOS -->
+    <div id="page-socios" class="page">
+      <div class="toolbar">
+        <input type="text" id="search-socios" placeholder="🔍 Pesquisar por nome, número ou email..." oninput="renderSocios()" />
+        <select id="filter-cat" onchange="renderSocios()">
+          <option value="">Todas as categorias</option>
+          <option>Atleta</option>
+          <option>Geral</option>
+          <option>Honorário</option>
+          <option>Júnior</option>
+        </select>
+        <select id="filter-estado" onchange="renderSocios()">
+          <option value="">Todos os estados</option>
+          <option>Ativo</option>
+          <option>Inativo</option>
+        </select>
+        <button class="btn btn-accent" onclick="openModalSocio()">+ Novo Sócio</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Nome</th><th>Categoria</th><th>Email</th><th>Telef.</th><th>Estado</th><th>Ações</th></tr></thead>
+          <tbody id="table-socios"><tr><td colspan="7" class="loading">A carregar...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- QUOTAS -->
+    <div id="page-quotas" class="page">
+      <div class="toolbar">
+        <select id="filter-ano-quota" onchange="renderQuotas()">
+          <option value="2026">2026</option>
+          <option value="2025">2025</option>
+          <option value="2024">2024</option>
+        </select>
+        <input type="text" id="search-quotas" placeholder="🔍 Pesquisar sócio..." oninput="renderQuotas()" />
+        <button class="btn btn-accent" onclick="gerarQuotasAnuais()">⚡ Gerar Quotas Anuais</button>
+      </div>
+      <div class="quota-grid" id="quota-resumo"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Nome</th><th>Categoria</th><th>Valor</th><th>Estado</th><th>Data Pag.</th><th>Ações</th></tr></thead>
+          <tbody id="table-quotas"><tr><td colspan="7" class="loading">A carregar...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RECIBOS -->
+    <div id="page-recibos" class="page">
+      <div class="toolbar">
+        <select id="filter-ano-recibo" onchange="renderRecibos()">
+          <option value="2026">2026</option>
+          <option value="2025">2025</option>
+        </select>
+        <input type="text" id="search-recibos" placeholder="🔍 Pesquisar..." oninput="renderRecibos()" />
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Nº Recibo</th><th>Sócio</th><th>Descrição</th><th>Valor</th><th>Data</th><th>Ações</th></tr></thead>
+          <tbody id="table-recibos"><tr><td colspan="6" class="loading">A carregar...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- IMPORTAR -->
+    <div id="page-importar" class="page">
+      <div class="import-zone" id="import-zone" onclick="document.getElementById('file-input').click()"
+           ondragover="event.preventDefault();this.classList.add('drag')"
+           ondragleave="this.classList.remove('drag')"
+           ondrop="handleDrop(event)">
+        <div class="icon">📥</div>
+        <p><strong>Clique ou arraste um ficheiro CSV/Excel</strong></p>
+        <p>Formato: Número, Nome, Email, Telefone, Categoria, NIF, Data Nascimento</p>
+        <input type="file" id="file-input" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFile(this.files[0])">
+      </div>
+      <div id="import-preview" style="display:none">
+        <h3 style="margin-bottom:12px;color:var(--accent)">Pré-visualização</h3>
+        <div class="table-wrap" style="margin-bottom:16px">
+          <table><thead id="import-thead"></thead><tbody id="import-tbody"></tbody></table>
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-accent" onclick="confirmarImport()">✅ Importar <span id="import-count">0</span> sócios</button>
+          <button class="btn btn-outline" onclick="cancelarImport()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- MODAL SÓCIO -->
+<div class="modal-overlay" id="modal-socio">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-socio-title">Novo Sócio</h3>
+      <button class="modal-close" onclick="closeModal('modal-socio')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label>Número de Sócio</label><input id="s-num" type="text" placeholder="Ex: 208" /></div>
+        <div class="form-group"><label>Categoria</label>
+          <select id="s-cat"><option>Atleta</option><option>Geral</option><option>Honorário</option><option>Júnior</option></select>
+        </div>
+        <div class="form-group full"><label>Nome Completo</label><input id="s-nome" type="text" placeholder="Nome e apelido" /></div>
+        <div class="form-group"><label>Email</label><input id="s-email" type="email" placeholder="email@exemplo.com" /></div>
+        <div class="form-group"><label>Telefone</label><input id="s-tel" type="tel" placeholder="9xx xxx xxx" /></div>
+        <div class="form-group"><label>NIF</label><input id="s-nif" type="text" placeholder="123456789" /></div>
+        <div class="form-group"><label>Data de Nascimento</label><input id="s-nasc" type="date" /></div>
+        <div class="form-group"><label>Data de Inscrição</label><input id="s-insc" type="date" /></div>
+        <div class="form-group"><label>Estado</label>
+          <select id="s-estado"><option>Ativo</option><option>Inativo</option></select>
+        </div>
+        <div class="form-group"><label>Morada</label><input id="s-morada" type="text" placeholder="Rua, número, localidade" /></div>
+        <div class="form-group full"><label>Observações</label><textarea id="s-obs" rows="2" placeholder="Notas opcionais..."></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-socio')">Cancelar</button>
+      <button class="btn btn-accent" onclick="gravarSocio()">💾 Gravar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL QUOTA -->
+<div class="modal-overlay" id="modal-quota">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-quota-title">Registar Pagamento</h3>
+      <button class="modal-close" onclick="closeModal('modal-quota')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full"><label>Sócio</label><input id="q-socio-nome" type="text" readonly style="opacity:.7" /></div>
+        <div class="form-group"><label>Ano</label><input id="q-ano" type="number" value="2026" /></div>
+        <div class="form-group"><label>Valor (€)</label><input id="q-valor" type="number" step="0.01" placeholder="10.00" /></div>
+        <div class="form-group"><label>Data de Pagamento</label><input id="q-data" type="date" /></div>
+        <div class="form-group"><label>Estado</label>
+          <select id="q-estado"><option value="pago">Pago</option><option value="pendente">Pendente</option><option value="parcial">Parcial</option></select>
+        </div>
+        <div class="form-group full"><label>Descrição / Referência</label><input id="q-desc" type="text" placeholder="Ex: Quota anual atleta 2026" /></div>
+        <div class="form-group full"><label>Emitir Recibo Automaticamente</label>
+          <select id="q-recibo"><option value="sim">Sim</option><option value="nao">Não</option></select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-quota')">Cancelar</button>
+      <button class="btn btn-green" onclick="gravarPagamento()">✅ Registar Pagamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RECIBO -->
+<div class="modal-overlay" id="modal-recibo">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <h3>Recibo</h3>
+      <button class="modal-close" onclick="closeModal('modal-recibo')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="recibo-preview" id="recibo-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-recibo')">Fechar</button>
+      <button class="btn btn-accent" onclick="imprimirRecibo()">🖨️ Imprimir</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, remove, push, onValue }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",
+  authDomain: "vizelgolfe-portal.firebaseapp.com",
+  databaseURL: "https://vizelgolfe-portal-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "vizelgolfe-portal",
+  storageBucket: "vizelgolfe-portal.firebasestorage.app",
+  messagingSenderId: "651151089287",
+  appId: "1:651151089287:web:d7f044bbb6c64f2e8fa222"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ─── ESTADO ───────────────────────────────────────
+const ADMIN_PASS = "Vizela2026***";
+let socios = {};
+let quotas = {};
+let recibos = {};
+let editSocioKey = null;
+let editQuotaKey = null;
+let importData = [];
+let currentReciboData = null;
+
+// ─── AUTH ──────────────────────────────────────────
+window.doLogin = function() {
+  const p = document.getElementById('login-pass').value;
+  if (p === ADMIN_PASS) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    carregarDados();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+};
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') window.doLogin(); });
+window.doLogout = function() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pass').value = '';
+};
+
+// ─── CARREGAR DADOS ────────────────────────────────
+function carregarDados() {
+  onValue(ref(db, '/portal/socios'), snap => {
+    socios = snap.val() || {};
+    renderDashboard(); renderSocios(); renderQuotas();
+  });
+  onValue(ref(db, '/portal/quotas'), snap => {
+    quotas = snap.val() || {};
+    renderDashboard(); renderQuotas(); renderRecibos();
+  });
+  onValue(ref(db, '/portal/recibos'), snap => {
+    recibos = snap.val() || {};
+    renderRecibos();
+  });
+}
+
+// ─── NAVEGAÇÃO ─────────────────────────────────────
+window.showPage = function(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  event.target.classList.add('active');
+};
+
+// ─── DASHBOARD ─────────────────────────────────────
+function renderDashboard() {
+  const lista = Object.values(socios);
+  const ativos = lista.filter(s => s.estado === 'Ativo');
+  const ano = new Date().getFullYear().toString();
+  const pagos = Object.values(quotas).filter(q => q.ano == ano && q.estado === 'pago');
+  const pendentes = ativos.length - pagos.length;
+
+  document.getElementById('stat-total').textContent = lista.length;
+  document.getElementById('stat-ativos').textContent = ativos.length;
+  document.getElementById('stat-pagos').textContent = pagos.length;
+  document.getElementById('stat-pendentes').textContent = Math.max(0, pendentes);
+
+  const tbody = document.getElementById('dash-table');
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="4" class="loading">Sem sócios registados</td></tr>'; return; }
+  tbody.innerHTML = lista.slice(0,10).map(s => {
+    const qSocio = Object.values(quotas).find(q => q.socioKey === Object.keys(socios).find(k => socios[k]===s) && q.ano==ano);
+    const estado = qSocio ? qSocio.estado : 'pendente';
+    return `<tr>
+      <td><strong>${s.nome}</strong></td>
+      <td>${s.categoria||'—'}</td>
+      <td><span class="badge badge-${estado}">${estado}</span></td>
+      <td>${qSocio?.dataPag||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── SÓCIOS ────────────────────────────────────────
+window.renderSocios = function() {
+  const q = document.getElementById('search-socios').value.toLowerCase();
+  const cat = document.getElementById('filter-cat').value;
+  const est = document.getElementById('filter-estado').value;
+  const tbody = document.getElementById('table-socios');
+
+  let lista = Object.entries(socios).filter(([k,s]) => {
+    const matchQ = !q || s.nome?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q) || String(s.numero).includes(q);
+    const matchC = !cat || s.categoria === cat;
+    const matchE = !est || s.estado === est;
+    return matchQ && matchC && matchE;
+  });
+
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="icon">👥</div><p>Nenhum sócio encontrado</p></div></td></tr>'; return; }
+
+  tbody.innerHTML = lista.map(([k,s]) => `<tr>
+    <td><span style="font-family:'DM Mono';color:var(--accent)">${s.numero||'—'}</span></td>
+    <td><strong>${s.nome||'—'}</strong></td>
+    <td>${s.categoria||'—'}</td>
+    <td style="color:var(--text2)">${s.email||'—'}</td>
+    <td style="color:var(--text2)">${s.telefone||'—'}</td>
+    <td><span class="badge ${s.estado==='Ativo'?'badge-pago':'badge-pendente'}">${s.estado||'—'}</span></td>
+    <td style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="editarSocio('${k}')">✏️</button>
+      <button class="btn btn-accent btn-sm" onclick="abrirModalQuota('${k}')">💰</button>
+      <button class="btn btn-danger btn-sm" onclick="apagarSocio('${k}')">🗑️</button>
+    </td>
+  </tr>`).join('');
+};
+
+window.openModalSocio = function() {
+  editSocioKey = null;
+  document.getElementById('modal-socio-title').textContent = 'Novo Sócio';
+  ['s-num','s-nome','s-email','s-tel','s-nif','s-nasc','s-insc','s-obs','s-morada'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('s-cat').value = 'Atleta';
+  document.getElementById('s-estado').value = 'Ativo';
+  document.getElementById('s-insc').value = new Date().toISOString().slice(0,10);
+  openModal('modal-socio');
+};
+
+window.editarSocio = function(key) {
+  editSocioKey = key;
+  const s = socios[key];
+  document.getElementById('modal-socio-title').textContent = 'Editar Sócio';
+  document.getElementById('s-num').value = s.numero||'';
+  document.getElementById('s-nome').value = s.nome||'';
+  document.getElementById('s-email').value = s.email||'';
+  document.getElementById('s-tel').value = s.telefone||'';
+  document.getElementById('s-nif').value = s.nif||'';
+  document.getElementById('s-nasc').value = s.nascimento||'';
+  document.getElementById('s-insc').value = s.inscricao||'';
+  document.getElementById('s-obs').value = s.obs||'';
+  document.getElementById('s-morada').value = s.morada||'';
+  document.getElementById('s-cat').value = s.categoria||'Atleta';
+  document.getElementById('s-estado').value = s.estado||'Ativo';
+  openModal('modal-socio');
+};
+
+window.gravarSocio = async function() {
+  const dados = {
+    numero: document.getElementById('s-num').value.trim(),
+    nome: document.getElementById('s-nome').value.trim(),
+    email: document.getElementById('s-email').value.trim(),
+    telefone: document.getElementById('s-tel').value.trim(),
+    nif: document.getElementById('s-nif').value.trim(),
+    nascimento: document.getElementById('s-nasc').value,
+    inscricao: document.getElementById('s-insc').value,
+    morada: document.getElementById('s-morada').value.trim(),
+    obs: document.getElementById('s-obs').value.trim(),
+    categoria: document.getElementById('s-cat').value,
+    estado: document.getElementById('s-estado').value,
+  };
+  if (!dados.nome) { toast('Nome obrigatório', 'error'); return; }
+  try {
+    if (editSocioKey) {
+      await update(ref(db, `/portal/socios/${editSocioKey}`), dados);
+      toast('Sócio atualizado ✅');
+    } else {
+      await push(ref(db, '/portal/socios'), dados);
+      toast('Sócio adicionado ✅');
+    }
+    closeModal('modal-socio');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+};
+
+window.apagarSocio = async function(key) {
+  if (!confirm('Apagar este sócio?')) return;
+  await remove(ref(db, `/portal/socios/${key}`));
+  toast('Sócio removido');
+};
+
+// ─── QUOTAS ────────────────────────────────────────
+window.renderQuotas = function() {
+  const ano = document.getElementById('filter-ano-quota').value;
+  const q = document.getElementById('search-quotas').value.toLowerCase();
+  const tbody = document.getElementById('table-quotas');
+
+  // Resumo
+  const qAno = Object.values(quotas).filter(x => x.ano == ano);
+  const totalPago = qAno.filter(x => x.estado==='pago').reduce((a,x) => a + parseFloat(x.valor||0), 0);
+  const totalPendente = qAno.filter(x => x.estado!=='pago').reduce((a,x) => a + parseFloat(x.valor||0), 0);
+  const pct = totalPago + totalPendente > 0 ? (totalPago/(totalPago+totalPendente)*100) : 0;
+
+  document.getElementById('quota-resumo').innerHTML = `
+    <div class="quota-card">
+      <h4>Total Cobrado ${ano}</h4>
+      <div class="quota-amount">${totalPago.toFixed(2)}€</div>
+      <div class="quota-sub">${qAno.filter(x=>x.estado==='pago').length} pagamentos</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div class="quota-card">
+      <h4>Pendente ${ano}</h4>
+      <div class="quota-amount" style="color:var(--red)">${totalPendente.toFixed(2)}€</div>
+      <div class="quota-sub">${qAno.filter(x=>x.estado!=='pago').length} por cobrar</div>
+    </div>
+    <div class="quota-card">
+      <h4>Taxa de Cobrança</h4>
+      <div class="quota-amount">${pct.toFixed(0)}%</div>
+      <div class="quota-sub">dos sócios em dia</div>
+    </div>
+  `;
+
+  // Tabela: sócios com/sem quota no ano
+  const sociosList = Object.entries(socios).filter(([k,s]) => {
+    const nome = s.nome?.toLowerCase()||'';
+    return !q || nome.includes(q) || String(s.numero).includes(q);
+  });
+
+  if (!sociosList.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty"><div class="icon">💰</div><p>Sem sócios</p></div></td></tr>'; return; }
+
+  tbody.innerHTML = sociosList.map(([sk, s]) => {
+    const q = Object.entries(quotas).find(([qk, x]) => x.socioKey === sk && x.ano == ano);
+    const qKey = q?.[0];
+    const qDados = q?.[1];
+    const estado = qDados?.estado || 'pendente';
+    const valor = qDados?.valor ? parseFloat(qDados.valor).toFixed(2)+'€' : '—';
+    const dataPag = qDados?.dataPag || '—';
+    return `<tr>
+      <td style="font-family:'DM Mono';color:var(--accent)">${s.numero||'—'}</td>
+      <td><strong>${s.nome}</strong></td>
+      <td>${s.categoria||'—'}</td>
+      <td>${valor}</td>
+      <td><span class="badge badge-${estado}">${estado}</span></td>
+      <td style="color:var(--text2)">${dataPag}</td>
+      <td>
+        <button class="btn btn-accent btn-sm" onclick="abrirModalQuota('${sk}','${qKey||''}')">💰 Pagar</button>
+        ${qKey ? `<button class="btn btn-outline btn-sm" onclick="emitirRecibo('${qKey}')">🧾</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+};
+
+window.abrirModalQuota = function(socioKey, quotaKey='') {
+  editQuotaKey = quotaKey || null;
+  const s = socios[socioKey];
+  document.getElementById('q-socio-nome').value = s?.nome || '';
+  document.getElementById('q-socio-nome').dataset.socioKey = socioKey;
+  document.getElementById('q-ano').value = new Date().getFullYear();
+  document.getElementById('q-data').value = new Date().toISOString().slice(0,10);
+  const val = s?.categoria === 'Atleta' ? '20' : '10';
+  document.getElementById('q-valor').value = val;
+  document.getElementById('q-desc').value = `Quota anual ${s?.categoria||''} ${new Date().getFullYear()}`;
+  document.getElementById('q-estado').value = 'pago';
+  openModal('modal-quota');
+};
+
+window.gravarPagamento = async function() {
+  const socioKey = document.getElementById('q-socio-nome').dataset.socioKey;
+  const dados = {
+    socioKey,
+    ano: document.getElementById('q-ano').value,
+    valor: document.getElementById('q-valor').value,
+    dataPag: document.getElementById('q-data').value,
+    descricao: document.getElementById('q-desc').value,
+    estado: document.getElementById('q-estado').value,
+    criadoEm: new Date().toISOString()
+  };
+  try {
+    let quotaKey;
+    if (editQuotaKey) {
+      await update(ref(db, `/portal/quotas/${editQuotaKey}`), dados);
+      quotaKey = editQuotaKey;
+    } else {
+      const r = await push(ref(db, '/portal/quotas'), dados);
+      quotaKey = r.key;
+    }
+    // Emitir recibo automático?
+    if (document.getElementById('q-recibo').value === 'sim' && dados.estado === 'pago') {
+      const s = socios[socioKey];
+      const nRecibo = 'RC' + Date.now();
+      await push(ref(db, '/portal/recibos'), {
+        numero: nRecibo, socioKey, socioNome: s?.nome,
+        descricao: dados.descricao, valor: dados.valor,
+        data: dados.dataPag, quotaKey, criadoEm: new Date().toISOString()
+      });
+    }
+    toast('Pagamento registado ✅');
+    closeModal('modal-quota');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+};
+
+window.gerarQuotasAnuais = async function() {
+  const ano = document.getElementById('filter-ano-quota').value;
+  if (!confirm(`Gerar quotas pendentes para todos os sócios ativos em ${ano}?`)) return;
+  const ativos = Object.entries(socios).filter(([k,s]) => s.estado === 'Ativo');
+  let criados = 0;
+  for (const [sk, s] of ativos) {
+    const jaExiste = Object.values(quotas).find(q => q.socioKey===sk && q.ano==ano);
+    if (!jaExiste) {
+      const val = s.categoria === 'Atleta' ? 20 : 10;
+      await push(ref(db, '/portal/quotas'), {
+        socioKey: sk, ano, valor: val,
+        descricao: `Quota anual ${s.categoria} ${ano}`,
+        estado: 'pendente', criadoEm: new Date().toISOString()
+      });
+      criados++;
+    }
+  }
+  toast(`${criados} quotas geradas ✅`);
+};
+
+// ─── RECIBOS ───────────────────────────────────────
+window.renderRecibos = function() {
+  const ano = document.getElementById('filter-ano-recibo').value;
+  const q = document.getElementById('search-recibos').value.toLowerCase();
+  const tbody = document.getElementById('table-recibos');
+
+  const lista = Object.entries(recibos).filter(([k,r]) => {
+    const matchAno = r.data?.startsWith(ano);
+    const matchQ = !q || r.socioNome?.toLowerCase().includes(q) || r.numero?.toLowerCase().includes(q);
+    return matchAno && matchQ;
+  });
+
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="icon">🧾</div><p>Sem recibos</p></div></td></tr>'; return; }
+
+  tbody.innerHTML = lista.map(([k,r]) => `<tr>
+    <td style="font-family:'DM Mono';color:var(--accent)">${r.numero}</td>
+    <td><strong>${r.socioNome||'—'}</strong></td>
+    <td style="color:var(--text2)">${r.descricao||'—'}</td>
+    <td style="color:var(--green);font-weight:600">${parseFloat(r.valor||0).toFixed(2)}€</td>
+    <td style="color:var(--text2)">${r.data||'—'}</td>
+    <td>
+      <button class="btn btn-outline btn-sm" onclick="emitirRecibo('${k}','direct')">🧾 Ver</button>
+      <button class="btn btn-danger btn-sm" onclick="apagarRecibo('${k}')">🗑️</button>
+    </td>
+  </tr>`).join('');
+};
+
+window.emitirRecibo = function(key, mode='direct') {
+  const r = recibos[key];
+  if (!r) { toast('Recibo não encontrado', 'error'); return; }
+  const s = socios[r.socioKey] || {};
+  currentReciboData = r;
+  document.getElementById('recibo-content').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px">
+      <div>
+        <h2>⛳ VIZELGOLFE</h2>
+        <p style="color:#666;font-size:12px">Associação de Minigolfe de Vizela<br>NIF 509 227 902</p>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px">Recibo</div>
+        <div style="font-family:'Bebas Neue';font-size:24px;color:#d4820a">${r.numero}</div>
+      </div>
+    </div>
+    <div class="recibo-line"><span>Sócio</span><span><strong>${r.socioNome}</strong></span></div>
+    <div class="recibo-line"><span>Nº Sócio</span><span>${s.numero||'—'}</span></div>
+    <div class="recibo-line"><span>NIF</span><span>${s.nif||'—'}</span></div>
+    <div class="recibo-line"><span>Descrição</span><span>${r.descricao}</span></div>
+    <div class="recibo-line"><span>Data</span><span>${r.data}</span></div>
+    <div class="recibo-line recibo-total"><span>TOTAL</span><span>${parseFloat(r.valor||0).toFixed(2)} €</span></div>
+    <p style="font-size:10px;color:#999;margin-top:20px;text-align:center">
+      Vizelgolfe — Associação de Minigolfe de Vizela · NIF 509 227 902<br>
+      IBAN PT50 0045 1401 4037 3110 4744 6
+    </p>
+  `;
+  openModal('modal-recibo');
+};
+
+window.imprimirRecibo = function() {
+  const content = document.getElementById('recibo-content').innerHTML;
+  const w = window.open('', '_blank');
+  w.document.write(`<html><head><title>Recibo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans&display=swap" rel="stylesheet">
+    <style>body{font-family:'DM Sans',sans-serif;padding:40px;max-width:500px;margin:0 auto}
+    .recibo-line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:13px}
+    .recibo-total{font-weight:700;font-size:16px;color:#d4820a}</style>
+    </head><body>${content}</body></html>`);
+  w.document.close(); w.print();
+};
+
+window.apagarRecibo = async function(key) {
+  if (!confirm('Apagar este recibo?')) return;
+  await remove(ref(db, `/portal/recibos/${key}`));
+  toast('Recibo removido');
+};
+
+// ─── IMPORTAR ──────────────────────────────────────
+window.handleDrop = function(e) {
+  e.preventDefault();
+  document.getElementById('import-zone').classList.remove('drag');
+  handleFile(e.dataTransfer.files[0]);
+};
+
+window.handleFile = function(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) { toast('Ficheiro vazio ou inválido', 'error'); return; }
+    const headers = lines[0].split(/[,;]/).map(h => h.trim());
+    importData = lines.slice(1).map(line => {
+      const cols = line.split(/[,;]/);
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = (cols[i]||'').trim());
+      return obj;
+    }).filter(r => Object.values(r).some(v => v));
+
+    document.getElementById('import-thead').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+    document.getElementById('import-tbody').innerHTML = importData.slice(0,5).map(r =>
+      '<tr>' + headers.map(h => `<td>${r[h]||'—'}</td>`).join('') + '</tr>'
+    ).join('') + (importData.length > 5 ? `<tr><td colspan="${headers.length}" style="color:var(--text2);font-style:italic">...e mais ${importData.length-5} linhas</td></tr>` : '');
+    document.getElementById('import-count').textContent = importData.length;
+    document.getElementById('import-preview').style.display = 'block';
+  };
+  reader.readAsText(file, 'UTF-8');
+};
+
+window.confirmarImport = async function() {
+  if (!importData.length) return;
+  let ok = 0;
+  for (const row of importData) {
+    const socio = {
+      numero: row['Número']||row['Numero']||row['numero']||row['num']||'',
+      nome: row['Nome']||row['nome']||'',
+      email: row['Email']||row['email']||'',
+      telefone: row['Telefone']||row['telefone']||row['Telef']||'',
+      categoria: row['Categoria']||row['categoria']||'Geral',
+      nif: row['NIF']||row['nif']||'',
+      nascimento: row['Data Nascimento']||row['nascimento']||'',
+      estado: 'Ativo', inscricao: new Date().toISOString().slice(0,10)
+    };
+    if (socio.nome) { await push(ref(db, '/portal/socios'), socio); ok++; }
+  }
+  toast(`${ok} sócios importados ✅`);
+  cancelarImport();
+};
+
+window.cancelarImport = function() {
+  importData = [];
+  document.getElementById('import-preview').style.display = 'none';
+  document.getElementById('file-input').value = '';
+};
+
+// ─── MODAIS ────────────────────────────────────────
+window.openModal = function(id) { document.getElementById(id).classList.add('open'); };
+window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+// ─── TOAST ─────────────────────────────────────────
+window.toast = function(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  setTimeout(() => t.className = '', 3000);
+};
+</script>
+</body>
+</html>
