@@ -365,6 +365,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <button class="nav-tab active" id="ctab-receitas" onclick="showContabTab('receitas')" style="border-radius:8px 8px 0 0">💚 Receitas</button>
         <button class="nav-tab" id="ctab-despesas" onclick="showContabTab('despesas')" style="border-radius:8px 8px 0 0">🔴 Despesas</button>
         <button class="nav-tab" id="ctab-balanco" onclick="showContabTab('balanco')" style="border-radius:8px 8px 0 0">⚖️ Balanço</button>
+        <button class="nav-tab" id="ctab-balancete" onclick="showContabTab('balancete')" style="border-radius:8px 8px 0 0">📅 Balancete</button>
         <button class="nav-tab" id="ctab-drn" onclick="showContabTab('drn')" style="border-radius:8px 8px 0 0">📄 DRN</button>
         <button class="nav-tab" id="ctab-relatorio" onclick="showContabTab('relatorio')" style="border-radius:8px 8px 0 0">📋 Relatório</button>
       </div>
@@ -426,6 +427,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           <select id="filter-ano-bal" onchange="renderBalanco()">
             <option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option>
           </select>
+          <button class="btn btn-accent" onclick="imprimirBalanco()">🖨️ Imprimir Balanço</button>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
           <div class="quota-card">
@@ -448,6 +450,27 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <tbody id="table-balanco"></tbody>
           </table>
         </div>
+      </div>
+
+      <!-- BALANCETE -->
+      <div id="ctab-page-balancete" class="ctab-page" style="display:none">
+        <div class="toolbar">
+          <select id="filter-ano-blc" onchange="renderBalancete()">
+            <option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option>
+          </select>
+          <select id="filter-mes-blc" onchange="renderBalancete()">
+            <option value="">Acumulado Anual</option>
+            <option value="01">Janeiro</option><option value="02">Fevereiro</option>
+            <option value="03">Março</option><option value="04">Abril</option>
+            <option value="05">Maio</option><option value="06">Junho</option>
+            <option value="07">Julho</option><option value="08">Agosto</option>
+            <option value="09">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+          <button class="btn btn-outline" onclick="abrirModalSaldosIniciais()">⚖️ Saldos Iniciais</button>
+          <button class="btn btn-accent" onclick="imprimirBalancete()">🖨️ Imprimir Balancete</button>
+        </div>
+        <div id="balancete-content" style="background:var(--card);border-radius:12px;padding:24px"></div>
       </div>
 
       <!-- DRN -->
@@ -616,6 +639,28 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-despesa')">Cancelar</button>
       <button class="btn btn-danger" onclick="gravarDespesa()">💾 Gravar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL SALDOS INICIAIS -->
+<div class="modal-overlay" id="modal-saldos">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <h3 id="modal-saldos-title">Saldos Iniciais</h3>
+      <button class="modal-close" onclick="closeModal('modal-saldos')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:60vh;overflow-y:auto">
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">
+        Insere os saldos de abertura do ano (= saldos de fecho do ano anterior). 
+        Deixa em branco as contas sem saldo. Os valores são guardados por ano.
+      </p>
+      <div id="saldos-form"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-saldos')">Cancelar</button>
+      <button class="btn btn-accent" onclick="gravarSaldosIniciais()">💾 Gravar Saldos</button>
     </div>
   </div>
 </div>
@@ -1093,6 +1138,7 @@ let editDespesaKey = null;
 
 // Carregar receitas e despesas do Firebase
 function carregarContabilidade() {
+  carregarSaldosIniciais();
   onValue(ref(db, '/portal/receitas'), snap => {
     receitas = snap.val() || {};
     renderReceitas(); renderBalanco(); renderDRN(); renderRelatorio();
@@ -1448,14 +1494,31 @@ window.renderRelatorio = function() {
         </p>
       </div>
 
-      <div style="margin-top:32px;font-size:12px;color:var(--text2);border-top:1px solid var(--border2);padding-top:16px">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px">
+      <div style="margin-top:40px;font-size:12px;border-top:1px solid var(--border2);padding-top:20px">
+        <p style="color:var(--text2);font-size:11px;margin-bottom:24px">Vizela, ${new Date().toLocaleDateString('pt-PT', {day:'2-digit',month:'long',year:'numeric'})}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-bottom:30px">
           <div style="text-align:center">
-            <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:40px">A Direção</div>
+            <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:50px;font-size:12px">O Presidente da Direção</div>
           </div>
           <div style="text-align:center">
-            <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:40px">O Contabilista Certificado</div>
-            <div style="font-size:11px;margin-top:4px">Inscrito na OCC 46003</div>
+            <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:50px;font-size:12px">O Secretário da Direção</div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border2);padding-top:20px;margin-top:10px">
+          <p style="color:var(--text2);font-size:11px;margin-bottom:16px;font-style:italic">Aprovado pelo Conselho Fiscal em reunião de ____/____/______</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-bottom:30px">
+            <div style="text-align:center">
+              <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:50px;font-size:12px">O Presidente do Conselho Fiscal</div>
+            </div>
+            <div style="text-align:center">
+              <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:50px;font-size:12px">Vogal do Conselho Fiscal</div>
+            </div>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border2);padding-top:20px;margin-top:10px">
+          <p style="color:var(--text2);font-size:11px;margin-bottom:16px;font-style:italic">Presente e rubricado na Mesa da Assembleia Geral em ____/____/______</p>
+          <div style="text-align:center;max-width:300px;margin:0 auto">
+            <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:50px;font-size:12px">O Presidente da Mesa da Assembleia Geral</div>
           </div>
         </div>
       </div>
@@ -1471,6 +1534,229 @@ window.imprimirRelatorio = function() {
     <style>
       body{font-family:'DM Sans',sans-serif;padding:40px;max-width:700px;margin:0 auto;color:#000}
       table{width:100%;border-collapse:collapse}
+    </style></head><body>${content}</body></html>`);
+  w.document.close(); w.print();
+};
+
+
+// ── PLANO DE CONTAS SNC-ESNL ──────────────────────
+const PLANO_CONTAS = [
+  // ATIVO
+  { codigo:'11', nome:'Caixa', classe:'1', tipo:'A', sinal:1 },
+  { codigo:'12', nome:'Depósitos à ordem', classe:'1', tipo:'A', sinal:1 },
+  { codigo:'13', nome:'Outros depósitos bancários', classe:'1', tipo:'A', sinal:1 },
+  { codigo:'21', nome:'Clientes / Devedores', classe:'2', tipo:'A', sinal:1 },
+  { codigo:'22', nome:'Fornecedores / Credores', classe:'2', tipo:'P', sinal:-1 },
+  { codigo:'24', nome:'Estado e outros entes públicos', classe:'2', tipo:'P', sinal:-1 },
+  { codigo:'26', nome:'Outros devedores e credores', classe:'2', tipo:'A', sinal:1 },
+  { codigo:'32', nome:'Mercadorias', classe:'3', tipo:'A', sinal:1 },
+  { codigo:'43', nome:'Ativos fixos tangíveis', classe:'4', tipo:'A', sinal:1 },
+  { codigo:'44', nome:'Ativos intangíveis', classe:'4', tipo:'A', sinal:1 },
+  // CAPITAL PRÓPRIO
+  { codigo:'51', nome:'Fundos patrimoniais', classe:'5', tipo:'CP', sinal:1 },
+  { codigo:'56', nome:'Resultados transitados', classe:'5', tipo:'CP', sinal:1 },
+  { codigo:'59', nome:'Resultado líquido do período', classe:'5', tipo:'CP', sinal:1 },
+  // RENDIMENTOS (Classe 7)
+  { codigo:'71', nome:'Quotas de associados', classe:'7', tipo:'R', sinal:1 },
+  { codigo:'72', nome:'Subsídios, doações e legados', classe:'7', tipo:'R', sinal:1 },
+  { codigo:'73', nome:'Patrocínios', classe:'7', tipo:'R', sinal:1 },
+  { codigo:'74', nome:'Prestações de serviços', classe:'7', tipo:'R', sinal:1 },
+  { codigo:'75', nome:'Quotas extraordinárias', classe:'7', tipo:'R', sinal:1 },
+  { codigo:'78', nome:'Outros rendimentos', classe:'7', tipo:'R', sinal:1 },
+  // GASTOS (Classe 6)
+  { codigo:'61', nome:'CMVMC / Consumos', classe:'6', tipo:'G', sinal:1 },
+  { codigo:'62', nome:'Fornecimentos e serviços externos', classe:'6', tipo:'G', sinal:1 },
+  { codigo:'63', nome:'Gastos com pessoal', classe:'6', tipo:'G', sinal:1 },
+  { codigo:'64', nome:'Gastos de depreciação', classe:'6', tipo:'G', sinal:1 },
+  { codigo:'65', nome:'Perdas por imparidade', classe:'6', tipo:'G', sinal:1 },
+  { codigo:'68', nome:'Outros gastos', classe:'6', tipo:'G', sinal:1 },
+];
+
+// Mapa categoria → conta SNC
+const CAT_CONTA = {
+  'Quotas': '71', 'Subsídios/Apoios': '72', 'Patrocínios': '73',
+  'Inscrições competições': '74', 'Donativo': '72', 'Bar/Restauração': '74',
+  'Aluguer instalações': '74', 'Outros': '78',
+  'Instalações': '62', 'Equipamento': '62', 'Água/Luz/Gás': '62',
+  'Seguros': '62', 'Deslocações': '62', 'Comunicação': '62',
+  'Material de escritório': '62', 'Taxas e impostos': '68',
+  'Competições': '62', 'Formação': '62',
+};
+
+// ── SALDOS INICIAIS ────────────────────────────────
+let saldosIniciais = {}; // { ano: { codigo: valor } }
+
+function carregarSaldosIniciais() {
+  onValue(ref(db, '/portal/saldos-iniciais'), snap => {
+    saldosIniciais = snap.val() || {};
+    renderBalancete();
+  });
+}
+
+window.abrirModalSaldosIniciais = function() {
+  const ano = document.getElementById('filter-ano-blc')?.value || new Date().getFullYear().toString();
+  document.getElementById('modal-saldos-title').textContent = `Saldos Iniciais ${ano}`;
+  const saldosAno = saldosIniciais[ano] || {};
+  const classes = ['1','2','3','4','5'];
+  const classNomes = {'1':'Classe 1 — Meios Financeiros','2':'Classe 2 — Contas a Receber/Pagar','3':'Classe 3 — Inventários','4':'Classe 4 — Investimentos','5':'Classe 5 — Capital Próprio'};
+  let html = '';
+  classes.forEach(cl => {
+    const contas = PLANO_CONTAS.filter(c => c.classe === cl);
+    if (!contas.length) return;
+    html += `<div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border2)">${classNomes[cl]}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">`;
+    contas.forEach(c => {
+      const val = saldosAno[c.codigo] || '';
+      html += `<div class="form-group">
+        <label style="font-size:11px">${c.codigo} — ${c.nome}</label>
+        <input type="number" step="0.01" id="si-${c.codigo}" value="${val}" placeholder="0.00"
+          style="padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:13px;outline:none" />
+      </div>`;
+    });
+    html += '</div></div>';
+  });
+  document.getElementById('saldos-form').innerHTML = html;
+  openModal('modal-saldos');
+};
+
+window.gravarSaldosIniciais = async function() {
+  const ano = document.getElementById('filter-ano-blc')?.value || new Date().getFullYear().toString();
+  const dados = {};
+  PLANO_CONTAS.filter(c => ['1','2','3','4','5'].includes(c.classe)).forEach(c => {
+    const el = document.getElementById(`si-${c.codigo}`);
+    if (el && el.value !== '' && parseFloat(el.value) !== 0) {
+      dados[c.codigo] = parseFloat(el.value);
+    }
+  });
+  try {
+    await set(ref(db, `/portal/saldos-iniciais/${ano}`), dados);
+    toast(`Saldos iniciais ${ano} gravados ✅`);
+    closeModal('modal-saldos');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+};
+
+window.renderBalancete = function() {
+  const ano = document.getElementById('filter-ano-blc')?.value || new Date().getFullYear().toString();
+  const mes = document.getElementById('filter-mes-blc')?.value || '';
+  const periodo = mes ? `${ano}-${mes}` : ano;
+  const mesTxt = mes ? ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mes)] : 'Acumulado';
+
+  // Filtrar movimentos
+  const recPer = Object.values(receitas).filter(r => mes ? r.data?.startsWith(periodo) : r.data?.startsWith(ano));
+  const despPer = Object.values(despesas).filter(d => mes ? d.data?.startsWith(periodo) : d.data?.startsWith(ano));
+
+  // Acumulado até ao mês (se mensal)
+  const recAcum = mes ? Object.values(receitas).filter(r => r.data?.startsWith(ano) && r.data <= `${ano}-${mes}-31`) : recPer;
+  const despAcum = mes ? Object.values(despesas).filter(d => d.data?.startsWith(ano) && d.data <= `${ano}-${mes}-31`) : despPer;
+
+  // Saldos iniciais do ano
+  const siAno = (saldosIniciais[ano]) || {};
+
+  // Agregar por conta
+  const saldos = {};
+  PLANO_CONTAS.forEach(c => { saldos[c.codigo] = { inicial: siAno[c.codigo]||0, periodo: 0, acumulado: 0 }; });
+
+  recPer.forEach(r => { const c = CAT_CONTA[r.categoria]||'78'; if(saldos[c]) saldos[c].periodo += parseFloat(r.valor||0); });
+  despPer.forEach(d => { const c = CAT_CONTA[d.categoria]||'68'; if(saldos[c]) saldos[c].periodo += parseFloat(d.valor||0); });
+  recAcum.forEach(r => { const c = CAT_CONTA[r.categoria]||'78'; if(saldos[c]) saldos[c].acumulado += parseFloat(r.valor||0); });
+  despAcum.forEach(d => { const c = CAT_CONTA[d.categoria]||'68'; if(saldos[c]) saldos[c].acumulado += parseFloat(d.valor||0); });
+
+  const totalRecPer = recPer.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+  const totalDespPer = despPer.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+  const totalRecAcum = recAcum.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+  const totalDespAcum = despAcum.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+
+  const classes = ['1','2','3','4','5','6','7'];
+  const classNomes = {'1':'Classe 1 — Meios Financeiros Líquidos','2':'Classe 2 — Contas a Receber e a Pagar','3':'Classe 3 — Inventários','4':'Classe 4 — Investimentos','5':'Classe 5 — Capital Próprio','6':'Classe 6 — Gastos','7':'Classe 7 — Rendimentos'};
+
+  let rows = '';
+  classes.forEach(cl => {
+    const contas = PLANO_CONTAS.filter(c=>c.classe===cl && (saldos[c.codigo].inicial!==0 || saldos[c.codigo].periodo!==0 || saldos[c.codigo].acumulado!==0));
+    if(!contas.length) return;
+    rows += `<tr style="background:var(--bg2)"><td colspan="5" style="padding:10px 8px;font-weight:700;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:1px">${classNomes[cl]}</td></tr>`;
+    contas.forEach(c => {
+      const s = saldos[c.codigo];
+      const saldoFinal = s.inicial + s.acumulado;
+      const isGasto = cl==='6';
+      const cor = isGasto ? 'var(--red)' : cl==='7' ? 'var(--green)' : 'var(--text)';
+      const corFinal = saldoFinal >= 0 ? 'var(--green)' : 'var(--red)';
+      rows += `<tr style="border-bottom:1px solid var(--border2)">
+        <td style="padding:7px 8px;font-family:'DM Mono';font-size:12px;color:var(--accent)">${c.codigo}</td>
+        <td style="padding:7px 8px;font-size:13px">${c.nome}</td>
+        <td style="text-align:right;padding:7px 8px;color:var(--text2);font-size:13px">${s.inicial!==0?s.inicial.toFixed(2)+'€':'—'}</td>
+        <td style="text-align:right;padding:7px 8px;color:${cor};font-size:13px">${s.periodo!==0?s.periodo.toFixed(2)+'€':'—'}</td>
+        <td style="text-align:right;padding:7px 8px;color:${!isGasto?corFinal:cor};font-weight:600;font-size:13px">${(!isGasto && s.inicial!==0||s.acumulado!==0)?saldoFinal.toFixed(2)+'€':s.acumulado!==0?s.acumulado.toFixed(2)+'€':'—'}</td>
+      </tr>`;
+    });
+  });
+
+  document.getElementById('balancete-content').innerHTML = `
+    <div style="max-width:760px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:20px;border-bottom:2px solid var(--accent);padding-bottom:14px">
+        <div style="font-family:'Bebas Neue';font-size:26px;color:var(--accent);letter-spacing:2px">⛳ VIZELGOLFE</div>
+        <div style="color:var(--text2);font-size:12px">Associação de Minigolfe de Vizela · NIF 509 227 902</div>
+        <div style="font-family:'Bebas Neue';font-size:18px;margin-top:6px">BALANCETE DE VERIFICAÇÃO</div>
+        <div style="color:var(--text2);font-size:12px">${mesTxt} ${ano}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:var(--bg2)">
+            <th style="padding:10px 8px;text-align:left;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px;width:55px">Conta</th>
+            <th style="padding:10px 8px;text-align:left;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px">Designação</th>
+            <th style="padding:10px 8px;text-align:right;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px">Saldo Inicial</th>
+            <th style="padding:10px 8px;text-align:right;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px">${mesTxt}</th>
+            <th style="padding:10px 8px;text-align:right;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px">Saldo Final</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="border-top:2px solid var(--accent)">
+            <td colspan="2" style="padding:10px 8px;font-weight:700">TOTAL RENDIMENTOS (Cl. 7)</td>
+            <td style="text-align:right;padding:10px 8px;color:var(--green);font-weight:700">${totalRecPer.toFixed(2)}€</td>
+            <td style="text-align:right;padding:10px 8px;color:var(--green);font-weight:700">${totalRecAcum.toFixed(2)}€</td>
+          </tr>
+          <tr>
+            <td colspan="2" style="padding:10px 8px;font-weight:700">TOTAL GASTOS (Cl. 6)</td>
+            <td style="text-align:right;padding:10px 8px;color:var(--red);font-weight:700">${totalDespPer.toFixed(2)}€</td>
+            <td style="text-align:right;padding:10px 8px;color:var(--red);font-weight:700">${totalDespAcum.toFixed(2)}€</td>
+          </tr>
+          <tr style="border-top:2px solid var(--accent)">
+            <td colspan="2" style="padding:10px 8px;font-weight:700;font-size:14px">RESULTADO</td>
+            <td style="text-align:right;padding:10px 8px;font-weight:700;font-size:14px;color:${(totalRecPer-totalDespPer)>=0?'var(--green)':'var(--red)'}">${((totalRecPer-totalDespPer)>=0?'+':'')}${(totalRecPer-totalDespPer).toFixed(2)}€</td>
+            <td style="text-align:right;padding:10px 8px;font-weight:700;font-size:14px;color:${(totalRecAcum-totalDespAcum)>=0?'var(--green)':'var(--red)'}">${((totalRecAcum-totalDespAcum)>=0?'+':'')}${(totalRecAcum-totalDespAcum).toFixed(2)}€</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div style="margin-top:16px;font-size:11px;color:var(--text2);text-align:center">
+        Valores expressos em euros · SNC-ESNL · Regime de caixa
+      </div>
+    </div>`;
+};
+
+window.imprimirBalancete = function() {
+  const content = document.getElementById('balancete-content').innerHTML;
+  const ano = document.getElementById('filter-ano-blc').value;
+  const w = window.open('','_blank');
+  w.document.write(`<html><head><title>Balancete ${ano}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans&family=DM+Mono&display=swap" rel="stylesheet">
+    <style>body{font-family:'DM Sans',sans-serif;padding:30px;max-width:760px;margin:0 auto;color:#000;font-size:12px}
+    table{width:100%;border-collapse:collapse}th,td{padding:6px 8px}
+    @media print{body{padding:10px}}</style>
+    </head><body>${content}</body></html>`);
+  w.document.close(); w.print();
+};
+
+window.imprimirBalanco = function() {
+  const content = document.querySelector('#ctab-page-balanco').innerHTML;
+  const ano = document.getElementById('filter-ano-bal').value;
+  const w = window.open('','_blank');
+  w.document.write(`<html><head><title>Balanço ${ano}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans&display=swap" rel="stylesheet">
+    <style>body{font-family:'DM Sans',sans-serif;padding:40px;max-width:700px;margin:0 auto;color:#000}
+    .toolbar{display:none}.quota-card{border:1px solid #ddd;border-radius:8px;padding:16px;margin-bottom:12px}
+    .quota-amount{font-size:28px;font-weight:700;color:#d4820a}
+    table{width:100%;border-collapse:collapse}th,td{padding:8px;border-bottom:1px solid #eee;font-size:13px}
     </style></head><body>${content}</body></html>`);
   w.document.close(); w.print();
 };
