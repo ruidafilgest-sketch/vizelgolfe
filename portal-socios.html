@@ -253,99 +253,178 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 </div>
 
 <!-- ÁREA DO SÓCIO -->
+<style>
+/* ── Área do Sócio ── */
+#app-socio { min-height:100vh; background:var(--bg); }
+#app-socio header { background:var(--bg2); border-bottom:2px solid var(--accent); padding:0 16px; display:flex; align-items:center; justify-content:space-between; height:56px; position:sticky; top:0; z-index:100; }
+.s-logo { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; color:var(--accent); display:flex; align-items:center; gap:8px; }
+.s-hero { background:linear-gradient(135deg,var(--bg2) 0%,var(--bg3) 100%); border-bottom:1px solid var(--border2); padding:20px 16px 0; }
+.s-hero-inner { max-width:680px; margin:0 auto; }
+.s-profile { display:flex; align-items:center; gap:14px; margin-bottom:16px; }
+.s-avatar { width:52px; height:52px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-family:'Bebas Neue',sans-serif; font-size:22px; color:#000; flex-shrink:0; }
+.s-name { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--text); letter-spacing:1px; line-height:1.1; }
+.s-meta { font-size:11px; color:var(--text2); margin-top:2px; }
+.s-pills { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+.s-pill { background:var(--bg3); border:1px solid var(--border2); border-radius:20px; padding:5px 12px; font-size:11px; color:var(--text2); display:flex; align-items:center; gap:5px; }
+.s-pill strong { color:var(--text); }
+.s-pill.green { border-color:rgba(46,204,113,.4); background:rgba(46,204,113,.08); color:var(--green); }
+.s-pill.orange { border-color:rgba(212,130,10,.4); background:rgba(212,130,10,.08); color:var(--accent); }
+.s-pill.red { border-color:rgba(231,76,60,.4); background:rgba(231,76,60,.08); color:var(--red); }
+/* Tabs */
+.s-tabs { display:flex; gap:0; border-bottom:none; overflow-x:auto; scrollbar-width:none; }
+.s-tabs::-webkit-scrollbar { display:none; }
+.s-tab { padding:10px 16px; font-size:12px; font-weight:600; color:var(--text2); cursor:pointer; border:none; background:none; border-bottom:2px solid transparent; white-space:nowrap; transition:all .2s; }
+.s-tab.active { color:var(--accent); border-bottom-color:var(--accent); }
+/* Content */
+.s-content { max-width:680px; margin:0 auto; padding:16px; }
+.s-section { display:none; }
+.s-section.active { display:block; }
+/* Cards */
+.s-card { background:var(--card); border:1px solid var(--border2); border-radius:12px; padding:16px; margin-bottom:12px; }
+.s-card-title { font-size:10px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:var(--text2); margin-bottom:12px; }
+.s-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border2); font-size:13px; }
+.s-row:last-child { border-bottom:none; padding-bottom:0; }
+.s-row-label { color:var(--text2); font-size:12px; }
+.s-row-val { font-weight:500; text-align:right; }
+/* Aviso quota */
+.s-aviso { background:rgba(231,76,60,.1); border:1px solid rgba(231,76,60,.3); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+.s-aviso-pago { background:rgba(46,204,113,.1); border:1px solid rgba(46,204,113,.3); border-radius:12px; padding:14px 16px; margin-bottom:12px; }
+/* Quota item */
+.s-quota-item { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border2); }
+.s-quota-item:last-child { border-bottom:none; }
+.s-quota-year { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--accent); min-width:44px; }
+.s-quota-info { flex:1; }
+.s-quota-desc { font-size:12px; color:var(--text2); }
+.s-quota-val { font-weight:700; font-size:13px; }
+/* Recibo item */
+.s-recibo-item { display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border2); gap:10px; }
+.s-recibo-item:last-child { border-bottom:none; }
+.s-recibo-num { font-family:'DM Mono',monospace; font-size:11px; color:var(--accent); min-width:48px; }
+.s-recibo-desc { flex:1; font-size:12px; }
+.s-recibo-val { font-weight:700; font-size:13px; color:var(--green); white-space:nowrap; }
+/* Torneio card */
+.s-torn-item { border:1px solid var(--border2); border-radius:10px; padding:14px; margin-bottom:10px; }
+.s-torn-nome { font-family:'Bebas Neue',sans-serif; font-size:17px; color:var(--accent); letter-spacing:1px; margin-bottom:4px; }
+.s-torn-meta { font-size:11px; color:var(--text2); display:flex; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+/* Pagamento info */
+.s-pay-block { background:var(--bg2); border-radius:8px; padding:12px; margin-bottom:8px; font-size:12px; }
+.s-pay-label { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text2); margin-bottom:4px; }
+.s-pay-val { font-weight:600; font-family:'DM Mono',monospace; font-size:13px; }
+@media(max-width:480px) {
+  .s-hero { padding:16px 12px 0; }
+  .s-content { padding:12px; }
+  .s-tab { padding:9px 12px; font-size:11px; }
+}
+</style>
+
 <div id="app-socio" style="display:none">
   <header>
-    <div class="logo"><img src="" id="socio-header-logo" style="width:36px;height:36px;object-fit:contain;vertical-align:middle;margin-right:8px" alt="">VIZELGOLFE <span>Área do Sócio</span></div>
-    <div class="header-right">
-      <span id="socio-badge-nome" style="color:var(--text2);font-size:13px"></span>
-      <span class="badge-live" style="background:var(--blue)">SÓCIO</span>
-      <button id="btn-logout-socio" onclick="doLogoutSocio()" style="background:transparent;border:1px solid var(--border);color:var(--text2);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px">Sair</button>
+    <div class="s-logo">
+      <img src="" id="socio-header-logo" style="width:28px;height:28px;object-fit:contain" alt="">
+      VIZELGOLFE
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="socio-badge-nome" style="font-size:12px;color:var(--text2)"></span>
+      <button onclick="doLogoutSocio()" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;transition:all .2s" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text2)'">Sair</button>
     </div>
   </header>
-  <main style="padding:24px;max-width:900px;margin:0 auto">
 
-    <!-- BOAS VINDAS -->
-    <div id="socio-bv" style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px;margin-bottom:24px;display:flex;gap:24px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1;min-width:200px">
-        <div style="font-size:12px;color:var(--text2);margin-bottom:4px">BEM-VINDO,</div>
-        <div id="socio-nome-bv" style="font-family:'Bebas Neue';font-size:32px;color:var(--accent);letter-spacing:2px"></div>
-        <div id="socio-meta-bv" style="font-size:12px;color:var(--text2);margin-top:4px"></div>
+  <!-- HERO / PERFIL -->
+  <div class="s-hero">
+    <div class="s-hero-inner">
+      <div class="s-profile">
+        <div class="s-avatar" id="socio-avatar-initials"></div>
+        <div>
+          <div class="s-name" id="socio-nome-bv"></div>
+          <div class="s-meta" id="socio-meta-bv"></div>
+        </div>
       </div>
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <div style="background:var(--bg2);border-radius:10px;padding:16px 20px;text-align:center;min-width:100px">
-          <div id="socio-stat-num" style="font-family:'Bebas Neue';font-size:28px;color:var(--accent)"></div>
-          <div style="font-size:11px;color:var(--text2)">Nº Sócio</div>
+      <div class="s-pills" id="socio-pills"></div>
+
+      <!-- Tabs -->
+      <div class="s-tabs">
+        <button class="s-tab active" onclick="showSocioTab('inicio',this)">Início</button>
+        <button class="s-tab" onclick="showSocioTab('quotas',this)">Quotas</button>
+        <button class="s-tab" onclick="showSocioTab('recibos',this)">Recibos</button>
+        <button class="s-tab" onclick="showSocioTab('torneios',this)">Torneios</button>
+        <button class="s-tab" onclick="showSocioTab('perfil',this)">Perfil</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTEÚDO POR TAB -->
+  <div class="s-content">
+
+    <!-- ── INÍCIO ── -->
+    <div class="s-section active" id="s-sec-inicio">
+      <!-- Aviso quota (se pendente) -->
+      <div id="socio-aviso-pendente" style="display:none;margin-bottom:12px">
+        <div class="s-aviso">
+          <div style="font-weight:700;color:var(--red);margin-bottom:6px;font-size:13px">⚠️ Quota pendente</div>
+          <p style="font-size:12px;color:var(--text2);margin-bottom:10px">A tua quota ainda não foi registada como paga.</p>
+          <div id="socio-aviso-dados"></div>
         </div>
-        <div style="background:var(--bg2);border-radius:10px;padding:16px 20px;text-align:center;min-width:100px">
-          <div id="socio-stat-cat" style="font-family:'Bebas Neue';font-size:22px;color:var(--accent)"></div>
-          <div style="font-size:11px;color:var(--text2)">Categoria</div>
+      </div>
+      <!-- Quota paga -->
+      <div id="socio-aviso-pago" style="display:none;margin-bottom:12px">
+        <div class="s-aviso-pago">
+          <div style="font-weight:700;color:var(--green);font-size:13px">✅ Quota paga em dia</div>
         </div>
-        <div style="background:var(--bg2);border-radius:10px;padding:16px 20px;text-align:center;min-width:100px">
-          <div id="socio-stat-quota" style="font-family:'Bebas Neue';font-size:22px"></div>
-          <div style="font-size:11px;color:var(--text2)">Quota 2026</div>
-        </div>
+      </div>
+
+      <!-- Resumo financeiro -->
+      <div class="s-card">
+        <div class="s-card-title">Resumo</div>
+        <div id="s-inicio-resumo"></div>
+      </div>
+
+      <!-- Próximos torneios -->
+      <div class="s-card">
+        <div class="s-card-title">🏆 Próximos Torneios</div>
+        <div id="s-inicio-torneios"></div>
       </div>
     </div>
 
-    <!-- DADOS PESSOAIS -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" id="socio-grid-info">
-      <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px">
-        <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:14px">DADOS PESSOAIS</div>
+    <!-- ── QUOTAS ── -->
+    <div class="s-section" id="s-sec-quotas">
+      <div class="s-card">
+        <div class="s-card-title">Histórico de Quotas</div>
+        <div id="socio-table-quotas"></div>
+      </div>
+    </div>
+
+    <!-- ── RECIBOS ── -->
+    <div class="s-section" id="s-sec-recibos">
+      <div class="s-card">
+        <div class="s-card-title">Recibos Emitidos</div>
+        <div id="socio-table-recibos"></div>
+      </div>
+    </div>
+
+    <!-- ── TORNEIOS ── -->
+    <div class="s-section" id="s-sec-torneios">
+      <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+        <button class="s-tab active" id="storn-btn-todos" onclick="setSocioTornFilter('todos',this)" style="border:1px solid var(--border2);border-radius:20px;padding:6px 14px">Todos</button>
+        <button class="s-tab" id="storn-btn-aberto" onclick="setSocioTornFilter('aberto',this)" style="border:1px solid var(--border2);border-radius:20px;padding:6px 14px">Abertas</button>
+        <button class="s-tab" id="storn-btn-inscrito" onclick="setSocioTornFilter('inscrito',this)" style="border:1px solid var(--border2);border-radius:20px;padding:6px 14px">Os meus</button>
+      </div>
+      <select id="socio-filter-torneios" style="display:none"><option value="todos">Todos</option><option value="aberto">Abertas</option><option value="inscrito">Os meus</option></select>
+      <div id="socio-torneios-list"></div>
+    </div>
+
+    <!-- ── PERFIL ── -->
+    <div class="s-section" id="s-sec-perfil">
+      <div class="s-card">
+        <div class="s-card-title">Dados Pessoais</div>
         <div id="socio-dados-pessoais"></div>
       </div>
-      <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px">
-        <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:14px">CONTACTOS</div>
+      <div class="s-card">
+        <div class="s-card-title">Contactos</div>
         <div id="socio-dados-contactos"></div>
       </div>
     </div>
 
-    <!-- QUOTAS -->
-    <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px;margin-bottom:16px">
-      <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:14px">HISTÓRICO DE QUOTAS</div>
-      <div class="table-wrap" style="background:transparent">
-        <table>
-          <thead><tr>
-            <th>Ano</th><th>Descrição</th><th>Valor</th><th>Estado</th><th>Data Pag.</th>
-          </tr></thead>
-          <tbody id="socio-table-quotas"><tr><td colspan="5" class="loading">A carregar...</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- RECIBOS -->
-    <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px">
-      <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;margin-bottom:14px">RECIBOS EMITIDOS</div>
-      <div class="table-wrap" style="background:transparent">
-        <table>
-          <thead><tr>
-            <th>Nº Recibo</th><th>Descrição</th><th>Valor</th><th>Data</th><th></th>
-          </tr></thead>
-          <tbody id="socio-table-recibos"><tr><td colspan="5" class="loading">A carregar...</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- TORNEIOS -->
-    <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px;margin-top:16px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px">🏆 TORNEIOS E COMPETIÇÕES</div>
-        <select id="socio-filter-torneios" onchange="renderTorneisosSocio()" style="padding:6px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;outline:none">
-          <option value="todos">Todos</option>
-          <option value="aberto">Inscrições abertas</option>
-          <option value="inscrito">Os meus</option>
-        </select>
-      </div>
-      <div id="socio-torneios-list"></div>
-    </div>
-
-    <!-- AVISO PAGAMENTO (se pendente) -->
-    <div id="socio-aviso-pendente" style="display:none;margin-top:16px;background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.3);border-radius:12px;padding:20px">
-      <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:8px">⚠️ Quota pendente</div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">A tua quota ainda não foi registada como paga. Podes efetuar o pagamento por:</p>
-      <div id="socio-aviso-dados"></div>
-    </div>
-
-  </main>
+  </div><!-- /s-content -->
 </div>
 
 <!-- APP -->
@@ -1520,106 +1599,174 @@ window.doLogoutSocio = function() {
 // ─── ÁREA DO SÓCIO ─────────────────────────────────
 
 
+// ── Navegação por tabs na área do sócio ──────────
+window.showSocioTab = function(tab, btn) {
+  document.querySelectorAll('.s-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.s-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('s-sec-' + tab)?.classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (tab === 'torneios') renderTorneisosSocio();
+};
+
+window.setSocioTornFilter = function(filtro, btn) {
+  document.querySelectorAll('#s-sec-torneios .s-tab').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  // Actualizar o select legado que a função renderTorneisosSocio usa
+  const sel = document.getElementById('socio-filter-torneios');
+  if (sel) sel.value = filtro;
+  renderTorneisosSocio();
+};
+
 function renderAreaSocio() {
-  const s = currentSocioData;
+  const s   = currentSocioData;
   const key = currentSocioKey;
-  const logo = LOGO_B64;
 
-  // Logos
-  document.getElementById('socio-header-logo').src = logo;
-
-  // Badge nome
+  // Logo + nome header
+  document.getElementById('socio-header-logo').src = LOGO_B64;
   document.getElementById('socio-badge-nome').textContent = s.nome?.split(' ')[0] || '';
 
-  // Boas vindas
+  // Avatar iniciais
+  const initials = (s.nome||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const av = document.getElementById('socio-avatar-initials');
+  if (av) av.textContent = initials;
+
+  // Nome + meta
   document.getElementById('socio-nome-bv').textContent = s.nome || '';
-  const inscStr = s.inscricao ? ` · Sócio desde ${s.inscricao}` : '';
-  document.getElementById('socio-meta-bv').textContent = `${s.estado || ''}${inscStr}`;
-  document.getElementById('socio-stat-num').textContent = s.numero || '—';
-  document.getElementById('socio-stat-cat').textContent = (s.categoria || '—').toUpperCase();
+  const inscStr = s.inscricao ? `Sócio desde ${s.inscricao}` : '';
+  document.getElementById('socio-meta-bv').textContent = [s.estado, inscStr].filter(Boolean).join(' · ');
 
-  // Quota atual
+  // Pills de estado
   const anoAtual = new Date().getFullYear().toString();
-  const minhasQuotas = Object.entries(quotas).filter(([k,q]) => q.socioKey === key);
-  const quotaAtual = minhasQuotas.find(([k,q]) => String(q.ano) === anoAtual);
-  const qEstado = quotaAtual ? quotaAtual[1].estado : 'pendente';
-  const qEl = document.getElementById('socio-stat-quota');
-  qEl.textContent = qEstado === 'pago' ? '✅ PAGO' : qEstado === 'parcial' ? '⚠️ PARCIAL' : '❌ PENDENTE';
-  qEl.style.color = qEstado === 'pago' ? 'var(--green)' : qEstado === 'parcial' ? 'var(--accent)' : 'var(--red)';
+  const minhasQuotas = Object.entries(quotas).filter(([,q]) => q.socioKey === key);
+  const quotaAtual   = minhasQuotas.find(([,q]) => String(q.ano) === anoAtual);
+  const qEstado      = quotaAtual?.[1]?.estado || 'pendente';
+  const meusRecibos  = Object.entries(recibos).filter(([,r]) => r.socioKey === key);
+  const minhasInsc   = Object.entries(inscricoes||{}).filter(([,i]) => i.socioKey === key);
 
-  // Dados pessoais
-  const dp = document.getElementById('socio-dados-pessoais');
-  dp.innerHTML = dadoLinha('Nome', s.nome) + dadoLinha('Nº Sócio', s.numero) + dadoLinha('Categoria', s.categoria) + dadoLinha('Estado', s.estado) + dadoLinha('Data de Nascimento', s.nascimento) + dadoLinha('Data de Inscrição', s.inscricao);
+  const pills = document.getElementById('socio-pills');
+  if (pills) pills.innerHTML = `
+    <div class="s-pill"><span>Nº</span><strong>${s.numero||'—'}</strong></div>
+    <div class="s-pill"><strong>${s.categoria||'—'}</strong></div>
+    <div class="s-pill ${qEstado==='pago'?'green':qEstado==='parcial'?'orange':'red'}">
+      ${qEstado==='pago'?'✅ Quota paga':qEstado==='parcial'?'⚠️ Quota parcial':'❌ Quota pendente'}
+    </div>
+    ${minhasInsc.length ? `<div class="s-pill"><strong>${minhasInsc.length}</strong> inscrição(ões)</div>` : ''}
+  `;
 
-  // Contactos
-  const dc = document.getElementById('socio-dados-contactos');
-  dc.innerHTML = dadoLinha('Email', s.email) + dadoLinha('Telefone', s.telefone) + dadoLinha('NIF', s.nif) + dadoLinha('Morada', s.morada);
-
-  // Quotas table
-  const tbQ = document.getElementById('socio-table-quotas');
-  if (!minhasQuotas.length) {
-    tbQ.innerHTML = '<tr><td colspan="5" class="loading">Sem quotas registadas</td></tr>';
-  } else {
-    tbQ.innerHTML = minhasQuotas.sort((a,b) => b[1].ano - a[1].ano).map(([k,q]) => {
-      const est = q.estado || 'pendente';
-      return `<tr>
-        <td>${q.ano}</td>
-        <td>${q.descricao || 'Quota anual'}</td>
-        <td><strong>${Number(q.valor||0).toFixed(2)} €</strong></td>
-        <td><span class="badge badge-${est}">${est}</span></td>
-        <td>${q.dataPag || '—'}</td>
-      </tr>`;
-    }).join('');
-  }
-
-  // Recibos table
-  const meusRecibos = Object.entries(recibos).filter(([k,r]) => r.socioKey === key);
-  const tbR = document.getElementById('socio-table-recibos');
-  if (!meusRecibos.length) {
-    tbR.innerHTML = '<tr><td colspan="5" class="loading">Sem recibos emitidos</td></tr>';
-  } else {
-    tbR.innerHTML = meusRecibos.sort((a,b) => (b[1].data||'').localeCompare(a[1].data||'')).map(([k,r]) => {
-      return `<tr>
-        <td><strong>${r.numero||k.slice(-4)}</strong></td>
-        <td>${r.descricao || '—'}</td>
-        <td>${Number(r.valor||0).toFixed(2)} €</td>
-        <td>${r.data || '—'}</td>
-        <td><button class="btn btn-outline" style="padding:4px 10px;font-size:12px" onclick="verReciboSocio('${k}')">🖨️ Ver</button></td>
-      </tr>`;
-    }).join('');
-  }
-
-  // Aviso pendente
-  const aviso = document.getElementById('socio-aviso-pendente');
+  // ── Aviso quota (no tab Início) ──
+  const avisoEl  = document.getElementById('socio-aviso-pendente');
+  const pagoBanner = document.getElementById('socio-aviso-pago');
   if (qEstado !== 'pago') {
-    aviso.style.display = 'block';
-    const cfg = configuracoes;
+    if (avisoEl) avisoEl.style.display = 'block';
+    if (pagoBanner) pagoBanner.style.display = 'none';
+    const cfg  = configuracoes || {};
     const iban = cfg.iban || 'PT50 0045 1401 4037 3110 4744 6';
     const mbway = cfg.mbway || '';
-    document.getElementById('socio-aviso-dados').innerHTML = `
-      <div style="display:flex;gap:16px;flex-wrap:wrap">
-        <div style="background:var(--bg2);border-radius:8px;padding:12px 16px;flex:1;min-width:180px">
-          <div style="font-size:10px;color:var(--text2);margin-bottom:4px">TRANSFERÊNCIA BANCÁRIA</div>
-          <div style="font-size:13px;font-weight:600;font-family:'DM Mono'">${iban}</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:2px">Vizelgolfe — Associação de Minigolfe de Vizela</div>
-        </div>
-        ${mbway ? `<div style="background:var(--bg2);border-radius:8px;padding:12px 16px;flex:1;min-width:180px">
-          <div style="font-size:10px;color:var(--text2);margin-bottom:4px">MBWAY</div>
-          <div style="font-size:18px;font-weight:700">${mbway}</div>
-        </div>` : ''}
+    const dadosEl = document.getElementById('socio-aviso-dados');
+    if (dadosEl) dadosEl.innerHTML = `
+      <div class="s-pay-block">
+        <div class="s-pay-label">Transferência Bancária</div>
+        <div class="s-pay-val">${iban}</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px">Vizelgolfe — Associação de Minigolfe de Vizela</div>
       </div>
-      <p style="font-size:11px;color:var(--text2);margin-top:8px">Indica o teu nome e número de sócio na descrição do pagamento.</p>
+      ${mbway ? `<div class="s-pay-block"><div class="s-pay-label">MBWay</div><div class="s-pay-val" style="font-size:16px">${mbway}</div></div>` : ''}
+      <div style="font-size:11px;color:var(--text2);margin-top:4px">Indica o teu nome e nº de sócio na descrição do pagamento.</div>
     `;
   } else {
-    aviso.style.display = 'none';
+    if (avisoEl) avisoEl.style.display = 'none';
+    if (pagoBanner) pagoBanner.style.display = 'block';
   }
+
+  // ── Resumo tab Início ──
+  const totalPago = minhasQuotas.filter(([,q])=>q.estado==='pago').reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
+  const totalRec  = meusRecibos.reduce((a,[,r])=>a+parseFloat(r.valor||0),0);
+  const resumoEl = document.getElementById('s-inicio-resumo');
+  if (resumoEl) resumoEl.innerHTML =
+    dadoLinha('Nº Sócio', s.numero) +
+    dadoLinha('Categoria', s.categoria) +
+    dadoLinha('Estado', s.estado) +
+    dadoLinha('Quota ' + anoAtual, qEstado === 'pago' ? '✅ Paga' : '❌ Pendente') +
+    (totalPago > 0 ? dadoLinha('Total quotas pagas', totalPago.toFixed(2) + ' €') : '') +
+    (meusRecibos.length > 0 ? dadoLinha('Recibos emitidos', meusRecibos.length + ' recibo(s)') : '');
+
+  // ── Próximos torneios no tab Início ──
+  const torneiosAbertos = Object.entries(torneios||{})
+    .filter(([,t]) => t.estado === 'aberto')
+    .sort((a,b) => (a[1].data||'').localeCompare(b[1].data||''))
+    .slice(0, 3);
+  const tornEl = document.getElementById('s-inicio-torneios');
+  if (tornEl) {
+    if (!torneiosAbertos.length) {
+      tornEl.innerHTML = '<div style="font-size:12px;color:var(--text2);text-align:center;padding:12px">Sem torneios com inscrições abertas</div>';
+    } else {
+      tornEl.innerHTML = torneiosAbertos.map(([k,t]) => {
+        const jaInscrito = minhasInsc.some(([,i]) => i.torneioKey === k);
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border2);gap:10px">
+          <div>
+            <div style="font-size:13px;font-weight:600">${t.nome}</div>
+            <div style="font-size:11px;color:var(--text2)">${t.data||''}${t.local?' · '+t.local:''}</div>
+          </div>
+          ${jaInscrito
+            ? '<span style="font-size:11px;color:var(--green)">✅ Inscrito</span>'
+            : `<button class="btn btn-accent" style="font-size:11px;padding:5px 10px;white-space:nowrap" onclick="showSocioTab('torneios');abrirInscricao('${k}')">Inscrever</button>`
+          }
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // ── Tab Quotas ──
+  const tbQ = document.getElementById('socio-table-quotas');
+  if (tbQ) {
+    if (!minhasQuotas.length) {
+      tbQ.innerHTML = '<div style="font-size:12px;color:var(--text2);text-align:center;padding:20px">Sem quotas registadas</div>';
+    } else {
+      tbQ.innerHTML = minhasQuotas.sort((a,b)=>b[1].ano-a[1].ano).map(([k,q]) => {
+        const est = q.estado || 'pendente';
+        const corEst = est==='pago'?'var(--green)':est==='parcial'?'var(--accent)':'var(--red)';
+        return `<div class="s-quota-item">
+          <div class="s-quota-year">${q.ano}</div>
+          <div class="s-quota-info">
+            <div class="s-quota-val">${Number(q.valor||0).toFixed(2)} €</div>
+            <div class="s-quota-desc">${q.descricao||'Quota anual'}${q.dataPag?' · pago '+q.dataPag:''}</div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:${corEst};background:rgba(0,0,0,.2);padding:3px 10px;border-radius:20px;white-space:nowrap">${est}</span>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // ── Tab Recibos ──
+  const tbR = document.getElementById('socio-table-recibos');
+  if (tbR) {
+    if (!meusRecibos.length) {
+      tbR.innerHTML = '<div style="font-size:12px;color:var(--text2);text-align:center;padding:20px">Sem recibos emitidos</div>';
+    } else {
+      tbR.innerHTML = meusRecibos.sort((a,b)=>(b[1].data||'').localeCompare(a[1].data||'')).map(([k,r]) => `
+        <div class="s-recibo-item">
+          <div class="s-recibo-num">${r.numero||'—'}</div>
+          <div class="s-recibo-desc">
+            <div style="font-weight:500;font-size:13px">${r.descricao||'—'}</div>
+            <div style="font-size:11px;color:var(--text2)">${r.data||'—'}</div>
+          </div>
+          <div class="s-recibo-val">+${Number(r.valor||0).toFixed(2)} €</div>
+          <button onclick="verReciboSocio('${k}')" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px">🖨️</button>
+        </div>`).join('');
+    }
+  }
+
+  // ── Tab Perfil ──
+  const dp = document.getElementById('socio-dados-pessoais');
+  if (dp) dp.innerHTML = dadoLinha('Nome',s.nome)+dadoLinha('Nº Sócio',s.numero)+dadoLinha('Categoria',s.categoria)+dadoLinha('Estado',s.estado)+dadoLinha('Data de Nascimento',s.nascimento)+dadoLinha('Data de Inscrição',s.inscricao);
+  const dc = document.getElementById('socio-dados-contactos');
+  if (dc) dc.innerHTML = dadoLinha('Email',s.email)+dadoLinha('Telefone',s.telefone)+dadoLinha('NIF',s.nif)+dadoLinha('Morada',s.morada);
 }
 
 function dadoLinha(label, val) {
   if (!val) return '';
-  return `<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border2);font-size:13px">
-    <span style="color:var(--text2)">${label}</span>
-    <span style="font-weight:500;text-align:right;max-width:60%">${val}</span>
+  return `<div class="s-row">
+    <span class="s-row-label">${label}</span>
+    <span class="s-row-val">${val}</span>
   </div>`;
 }
 
