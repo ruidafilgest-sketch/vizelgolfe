@@ -210,8 +210,9 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 #toast.error { border-color: var(--red); }
 
 /* ── RESPONSIVE ── */
-@media(max-width:600px) {
+@media(max-width:700px) {
   #socio-grid-info { grid-template-columns: 1fr !important; }
+  #dash-grid-1, #dash-grid-2, #dash-grid-3 { grid-template-columns: 1fr !important; }
   .form-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   main { padding: 16px; }
@@ -374,18 +375,99 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
     <!-- DASHBOARD -->
     <div id="page-dashboard" class="page active">
-      <div class="stats-grid" id="stats-grid">
-        <div class="stat-card"><div class="val" id="stat-total">—</div><div class="lbl">Total de Sócios</div></div>
-        <div class="stat-card"><div class="val" id="stat-ativos">—</div><div class="lbl">Sócios Ativos</div></div>
-        <div class="stat-card"><div class="val" id="stat-pagos">—</div><div class="lbl">Quotas Pagas 2026</div></div>
-        <div class="stat-card"><div class="val" id="stat-pendentes">—</div><div class="lbl">Quotas Pendentes</div></div>
+
+      <!-- KPIs principais -->
+      <div class="stats-grid" style="margin-bottom:20px">
+        <div class="stat-card" style="border-left:3px solid var(--blue)">
+          <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">👥 Total Sócios</div>
+          <div class="val" id="stat-total" style="font-size:36px;color:var(--blue)">—</div>
+          <div class="lbl" id="stat-ativos-sub"></div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid var(--green)">
+          <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">✅ Quotas Pagas</div>
+          <div class="val" id="stat-pagos" style="font-size:36px;color:var(--green)">—</div>
+          <div class="lbl" id="stat-pagos-pct"></div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid var(--accent)">
+          <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">⏳ Quotas Pendentes</div>
+          <div class="val" id="stat-pendentes" style="font-size:36px;color:var(--accent)">—</div>
+          <div class="lbl" id="stat-pendentes-val"></div>
+        </div>
+        <div class="stat-card" style="border-left:3px solid var(--green)">
+          <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">💰 Receitas Ano</div>
+          <div class="val" id="stat-rec-ano" style="font-size:28px;color:var(--green)">—</div>
+          <div class="lbl" id="stat-desp-ano"></div>
+        </div>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Nome</th><th>Categoria</th><th>Estado 2026</th><th>Último pagamento</th></tr></thead>
-          <tbody id="dash-table"><tr><td colspan="4" class="loading">A carregar...</td></tr></tbody>
-        </table>
+
+      <!-- Gráficos linha 1 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px" id="dash-grid-1">
+        <!-- Receitas vs Despesas mensal -->
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <div>
+              <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;text-transform:uppercase">Receitas vs Despesas</div>
+              <div style="font-size:11px;color:var(--text2)" id="dash-ano-label"></div>
+            </div>
+            <select id="dash-ano-sel" onchange="renderDashboard()" style="padding:5px 8px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;outline:none">
+              <option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option>
+            </select>
+          </div>
+          <canvas id="chart-rec-desp" height="180"></canvas>
+          <div id="chart-rec-desp-legend" style="display:flex;gap:16px;margin-top:10px;font-size:11px;color:var(--text2);flex-wrap:wrap"></div>
+        </div>
+
+        <!-- Distribuição sócios por categoria -->
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px">
+          <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">Sócios por Categoria</div>
+          <canvas id="chart-categorias" height="180"></canvas>
+          <div id="chart-cat-legend" style="margin-top:10px;font-size:11px;color:var(--text2)"></div>
+        </div>
       </div>
+
+      <!-- Gráficos linha 2 -->
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px" id="dash-grid-2">
+        <!-- Cobrança de quotas mensal -->
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px">
+          <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">Cobrança de Quotas por Mês</div>
+          <canvas id="chart-quotas-mes" height="140"></canvas>
+        </div>
+
+        <!-- Saldo Caixa vs Banco -->
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px">
+          <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px">Saldo Caixa / Banco</div>
+          <div style="display:flex;flex-direction:column;gap:12px;margin-top:8px">
+            <div>
+              <div style="font-size:11px;color:var(--text2);margin-bottom:4px">💵 Caixa</div>
+              <div id="dash-saldo-caixa" style="font-family:'Bebas Neue';font-size:28px;color:#2ecc71">—</div>
+            </div>
+            <div style="border-top:1px solid var(--border2);padding-top:12px">
+              <div style="font-size:11px;color:var(--text2);margin-bottom:4px">🏦 Banco</div>
+              <div id="dash-saldo-banco" style="font-family:'Bebas Neue';font-size:28px;color:#3498db">—</div>
+            </div>
+            <div style="border-top:1px solid var(--border2);padding-top:12px">
+              <div style="font-size:11px;color:var(--text2);margin-bottom:4px">📊 Total Disponível</div>
+              <div id="dash-saldo-total" style="font-family:'Bebas Neue';font-size:32px;color:var(--accent)">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela últimos movimentos + sócios em dívida -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" id="dash-grid-3">
+        <!-- Últimas receitas/despesas -->
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px">
+          <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">Últimos Movimentos</div>
+          <div id="dash-ultimos-mov" style="font-size:13px"></div>
+        </div>
+
+        <!-- Sócios em dívida -->
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px">
+          <div style="font-size:11px;color:var(--red);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">⚠️ Sócios com Quota Pendente</div>
+          <div id="dash-devedores" style="font-size:13px"></div>
+        </div>
+      </div>
+
     </div>
 
     <!-- SÓCIOS -->
@@ -1602,30 +1684,270 @@ window.showPage = function(page) {
 };
 
 // ─── DASHBOARD ─────────────────────────────────────
+// ── Utilitário de canvas ────────────────────────────
+function drawBarChart(canvasId, labels, datasets, opts={}) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 400;
+  const H = parseInt(canvas.getAttribute('height')) || 180;
+  canvas.width = W; canvas.height = H;
+
+  const PAD = { top:16, right:16, bottom:32, left:48 };
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top - PAD.bottom;
+
+  const allVals = datasets.flatMap(d => d.data);
+  const maxV = Math.max(...allVals, 1);
+  const minV = Math.min(...allVals, 0);
+  const range = maxV - minV || 1;
+
+  ctx.clearRect(0,0,W,H);
+
+  // Grid lines
+  const steps = 4;
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  ctx.lineWidth = 1;
+  for (let i=0; i<=steps; i++) {
+    const y = PAD.top + cH - (i/steps)*cH;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left+cW, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(143,168,200,0.7)';
+    ctx.font = '9px DM Sans,sans-serif';
+    ctx.textAlign = 'right';
+    const val = minV + (i/steps)*range;
+    ctx.fillText(val>=1000?(val/1000).toFixed(1)+'k':val.toFixed(0), PAD.left-4, y+3);
+  }
+
+  // Bars
+  const nGroups = labels.length;
+  const nDatasets = datasets.length;
+  const groupW = cW / nGroups;
+  const barW = Math.min((groupW / nDatasets) * 0.75, 28);
+  const gap = (groupW - barW * nDatasets) / 2;
+
+  datasets.forEach((ds, di) => {
+    ds.data.forEach((val, gi) => {
+      const x = PAD.left + gi*groupW + gap + di*(barW + 2);
+      const barH = Math.abs(val - minV) / range * cH;
+      const y = PAD.top + cH - (val - minV)/range * cH;
+      ctx.fillStyle = ds.color || '#d4820a';
+      const radius = 3;
+      ctx.beginPath();
+      ctx.moveTo(x+radius, y);
+      ctx.lineTo(x+barW-radius, y);
+      ctx.quadraticCurveTo(x+barW, y, x+barW, y+radius);
+      ctx.lineTo(x+barW, y+barH);
+      ctx.lineTo(x, y+barH);
+      ctx.lineTo(x, y+radius);
+      ctx.quadraticCurveTo(x, y, x+radius, y);
+      ctx.closePath();
+      ctx.fill();
+    });
+  });
+
+  // X labels
+  ctx.fillStyle = 'rgba(143,168,200,0.8)';
+  ctx.font = '9px DM Sans,sans-serif';
+  ctx.textAlign = 'center';
+  labels.forEach((lbl, gi) => {
+    const x = PAD.left + gi*groupW + groupW/2;
+    ctx.fillText(lbl, x, H - 6);
+  });
+}
+
+function drawDonutChart(canvasId, labels, values, colors) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 200;
+  const H = parseInt(canvas.getAttribute('height')) || 180;
+  canvas.width = W; canvas.height = H;
+  const cx = W/2, cy = H/2, r = Math.min(cx,cy)*0.78, ri = r*0.55;
+  const total = values.reduce((a,v)=>a+v,0) || 1;
+  let angle = -Math.PI/2;
+  ctx.clearRect(0,0,W,H);
+  values.forEach((v,i) => {
+    const slice = (v/total)*2*Math.PI;
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,angle,angle+slice);
+    ctx.closePath();
+    ctx.fillStyle = colors[i]||'#ccc';
+    ctx.fill();
+    angle += slice;
+  });
+  // Donut hole
+  ctx.beginPath(); ctx.arc(cx,cy,ri,0,2*Math.PI);
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#1a2a45';
+  ctx.fill();
+  // Center text
+  ctx.fillStyle = '#e8f0fe'; ctx.font = `bold 18px Bebas Neue,sans-serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(total, cx, cy);
+}
+
+function drawLineChart(canvasId, labels, datasets) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 400;
+  const H = parseInt(canvas.getAttribute('height')) || 140;
+  canvas.width = W; canvas.height = H;
+  const PAD = {top:12,right:12,bottom:28,left:40};
+  const cW = W-PAD.left-PAD.right, cH = H-PAD.top-PAD.bottom;
+  const allV = datasets.flatMap(d=>d.data);
+  const maxV = Math.max(...allV,1), minV = 0;
+  const range = maxV - minV || 1;
+
+  ctx.clearRect(0,0,W,H);
+  // Grid
+  [0,.25,.5,.75,1].forEach(f => {
+    const y = PAD.top + cH*(1-f);
+    ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+cW,y); ctx.stroke();
+    ctx.fillStyle='rgba(143,168,200,0.6)'; ctx.font='9px DM Sans,sans-serif'; ctx.textAlign='right';
+    const val=minV+f*range;
+    ctx.fillText(val>=1000?(val/1000).toFixed(1)+'k':val.toFixed(0), PAD.left-4, y+3);
+  });
+
+  datasets.forEach(ds => {
+    const pts = ds.data.map((v,i)=>({
+      x: PAD.left + (labels.length>1?i/(labels.length-1):0.5)*cW,
+      y: PAD.top + cH*(1-(v-minV)/range)
+    }));
+    // Fill
+    ctx.beginPath(); ctx.moveTo(pts[0].x, PAD.top+cH);
+    pts.forEach(p=>ctx.lineTo(p.x,p.y));
+    ctx.lineTo(pts[pts.length-1].x, PAD.top+cH); ctx.closePath();
+    ctx.fillStyle = (ds.color||'#d4820a').replace(')',',0.15)').replace('rgb(','rgba(').replace('#','');
+    // simpler: just use opacity
+    ctx.globalAlpha=0.15; ctx.fillStyle=ds.color||'#d4820a'; ctx.fill(); ctx.globalAlpha=1;
+    // Line
+    ctx.beginPath(); pts.forEach((p,i)=>i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y));
+    ctx.strokeStyle=ds.color||'#d4820a'; ctx.lineWidth=2; ctx.stroke();
+    // Dots
+    pts.forEach(p=>{
+      ctx.beginPath(); ctx.arc(p.x,p.y,3,0,2*Math.PI);
+      ctx.fillStyle=ds.color||'#d4820a'; ctx.fill();
+    });
+  });
+
+  // X labels
+  ctx.fillStyle='rgba(143,168,200,0.8)'; ctx.font='9px DM Sans,sans-serif'; ctx.textAlign='center';
+  labels.forEach((l,i)=>{
+    const x=PAD.left+(labels.length>1?i/(labels.length-1):0.5)*cW;
+    ctx.fillText(l,x,H-6);
+  });
+}
+
+// ── DASHBOARD PRINCIPAL ───────────────────────────
 function renderDashboard() {
-  const lista = Object.values(socios);
-  const ativos = lista.filter(s => s.estado === 'Ativo');
-  const ano = new Date().getFullYear().toString();
-  const pagos = Object.values(quotas).filter(q => q.ano == ano && q.estado === 'pago');
-  const pendentes = ativos.length - pagos.length;
+  const ano = document.getElementById('dash-ano-sel')?.value || new Date().getFullYear().toString();
+  const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
+  const lista   = Object.values(socios);
+  const ativos  = lista.filter(s => s.estado === 'Ativo');
+  const recAno  = Object.values(receitas).filter(r => r.data?.startsWith(ano));
+  const despAno = Object.values(despesas).filter(d => d.data?.startsWith(ano));
+  const acAno   = Object.values(acertos||{}).filter(a => a.data?.startsWith(ano));
+  const quotasAno = Object.values(quotas).filter(q => String(q.ano) === ano);
+  const pagas   = quotasAno.filter(q => q.estado === 'pago');
+  const totalRec  = recAno.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+  const totalDesp = despAno.reduce((a,d)=>a+parseFloat(d.valor||0),0);
+
+  // ── KPIs ──
   document.getElementById('stat-total').textContent = lista.length;
-  document.getElementById('stat-ativos').textContent = ativos.length;
-  document.getElementById('stat-pagos').textContent = pagos.length;
-  document.getElementById('stat-pendentes').textContent = Math.max(0, pendentes);
+  document.getElementById('stat-ativos-sub').textContent = `${ativos.length} ativos · ${lista.length-ativos.length} inativos`;
+  document.getElementById('stat-pagos').textContent = pagas.length;
+  const pct = ativos.length ? Math.round(pagas.length/ativos.length*100) : 0;
+  document.getElementById('stat-pagos-pct').textContent = `${pct}% dos sócios ativos`;
+  document.getElementById('stat-pendentes').textContent = Math.max(0, ativos.length - pagas.length);
+  const pendVal = quotasAno.filter(q=>q.estado!=='pago').reduce((a,q)=>a+parseFloat(q.valor||0),0);
+  document.getElementById('stat-pendentes-val').textContent = pendVal > 0 ? `${pendVal.toFixed(0)}€ em dívida` : 'Em dia ✅';
+  document.getElementById('stat-rec-ano').textContent = totalRec >= 1000 ? (totalRec/1000).toFixed(1)+'k €' : totalRec.toFixed(0)+' €';
+  const res = totalRec - totalDesp;
+  document.getElementById('stat-desp-ano').textContent = `Gastos: ${totalDesp.toFixed(0)}€ · ${res>=0?'Superávit':'Déficit'}: ${res>=0?'+':''}${res.toFixed(0)}€`;
 
-  const tbody = document.getElementById('dash-table');
-  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="4" class="loading">Sem sócios registados</td></tr>'; return; }
-  tbody.innerHTML = lista.slice(0,10).map(s => {
-    const qSocio = Object.values(quotas).find(q => q.socioKey === Object.keys(socios).find(k => socios[k]===s) && q.ano==ano);
-    const estado = qSocio ? qSocio.estado : 'pendente';
-    return `<tr>
-      <td><strong>${s.nome}</strong></td>
-      <td>${s.categoria||'—'}</td>
-      <td><span class="badge badge-${estado}">${estado}</span></td>
-      <td>${qSocio?.dataPag||'—'}</td>
-    </tr>`;
-  }).join('');
+  if (document.getElementById('dash-ano-label'))
+    document.getElementById('dash-ano-label').textContent = `Exercício ${ano}`;
+
+  // ── Saldos Caixa/Banco ──
+  let saldoCaixa=0, saldoBanco=0;
+  recAno.forEach(r=>{const v=parseFloat(r.valor||0); r.meio==='caixa'?saldoCaixa+=v:saldoBanco+=v;});
+  despAno.forEach(d=>{const v=parseFloat(d.valor||0); d.meio==='caixa'?saldoCaixa-=v:saldoBanco-=v;});
+  acAno.forEach(a=>{const v=parseFloat(a.valor||0); a.sentido==='caixa-banco'?(saldoCaixa-=v,saldoBanco+=v):(saldoBanco-=v,saldoCaixa+=v);});
+  const fmt2 = v=>(v>=0?'+':'')+v.toFixed(2)+' €';
+  const elC=document.getElementById('dash-saldo-caixa');
+  const elB=document.getElementById('dash-saldo-banco');
+  const elT=document.getElementById('dash-saldo-total');
+  if(elC){elC.textContent=fmt2(saldoCaixa);elC.style.color=saldoCaixa>=0?'#2ecc71':'#e74c3c';}
+  if(elB){elB.textContent=fmt2(saldoBanco);elB.style.color=saldoBanco>=0?'#3498db':'#e74c3c';}
+  if(elT){const t=saldoCaixa+saldoBanco;elT.textContent=fmt2(t);elT.style.color=t>=0?'var(--accent)':'#e74c3c';}
+
+  // ── GRÁFICO 1: Receitas vs Despesas por mês ──
+  const recMes  = Array(12).fill(0);
+  const despMes = Array(12).fill(0);
+  recAno.forEach(r=>{const m=parseInt(r.data?.slice(5,7)||1)-1; if(m>=0&&m<12) recMes[m]+=parseFloat(r.valor||0);});
+  despAno.forEach(d=>{const m=parseInt(d.data?.slice(5,7)||1)-1; if(m>=0&&m<12) despMes[m]+=parseFloat(d.valor||0);});
+  // Só meses com dados
+  const mesMax = Math.max(...recAno.concat(despAno).map(x=>parseInt(x.data?.slice(5,7)||1)-1), 0);
+  const lblsRD = MESES.slice(0, Math.min(mesMax+2, 12));
+  setTimeout(()=>{
+    drawBarChart('chart-rec-desp', lblsRD,
+      [{data:recMes.slice(0,lblsRD.length), color:'#2ecc71', label:'Receitas'},
+       {data:despMes.slice(0,lblsRD.length), color:'#e74c3c', label:'Despesas'}]);
+    const leg=document.getElementById('chart-rec-desp-legend');
+    if(leg) leg.innerHTML=`<span style="color:#2ecc71">■</span> Receitas: ${totalRec.toFixed(2)}€ &nbsp; <span style="color:#e74c3c">■</span> Despesas: ${totalDesp.toFixed(2)}€ &nbsp; <span style="color:${res>=0?'var(--green)':'var(--red)'}">● Resultado: ${res>=0?'+':''}${res.toFixed(2)}€</span>`;
+  }, 50);
+
+  // ── GRÁFICO 2: Sócios por categoria ──
+  const cats = {};
+  lista.filter(s=>s.estado==='Ativo').forEach(s=>{const c=s.categoria||'Outros'; cats[c]=(cats[c]||0)+1;});
+  const catLabels=Object.keys(cats), catVals=Object.values(cats);
+  const COLORS=['#3498db','#d4820a','#2ecc71','#e74c3c','#9b59b6','#f39c12','#1abc9c'];
+  setTimeout(()=>{
+    drawDonutChart('chart-categorias', catLabels, catVals, COLORS);
+    const leg=document.getElementById('chart-cat-legend');
+    if(leg) leg.innerHTML=catLabels.map((l,i)=>`<span style="color:${COLORS[i]}">■</span> ${l}: ${catVals[i]}`).join(' &nbsp; ');
+  }, 60);
+
+  // ── GRÁFICO 3: Cobrança de quotas por mês ──
+  const quotasMes = Array(12).fill(0);
+  pagas.forEach(q=>{const m=parseInt(q.dataPag?.slice(5,7)||q.criadoEm?.slice(5,7)||1)-1; if(m>=0&&m<12) quotasMes[m]++;});
+  setTimeout(()=>{
+    drawLineChart('chart-quotas-mes', MESES.slice(0,Math.min(mesMax+2,12)),
+      [{data:quotasMes.slice(0,Math.min(mesMax+2,12)), color:'#3498db'}]);
+  }, 70);
+
+  // ── Últimos movimentos ──
+  const movs = [
+    ...recAno.map(r=>({data:r.data,desc:r.descricao,val:+parseFloat(r.valor||0),tipo:'rec'})),
+    ...despAno.map(d=>({data:d.data,desc:d.descricao,val:-parseFloat(d.valor||0),tipo:'desp'}))
+  ].sort((a,b)=>b.data?.localeCompare(a.data||'')).slice(0,6);
+
+  const divMov=document.getElementById('dash-ultimos-mov');
+  if(divMov) divMov.innerHTML = movs.length
+    ? movs.map(m=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border2);font-size:12px">
+        <span style="color:var(--text2)">${m.data||'—'} <span style="color:var(--text)">${(m.desc||'').slice(0,30)}${m.desc?.length>30?'…':''}</span></span>
+        <span style="font-weight:700;color:${m.val>=0?'var(--green)':'var(--red)'}">${m.val>=0?'+':''}${Math.abs(m.val).toFixed(2)}€</span>
+      </div>`).join('')
+    : '<div style="color:var(--text2);font-size:12px;text-align:center;padding:20px">Sem movimentos em '+ano+'</div>';
+
+  // ── Sócios com quota pendente ──
+  const sociosComKey = Object.entries(socios);
+  const quotasPagasKeys = new Set(pagas.map(q=>q.socioKey));
+  const devedores = sociosComKey
+    .filter(([k,s])=>s.estado==='Ativo' && !quotasPagasKeys.has(k))
+    .slice(0,8);
+
+  const divDev=document.getElementById('dash-devedores');
+  if(divDev) divDev.innerHTML = devedores.length
+    ? devedores.map(([k,s])=>`<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border2);font-size:12px">
+        <span><strong>${s.nome}</strong> <span style="color:var(--text2);font-size:11px">· ${s.categoria||'—'}</span></span>
+        <span class="badge badge-pendente" style="font-size:10px">pendente</span>
+      </div>`).join('')
+      + (ativos.length - pagas.length > 8 ? `<div style="color:var(--text2);font-size:11px;padding:8px 0">… e mais ${ativos.length-pagas.length-8} sócios</div>` : '')
+    : '<div style="color:var(--green);font-size:12px;text-align:center;padding:20px">✅ Todos os sócios pagaram a quota!</div>';
 }
 
 // ─── SÓCIOS ────────────────────────────────────────
