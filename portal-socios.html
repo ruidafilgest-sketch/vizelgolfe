@@ -1581,6 +1581,26 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   </div>
 </div>
 
+<!-- MODAL FICHA DO SÓCIO -->
+<div class="modal-overlay" id="modal-ficha">
+  <div class="modal" style="max-width:720px;width:96%">
+    <div class="modal-header">
+      <h3 id="modal-ficha-title">Ficha do Sócio</h3>
+      <button class="modal-close" onclick="closeModal('modal-ficha')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:78vh;overflow-y:auto;padding:0">
+      <div id="modal-ficha-content"></div>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
+      <button class="btn btn-outline" onclick="closeModal('modal-ficha')">Fechar</button>
+      <button class="btn btn-outline" id="ficha-btn-editar" onclick="">✏️ Editar</button>
+      <button class="btn btn-outline" id="ficha-btn-quota" onclick="">💰 Nova Quota</button>
+      <button class="btn btn-danger" id="ficha-btn-aviso" onclick="">📄 Aviso de Cobrança</button>
+      <button class="btn btn-accent" onclick="imprimirFicha()">🖨️ Imprimir Ficha</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- FIREBASE -->
@@ -2230,6 +2250,7 @@ window.renderSocios = function() {
     <td style="color:var(--text2)">${s.telefone||'—'}</td>
     <td><span class="badge ${s.estado==='Ativo'?'badge-pago':'badge-pendente'}">${s.estado||'—'}</span></td>
     <td style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="abrirFicha('${k}')" title="Ficha do sócio">👤</button>
       <button class="btn btn-outline btn-sm" onclick="editarSocio('${k}')">✏️</button>
       <button class="btn btn-accent btn-sm" onclick="abrirModalQuota('${k}')">💰</button>
       <button class="btn btn-danger btn-sm" onclick="apagarSocio('${k}')">🗑️</button>
@@ -5109,6 +5130,281 @@ window.exportarTudo = async function() {
     toast('Erro na exportação: ' + e.message, 'error');
     setExpProgress(0, 'Erro: ' + e.message);
   }
+};
+
+// ── FICHA DO SÓCIO ─────────────────────────────────
+let fichaKey = null;
+
+window.abrirFicha = function(key) {
+  fichaKey = key;
+  const s = socios[key];
+  if (!s) return;
+
+  // Configurar botões do footer
+  document.getElementById('ficha-btn-editar').onclick = () => { closeModal('modal-ficha'); editarSocio(key); };
+  document.getElementById('ficha-btn-quota').onclick  = () => { closeModal('modal-ficha'); abrirModalQuota(key); };
+  document.getElementById('ficha-btn-aviso').onclick  = () => gerarAvisoCobranca(key);
+
+  // Calcular dados
+  const anoAtual    = new Date().getFullYear().toString();
+  const minhasQ     = Object.entries(quotas).filter(([,q]) => q.socioKey === key);
+  const meusRec     = Object.entries(recibos).filter(([,r]) => r.socioKey === key);
+  const minhasInsc  = Object.entries(inscricoes||{}).filter(([,i]) => i.socioKey === key);
+  const quotaAtual  = minhasQ.find(([,q]) => String(q.ano) === anoAtual);
+  const qEstado     = quotaAtual?.[1]?.estado || 'pendente';
+  const totalPago   = minhasQ.filter(([,q])=>q.estado==='pago').reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
+  const divida      = minhasQ.filter(([,q])=>q.estado!=='pago').reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
+
+  document.getElementById('modal-ficha-title').textContent = `👤 ${s.nome} — Nº ${s.numero||'—'}`;
+
+  // Mostrar/ocultar botão aviso
+  document.getElementById('ficha-btn-aviso').style.display = qEstado !== 'pago' ? 'inline-flex' : 'none';
+
+  const secTitle = (t, cor) => `<div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${cor||'var(--accent)'};padding:16px 20px 8px;border-top:1px solid var(--border2)">${t}</div>`;
+  const infoRow  = (l, v, mono) => v ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 20px;border-bottom:1px solid var(--border2);font-size:13px"><span style="color:var(--text2)">${l}</span><span style="${mono?'font-family:DM Mono,monospace;':''}font-weight:500">${v}</span></div>` : '';
+
+  // Cor estado quota
+  const corQ = qEstado==='pago'?'var(--green)':qEstado==='parcial'?'var(--accent)':'var(--red)';
+  const lblQ = qEstado==='pago'?'✅ Paga':qEstado==='parcial'?'⚠️ Parcial':'❌ Pendente';
+
+  let html = '';
+
+  // ── Hero ──
+  html += `<div style="background:linear-gradient(135deg,var(--bg2),var(--bg3));padding:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <div style="width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:24px;color:#000;flex-shrink:0">
+      ${(s.nome||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+    </div>
+    <div style="flex:1;min-width:180px">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--text);letter-spacing:1px">${s.nome||'—'}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:2px">Nº ${s.numero||'—'} · ${s.categoria||'—'} · ${s.estado||'—'}</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="text-align:center;background:var(--bg);border-radius:8px;padding:10px 14px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:${corQ}">${lblQ}</div>
+        <div style="font-size:10px;color:var(--text2)">Quota ${anoAtual}</div>
+      </div>
+      <div style="text-align:center;background:var(--bg);border-radius:8px;padding:10px 14px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--green)">${totalPago.toFixed(0)}€</div>
+        <div style="font-size:10px;color:var(--text2)">Total pago</div>
+      </div>
+      ${divida > 0 ? `<div style="text-align:center;background:var(--bg);border-radius:8px;padding:10px 14px">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--red)">${divida.toFixed(0)}€</div>
+        <div style="font-size:10px;color:var(--text2)">Em dívida</div>
+      </div>` : ''}
+    </div>
+  </div>`;
+
+  // ── Dados pessoais ──
+  html += secTitle('Dados Pessoais');
+  html += infoRow('Nome completo', s.nome);
+  html += infoRow('Nº Sócio', s.numero, true);
+  html += infoRow('Categoria', s.categoria);
+  html += infoRow('Estado', s.estado);
+  html += infoRow('Data de Nascimento', s.nascimento);
+  html += infoRow('Data de Inscrição', s.inscricao);
+  html += infoRow('NIF', s.nif, true);
+  html += infoRow('Email', s.email);
+  html += infoRow('Telefone', s.telefone);
+  html += infoRow('Morada', s.morada);
+  if (s.obs) html += infoRow('Observações', s.obs);
+
+  // ── Quotas ──
+  html += secTitle(`Quotas (${minhasQ.length})`);
+  if (!minhasQ.length) {
+    html += '<div style="padding:12px 20px;font-size:12px;color:var(--text2)">Sem quotas registadas</div>';
+  } else {
+    html += '<div style="padding:0 20px">';
+    minhasQ.sort((a,b)=>b[1].ano-a[1].ano).forEach(([k,q]) => {
+      const est = q.estado||'pendente';
+      const cor = est==='pago'?'var(--green)':est==='parcial'?'var(--accent)':'var(--red)';
+      html += `<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border2)">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--accent);min-width:44px">${q.ano}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500">${q.descricao||'Quota anual'}</div>
+          <div style="font-size:11px;color:var(--text2)">${q.dataPag?'Pago em '+q.dataPag:''}</div>
+        </div>
+        <div style="font-weight:700;font-size:13px">${Number(q.valor||0).toFixed(2)} €</div>
+        <span style="font-size:11px;font-weight:700;color:${cor};background:rgba(0,0,0,.2);padding:3px 8px;border-radius:20px">${est}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // ── Recibos ──
+  html += secTitle(`Recibos (${meusRec.length})`);
+  if (!meusRec.length) {
+    html += '<div style="padding:12px 20px;font-size:12px;color:var(--text2)">Sem recibos emitidos</div>';
+  } else {
+    html += '<div style="padding:0 20px">';
+    meusRec.sort((a,b)=>(b[1].data||'').localeCompare(a[1].data||'')).forEach(([k,r]) => {
+      html += `<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border2)">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--accent);min-width:48px">${r.numero||'—'}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500">${r.descricao||'—'}</div>
+          <div style="font-size:11px;color:var(--text2)">${r.data||'—'}</div>
+        </div>
+        <div style="font-weight:700;font-size:13px;color:var(--green)">+${Number(r.valor||0).toFixed(2)} €</div>
+        <button onclick="emitirRecibo('${k}','direct')" style="background:transparent;border:1px solid var(--border2);color:var(--text2);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px">🧾</button>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // ── Torneios / Inscrições ──
+  if (minhasInsc.length) {
+    html += secTitle(`Inscrições em Torneios (${minhasInsc.length})`);
+    html += '<div style="padding:0 20px">';
+    minhasInsc.forEach(([k,i]) => {
+      const cor = i.estado==='confirmado'?'var(--green)':i.estado==='rejeitado'?'var(--red)':'var(--accent)';
+      html += `<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border2)">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500">${i.torneioNome||'—'}</div>
+          <div style="font-size:11px;color:var(--text2)">${i.categoria||''}</div>
+        </div>
+        <span style="font-size:11px;font-weight:700;color:${cor};background:rgba(0,0,0,.2);padding:3px 8px;border-radius:20px">${i.estado||'pendente'}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  // ── Rodapé ──
+  html += `<div style="padding:12px 20px;font-size:11px;color:var(--text2);text-align:center">
+    Ficha gerada em ${new Date().toLocaleDateString('pt-PT')} · Vizelgolfe Portal de Sócios
+  </div>`;
+
+  document.getElementById('modal-ficha-content').innerHTML = html;
+  openModal('modal-ficha');
+};
+
+window.imprimirFicha = function() {
+  const body = document.getElementById('modal-ficha-content').innerHTML;
+  const s    = socios[fichaKey] || {};
+  const css  = "*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;padding:28px;max-width:720px;margin:0 auto;color:#0f1e35;font-size:12px;line-height:1.5}h1{font-size:20px;color:#1a3a6b;margin-bottom:4px}@media print{button{display:none}}";
+  const w = window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet"><style>' + css + '</style></head><body>' + body + '</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(), 800);
+};
+
+// ── AVISO DE COBRANÇA ──────────────────────────────
+window.gerarAvisoCobranca = function(key) {
+  const s      = socios[key];
+  if (!s) return;
+  const anoAtual  = new Date().getFullYear().toString();
+  const minhasQ   = Object.entries(quotas).filter(([,q]) => q.socioKey === key && q.estado !== 'pago');
+  const totalDivida = minhasQ.reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
+  if (!totalDivida && !minhasQ.length) { toast('Sócio sem quotas em dívida','error'); return; }
+
+  const cfg  = configuracoes || {};
+  const iban = cfg.iban || 'PT50 0045 1401 4037 3110 4744 6';
+  const mbway = cfg.mbway || '';
+  const nomeAssoc = cfg.nome || 'Vizelgolfe — Associação de Minigolfe de Vizela';
+  const nifAssoc  = cfg.nif  || '509 227 902';
+  const hoje = new Date().toLocaleDateString('pt-PT');
+  const prazo = new Date(Date.now() + 15*24*60*60*1000).toLocaleDateString('pt-PT');
+
+  const linhasQuotas = minhasQ.map(([,q]) =>
+    `<tr><td style="padding:7px 8px">${q.ano}</td><td style="padding:7px 8px">${q.descricao||'Quota anual'}</td><td style="text-align:right;padding:7px 8px;font-weight:700">${Number(q.valor||0).toFixed(2)} €</td></tr>`
+  ).join('');
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans',sans-serif;padding:36px;max-width:680px;margin:0 auto;color:#0f1e35;font-size:13px;line-height:1.6}
+    .header{display:flex;align-items:center;gap:16px;padding-bottom:16px;border-bottom:3px solid #1a3a6b;margin-bottom:24px}
+    .header img{width:64px;height:64px;object-fit:contain}
+    .org h1{font-size:17px;color:#1a3a6b;letter-spacing:1px;font-weight:900;text-transform:uppercase}
+    .org p{font-size:10px;color:#555;margin-top:2px}
+    .doc-ref{text-align:right;margin-left:auto}
+    .doc-ref h2{font-size:14px;color:#d4820a;font-weight:900;text-transform:uppercase;letter-spacing:1px}
+    .doc-ref p{font-size:11px;color:#666}
+    .destinatario{background:#f4f7fb;border-left:4px solid #1a3a6b;padding:14px 16px;margin-bottom:24px;border-radius:0 8px 8px 0}
+    .destinatario strong{font-size:14px}
+    .corpo{margin-bottom:24px;font-size:13px;line-height:1.75;color:#1a2a3a}
+    table{width:100%;border-collapse:collapse;margin-bottom:20px}
+    th{background:#e8eef6;color:#1a3a6b;font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:8px;font-weight:800;border-bottom:2px solid #1a3a6b;text-align:left}
+    td{border-bottom:1px solid #dde4ee;font-size:12px}
+    .total-row td{background:#1a3a6b;color:#fff;font-weight:800;font-size:13px;padding:9px 8px}
+    .pag-block{border:1px solid #c8d4e8;border-radius:8px;padding:14px 16px;margin-bottom:10px}
+    .pag-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#555;margin-bottom:4px}
+    .pag-val{font-weight:700;font-family:monospace;font-size:13px;color:#0f1e35}
+    .footer{margin-top:32px;padding-top:16px;border-top:1px solid #c8d4e8;font-size:10px;color:#777;text-align:center}
+    @media print{body{padding:20px}button{display:none}}
+  </style></head><body>
+
+  <div class="header">
+    <img src="${LOGO_B64}" alt="${nomeAssoc}">
+    <div class="org">
+      <h1>${nomeAssoc}</h1>
+      <p>NIF ${nifAssoc}</p>
+      ${cfg.email ? `<p>${cfg.email}</p>` : ''}
+    </div>
+    <div class="doc-ref">
+      <h2>Aviso de Cobrança</h2>
+      <p>Data: ${hoje}</p>
+      <p>Prazo: <strong>${prazo}</strong></p>
+    </div>
+  </div>
+
+  <div class="destinatario">
+    <strong>${s.nome}</strong><br>
+    <span style="font-size:12px;color:#555">Sócio Nº ${s.numero||'—'} · ${s.categoria||'—'}${s.nif?' · NIF '+s.nif:''}</span>
+    ${s.morada ? `<br><span style="font-size:12px;color:#555">${s.morada}</span>` : ''}
+  </div>
+
+  <div class="corpo">
+    <p>Exmo(a). Sr(a). <strong>${s.nome}</strong>,</p>
+    <br>
+    <p>Vimos por este meio informar que se encontra(m) em dívida as seguintes quotas associativas:</p>
+  </div>
+
+  <table>
+    <thead><tr><th>Ano</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead>
+    <tbody>${linhasQuotas}</tbody>
+    <tfoot>
+      <tr class="total-row">
+        <td colspan="2" style="padding:9px 8px">TOTAL EM DÍVIDA</td>
+        <td style="text-align:right;padding:9px 8px">${totalDivida.toFixed(2)} €</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div class="corpo">
+    <p>Solicitamos a regularização do valor em dívida até ao dia <strong>${prazo}</strong>, através de um dos seguintes meios de pagamento:</p>
+  </div>
+
+  <div class="pag-block">
+    <div class="pag-label">Transferência Bancária</div>
+    <div class="pag-val">${iban}</div>
+    <div style="font-size:11px;color:#555;margin-top:3px">${nomeAssoc}</div>
+  </div>
+  ${mbway ? `<div class="pag-block"><div class="pag-label">MBWay</div><div class="pag-val" style="font-size:15px">${mbway}</div></div>` : ''}
+
+  <div class="corpo" style="margin-top:16px">
+    <p>Pedimos que indique o seu nome e número de sócio na descrição do pagamento.</p>
+    <br>
+    <p>Caso o pagamento já tenha sido efetuado, agradecemos que ignore esta notificação.</p>
+    <br>
+    <p>Agradecemos a vossa atenção e colaboração.</p>
+    <br>
+    <p>Com os melhores cumprimentos,</p>
+    <p><strong>A Direção</strong><br>${nomeAssoc}</p>
+  </div>
+
+  <div class="footer">
+    ${nomeAssoc} · NIF ${nifAssoc} · ${cfg.email||''} · Documento gerado em ${hoje}
+  </div>
+
+  <div style="margin-top:20px;text-align:center;display:flex;gap:10px;justify-content:center">
+    <button onclick="window.print()" style="padding:10px 20px;background:#1a3a6b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">🖨️ Imprimir</button>
+    <button onclick="window.close()" style="padding:10px 20px;background:transparent;color:#555;border:1px solid #c8d4e8;border-radius:6px;cursor:pointer;font-size:13px">Fechar</button>
+  </div>
+  </body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
 };
 
 window.toast = function(msg, type='success') {
