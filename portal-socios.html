@@ -448,6 +448,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <button class="nav-tab" onclick="showPage('biblioteca')">📁 Biblioteca</button>
     <button class="nav-tab" onclick="showPage('configuracoes')">⚙️ Configurações</button>
         <button class="nav-tab" onclick="showPage('torneios')">🏆 Torneios</button>
+        <button class="nav-tab" onclick="showPage('exportar-dados')">📤 Exportar</button>
   </nav>
 
   <main>
@@ -1028,6 +1029,91 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
       <div id="torn-lista-admin"></div>
     </div><!-- /page-torneios -->
+
+    <!-- ── EXPORTAÇÃO ── -->
+    <div id="page-exportar-dados" class="page">
+      <div style="margin-bottom:24px">
+        <h2 style="font-family:'Bebas Neue';font-size:28px;color:var(--accent);letter-spacing:2px">📤 Exportação de Dados</h2>
+        <p style="font-size:13px;color:var(--text2);margin-top:4px">Exporta os dados do portal para Excel (.xlsx) para backup ou análise externa.</p>
+      </div>
+
+      <!-- Cards de exportação -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:24px">
+
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:22px">
+          <div style="font-size:28px;margin-bottom:8px">👥</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Sócios</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Nome, nº, categoria, estado, contactos, morada, NIF, datas</div>
+          <button class="btn btn-accent" onclick="exportarSocios()" style="width:100%">⬇️ Exportar Sócios</button>
+        </div>
+
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:22px">
+          <div style="font-size:28px;margin-bottom:8px">💰</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Quotas</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Todas as quotas por sócio, ano, valor, estado e data de pagamento</div>
+          <button class="btn btn-accent" onclick="exportarQuotas()" style="width:100%">⬇️ Exportar Quotas</button>
+        </div>
+
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:22px">
+          <div style="font-size:28px;margin-bottom:8px">🧾</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Recibos</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Todos os recibos emitidos com valor, sócio e data</div>
+          <button class="btn btn-accent" onclick="exportarRecibos()" style="width:100%">⬇️ Exportar Recibos</button>
+        </div>
+
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:22px">
+          <div style="font-size:28px;margin-bottom:8px">💚</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Receitas</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Todos os lançamentos de receita com conta SNC, meio e referência</div>
+          <button class="btn btn-green" onclick="exportarReceitas()" style="width:100%">⬇️ Exportar Receitas</button>
+        </div>
+
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:22px">
+          <div style="font-size:28px;margin-bottom:8px">🔴</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Despesas</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Todos os lançamentos de despesa com conta SNC, fornecedor e meio</div>
+          <button class="btn btn-danger" onclick="exportarDespesas()" style="width:100%">⬇️ Exportar Despesas</button>
+        </div>
+
+        <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:22px">
+          <div style="font-size:28px;margin-bottom:8px">🏆</div>
+          <div style="font-weight:700;font-size:15px;margin-bottom:4px">Torneios e Inscrições</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:16px">Lista de torneios e todas as inscrições com estado de confirmação</div>
+          <button class="btn btn-accent" onclick="exportarTorneios()" style="width:100%">⬇️ Exportar Torneios</button>
+        </div>
+
+      </div>
+
+      <!-- Backup completo -->
+      <div style="background:var(--card);border:2px solid var(--accent);border-radius:14px;padding:24px">
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="font-family:'Bebas Neue';font-size:22px;color:var(--accent);letter-spacing:1px;margin-bottom:4px">📦 Backup Completo</div>
+            <div style="font-size:13px;color:var(--text2)">Exporta <strong style="color:var(--text)">todos os dados</strong> num único ficheiro Excel com múltiplas folhas — Sócios, Quotas, Recibos, Receitas, Despesas, Acertos e Torneios.</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <select id="exp-ano-sel" style="padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;outline:none">
+              <option value="">Todos os anos</option>
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+            <button class="btn btn-accent" onclick="exportarTudo()" style="font-size:14px;padding:10px 24px">
+              📦 Exportar Tudo
+            </button>
+          </div>
+        </div>
+        <div id="exp-progress" style="display:none;margin-top:16px">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px" id="exp-progress-label">A preparar...</div>
+          <div style="background:var(--bg2);border-radius:4px;height:6px;overflow:hidden">
+            <div id="exp-progress-bar" style="background:var(--accent);height:100%;width:0%;transition:width .3s"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log de exportações recentes (só visual) -->
+      <div style="margin-top:16px;font-size:12px;color:var(--text2);text-align:center" id="exp-last-msg"></div>
+    </div><!-- /page-exportar-dados -->
 
   </main>
 </div>
@@ -1828,6 +1914,7 @@ window.showPage = function(page) {
   document.getElementById('page-' + page).classList.add('active');
   event.target.classList.add('active');
   if (page === 'torneios') renderTorneiosAdmin();
+  if (page === 'exportar-dados') renderExportPage();
 };
 
 // ─── DASHBOARD ─────────────────────────────────────
@@ -4730,6 +4817,276 @@ window.cancelarInscricaoSocio = async function(key) {
   if (!confirm('Cancelar a tua inscrição?')) return;
   await remove(ref(db, `/portal/inscricoes/${key}`));
   toast('Inscrição cancelada');
+};
+
+// ── EXPORTAÇÃO EXCEL (SheetJS) ─────────────────────
+let XLSX_LIB = null;
+
+async function getXLSX() {
+  if (XLSX_LIB) return XLSX_LIB;
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    s.onload = () => { XLSX_LIB = window.XLSX; resolve(window.XLSX); };
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function setExpProgress(pct, label) {
+  const p = document.getElementById('exp-progress');
+  const b = document.getElementById('exp-progress-bar');
+  const l = document.getElementById('exp-progress-label');
+  if (!p) return;
+  p.style.display = 'block';
+  if (b) b.style.width = pct + '%';
+  if (l) l.textContent = label || '';
+  if (pct >= 100) setTimeout(() => { p.style.display = 'none'; }, 1200);
+}
+
+function expMsg(msg) {
+  const el = document.getElementById('exp-last-msg');
+  if (el) el.textContent = msg;
+}
+
+function baixarXLSX(XLSX, wb, nome) {
+  const buf = XLSX.write(wb, { bookType:'xlsx', type:'array' });
+  const blob = new Blob([buf], { type:'application/octet-stream' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function sociosParaLinhas() {
+  return [
+    ['Nº Sócio','Nome','Categoria','Estado','Email','Telefone','NIF','Data Nascimento','Data Inscrição','Morada','Observações'],
+    ...Object.values(socios).sort((a,b)=>Number(a.numero||0)-Number(b.numero||0)).map(s=>[
+      s.numero||'', s.nome||'', s.categoria||'', s.estado||'',
+      s.email||'', s.telefone||'', s.nif||'', s.nascimento||'',
+      s.inscricao||'', s.morada||'', s.obs||''
+    ])
+  ];
+}
+
+function quotasParaLinhas(filtroAno) {
+  const linhas = [['Nº Sócio','Nome Sócio','Ano','Descrição','Valor (€)','Estado','Data Pagamento','Referência']];
+  Object.values(quotas)
+    .filter(q => !filtroAno || String(q.ano) === filtroAno)
+    .sort((a,b)=>String(a.ano).localeCompare(String(b.ano))||String(a.socioNome||'').localeCompare(String(b.socioNome||'')))
+    .forEach(q => {
+      const s = socios[q.socioKey] || {};
+      linhas.push([s.numero||'', s.nome||q.socioNome||'', q.ano||'', q.descricao||'Quota anual',
+        parseFloat(q.valor||0), q.estado||'', q.dataPag||'', q.referencia||'']);
+    });
+  return linhas;
+}
+
+function recibosParaLinhas(filtroAno) {
+  return [
+    ['Nº Recibo','Sócio','Descrição','Valor (€)','Data','Ano'],
+    ...Object.values(recibos)
+      .filter(r => !filtroAno || (r.data||'').startsWith(filtroAno))
+      .sort((a,b)=>(a.data||'').localeCompare(b.data||''))
+      .map(r=>[r.numero||'', r.socioNome||'', r.descricao||'', parseFloat(r.valor||0), r.data||'', (r.data||'').slice(0,4)])
+  ];
+}
+
+function receitasParaLinhas(filtroAno) {
+  return [
+    ['Data','Descrição','Categoria','Conta SNC','Valor (€)','Meio Pagamento','Referência','Observações'],
+    ...Object.values(receitas)
+      .filter(r => !filtroAno || (r.data||'').startsWith(filtroAno))
+      .sort((a,b)=>(a.data||'').localeCompare(b.data||''))
+      .map(r=>[r.data||'', r.descricao||'', r.categoria||'', r.conta||'', parseFloat(r.valor||0),
+               r.meio||'', r.referencia||'', r.obs||''])
+  ];
+}
+
+function despesasParaLinhas(filtroAno) {
+  return [
+    ['Data','Descrição','Categoria','Conta SNC','Valor (€)','Meio Pagamento','Fornecedor','Nº Documento','Observações'],
+    ...Object.values(despesas)
+      .filter(d => !filtroAno || (d.data||'').startsWith(filtroAno))
+      .sort((a,b)=>(a.data||'').localeCompare(b.data||''))
+      .map(d=>[d.data||'', d.descricao||'', d.categoria||'', d.conta||'', parseFloat(d.valor||0),
+               d.meio||'', d.fornecedor||'', d.referencia||'', d.obs||''])
+  ];
+}
+
+function acertosParaLinhas(filtroAno) {
+  return [
+    ['Data','Descrição','Sentido','Valor (€)','Referência','Observações'],
+    ...Object.values(acertos||{})
+      .filter(a => !filtroAno || (a.data||'').startsWith(filtroAno))
+      .sort((a,b)=>(a.data||'').localeCompare(b.data||''))
+      .map(a=>[a.data||'', a.descricao||'', a.sentido||'', parseFloat(a.valor||0), a.referencia||'', a.obs||''])
+  ];
+}
+
+function torneiosParaLinhas() {
+  const linhas = [['Nome','Tipo','Local','Data','Prazo Inscrição','Vagas','Estado','Descrição']];
+  Object.values(torneios||{}).sort((a,b)=>(a.data||'').localeCompare(b.data||'')).forEach(t=>{
+    linhas.push([t.nome||'',t.tipo||'',t.local||'',t.data||'',t.prazo||'',t.vagas||0,t.estado||'',t.descricao||'']);
+  });
+  return linhas;
+}
+
+function inscricoesParaLinhas() {
+  return [
+    ['Torneio','Sócio','Nº Sócio','Categoria','Estado','Data Inscrição','Observações'],
+    ...Object.values(inscricoes||{})
+      .sort((a,b)=>(a.torneioNome||'').localeCompare(b.torneioNome||''))
+      .map(i=>[i.torneioNome||'',i.socioNome||'',i.socioNum||'',i.categoria||'',
+               i.estado||'',i.criadoEm?new Date(i.criadoEm).toLocaleDateString('pt-PT'):'',i.obs||''])
+  ];
+}
+
+function aplicarEstilosCabecalho(ws, nCols) {
+  // SheetJS community não suporta estilos — usamos apenas os dados
+}
+
+function criarSheet(XLSX, dados) {
+  return XLSX.utils.aoa_to_sheet(dados);
+}
+
+window.renderExportPage = function() {
+  // Actualizar totais nos cards (não é necessário, mas podia mostrar contagens)
+};
+
+window.exportarSocios = async function() {
+  try {
+    const XLSX = await getXLSX();
+    setExpProgress(50, 'A preparar sócios...');
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, sociosParaLinhas()), 'Sócios');
+    baixarXLSX(XLSX, wb, `Socios_Vizelgolfe_${new Date().toISOString().slice(0,10)}.xlsx`);
+    setExpProgress(100, 'Exportado!');
+    expMsg(`✅ ${Object.keys(socios).length} sócios exportados · ${new Date().toLocaleTimeString('pt-PT')}`);
+    toast('Sócios exportados ✅');
+  } catch(e) { toast('Erro na exportação: '+e.message,'error'); setExpProgress(0,''); }
+};
+
+window.exportarQuotas = async function() {
+  try {
+    const XLSX = await getXLSX();
+    setExpProgress(50, 'A preparar quotas...');
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, quotasParaLinhas()), 'Quotas');
+    baixarXLSX(XLSX, wb, `Quotas_Vizelgolfe_${new Date().toISOString().slice(0,10)}.xlsx`);
+    setExpProgress(100, 'Exportado!');
+    expMsg(`✅ ${Object.keys(quotas).length} quotas exportadas · ${new Date().toLocaleTimeString('pt-PT')}`);
+    toast('Quotas exportadas ✅');
+  } catch(e) { toast('Erro: '+e.message,'error'); }
+};
+
+window.exportarRecibos = async function() {
+  try {
+    const XLSX = await getXLSX();
+    setExpProgress(50, 'A preparar recibos...');
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, recibosParaLinhas()), 'Recibos');
+    baixarXLSX(XLSX, wb, `Recibos_Vizelgolfe_${new Date().toISOString().slice(0,10)}.xlsx`);
+    setExpProgress(100, 'Exportado!');
+    expMsg(`✅ ${Object.keys(recibos).length} recibos exportados · ${new Date().toLocaleTimeString('pt-PT')}`);
+    toast('Recibos exportados ✅');
+  } catch(e) { toast('Erro: '+e.message,'error'); }
+};
+
+window.exportarReceitas = async function() {
+  try {
+    const XLSX = await getXLSX();
+    setExpProgress(50, 'A preparar receitas...');
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, receitasParaLinhas()), 'Receitas');
+    baixarXLSX(XLSX, wb, `Receitas_Vizelgolfe_${new Date().toISOString().slice(0,10)}.xlsx`);
+    setExpProgress(100, 'Exportado!');
+    expMsg(`✅ ${Object.keys(receitas).length} receitas exportadas · ${new Date().toLocaleTimeString('pt-PT')}`);
+    toast('Receitas exportadas ✅');
+  } catch(e) { toast('Erro: '+e.message,'error'); }
+};
+
+window.exportarDespesas = async function() {
+  try {
+    const XLSX = await getXLSX();
+    setExpProgress(50, 'A preparar despesas...');
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, despesasParaLinhas()), 'Despesas');
+    baixarXLSX(XLSX, wb, `Despesas_Vizelgolfe_${new Date().toISOString().slice(0,10)}.xlsx`);
+    setExpProgress(100, 'Exportado!');
+    expMsg(`✅ ${Object.keys(despesas).length} despesas exportadas · ${new Date().toLocaleTimeString('pt-PT')}`);
+    toast('Despesas exportadas ✅');
+  } catch(e) { toast('Erro: '+e.message,'error'); }
+};
+
+window.exportarTorneios = async function() {
+  try {
+    const XLSX = await getXLSX();
+    setExpProgress(50, 'A preparar torneios...');
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, torneiosParaLinhas()), 'Torneios');
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, inscricoesParaLinhas()), 'Inscrições');
+    baixarXLSX(XLSX, wb, `Torneios_Vizelgolfe_${new Date().toISOString().slice(0,10)}.xlsx`);
+    setExpProgress(100, 'Exportado!');
+    toast('Torneios exportados ✅');
+  } catch(e) { toast('Erro: '+e.message,'error'); }
+};
+
+window.exportarTudo = async function() {
+  try {
+    const XLSX  = await getXLSX();
+    const ano   = document.getElementById('exp-ano-sel')?.value || '';
+    const sufAno = ano ? `_${ano}` : '';
+    const prog  = document.getElementById('exp-progress');
+    if (prog) prog.style.display = 'block';
+
+    setExpProgress(10, 'A preparar sócios...');
+    const wb = XLSX.utils.book_new();
+    await new Promise(r=>setTimeout(r,50));
+
+    setExpProgress(20, 'Folha Sócios...');
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, sociosParaLinhas()), 'Sócios');
+    await new Promise(r=>setTimeout(r,30));
+
+    setExpProgress(35, 'Folha Quotas...');
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, quotasParaLinhas(ano)), 'Quotas');
+    await new Promise(r=>setTimeout(r,30));
+
+    setExpProgress(50, 'Folha Recibos...');
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, recibosParaLinhas(ano)), 'Recibos');
+    await new Promise(r=>setTimeout(r,30));
+
+    setExpProgress(62, 'Folha Receitas...');
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, receitasParaLinhas(ano)), 'Receitas');
+    await new Promise(r=>setTimeout(r,30));
+
+    setExpProgress(74, 'Folha Despesas...');
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, despesasParaLinhas(ano)), 'Despesas');
+    await new Promise(r=>setTimeout(r,30));
+
+    setExpProgress(84, 'Folha Acertos...');
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, acertosParaLinhas(ano)), 'Acertos');
+    await new Promise(r=>setTimeout(r,30));
+
+    setExpProgress(92, 'Folha Torneios...');
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, torneiosParaLinhas()), 'Torneios');
+    XLSX.utils.book_append_sheet(wb, criarSheet(XLSX, inscricoesParaLinhas()), 'Inscrições');
+    await new Promise(r=>setTimeout(r,30));
+
+    setExpProgress(98, 'A gerar ficheiro...');
+    const nome = `Backup_Vizelgolfe${sufAno}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    baixarXLSX(XLSX, wb, nome);
+
+    setExpProgress(100, 'Exportação concluída!');
+    const totalReg = Object.keys(socios).length + Object.keys(quotas).length + Object.keys(recibos).length +
+                     Object.keys(receitas).length + Object.keys(despesas).length;
+    expMsg(`✅ Backup completo — ${totalReg} registos em 8 folhas · ${new Date().toLocaleTimeString('pt-PT')}`);
+    toast('Backup completo exportado ✅');
+  } catch(e) {
+    toast('Erro na exportação: ' + e.message, 'error');
+    setExpProgress(0, 'Erro: ' + e.message);
+  }
 };
 
 window.toast = function(msg, type='success') {
