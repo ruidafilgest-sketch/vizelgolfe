@@ -6041,7 +6041,7 @@ async function resendEnviar(to, toName, subject, htmlBody) {
   }
 
   try {
-    const resp = await fetch('https://api.resend.com/emails', {
+    const resp = await fetch('https://resend-proxy.rui-dafilgest.workers.dev', {
       method: 'POST',
       headers: {
         'Authorization': 'Bearer ' + apiKey,
@@ -6090,7 +6090,7 @@ window.testarEmail = async function() {
 
   // Usar directamente sem passar por resendEnviar (para maior controlo de erros)
   try {
-    const resp = await fetch('https://api.resend.com/emails', {
+    const resp = await fetch('https://resend-proxy.rui-dafilgest.workers.dev', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
       body: JSON.stringify({
