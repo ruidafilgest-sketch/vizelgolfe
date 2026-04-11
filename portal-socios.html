@@ -1238,6 +1238,18 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         </div>
         <div class="form-group"><label>Morada</label><input id="s-morada" type="text" placeholder="Rua, número, localidade" /></div>
         <div class="form-group full"><label>Observações</label><textarea id="s-obs" rows="2" placeholder="Notas opcionais..."></textarea></div>
+        <div class="form-group full">
+          <label>Foto do Sócio <span style="font-size:10px;color:var(--text2);font-weight:400">(tipo passe · RGPD: acesso restrito ao admin)</span></label>
+          <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <div id="s-foto-preview" style="width:80px;height:100px;border-radius:6px;background:var(--bg2);border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0">👤</div>
+            <div style="flex:1">
+              <input type="file" id="s-foto-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="previewFoto(this)">
+              <button type="button" class="btn btn-outline" onclick="document.getElementById('s-foto-input').click()" style="margin-bottom:6px">📷 Escolher foto</button>
+              <button type="button" id="s-foto-remover" class="btn btn-danger" onclick="removerFoto()" style="display:none;margin-bottom:6px">🗑️ Remover</button>
+              <div style="font-size:11px;color:var(--text2)">JPG/PNG · máx. 500KB · A foto é comprimida e guardada de forma segura.</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -1595,8 +1607,9 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <button class="btn btn-outline" onclick="closeModal('modal-ficha')">Fechar</button>
       <button class="btn btn-outline" id="ficha-btn-editar" onclick="">✏️ Editar</button>
       <button class="btn btn-outline" id="ficha-btn-quota" onclick="">💰 Nova Quota</button>
-      <button class="btn btn-danger" id="ficha-btn-aviso" onclick="">📄 Aviso de Cobrança</button>
-      <button class="btn btn-accent" onclick="imprimirFicha()">🖨️ Imprimir Ficha</button>
+      <button class="btn btn-danger" id="ficha-btn-aviso" onclick="">📄 Aviso</button>
+      <button class="btn btn-outline" id="ficha-btn-cartao" onclick="">🪪 Cartão</button>
+      <button class="btn btn-accent" onclick="imprimirFicha()">🖨️ Imprimir</button>
     </div>
   </div>
 </div>
@@ -2258,6 +2271,56 @@ window.renderSocios = function() {
   </tr>`).join('');
 };
 
+let fotoBase64Temp = null; // foto carregada mas ainda não gravada
+
+window.previewFoto = function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 2 * 1024 * 1024) { toast('Foto demasiado grande (máx. 2MB)', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    // Comprimir via canvas
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const maxW = 200, maxH = 260;
+      let w = img.width, h = img.height;
+      if (w/h > maxW/maxH) { w = maxW; h = Math.round(img.height * maxW / img.width); }
+      else { h = maxH; w = Math.round(img.width * maxH / img.height); }
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      fotoBase64Temp = canvas.toDataURL('image/jpeg', 0.82);
+      const prev = document.getElementById('s-foto-preview');
+      prev.innerHTML = `<img src="${fotoBase64Temp}" style="width:100%;height:100%;object-fit:cover">`;
+      document.getElementById('s-foto-remover').style.display = 'inline-flex';
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+};
+
+window.removerFoto = function() {
+  fotoBase64Temp = 'REMOVER';
+  document.getElementById('s-foto-preview').innerHTML = '👤';
+  document.getElementById('s-foto-preview').style.fontSize = '28px';
+  document.getElementById('s-foto-remover').style.display = 'none';
+  document.getElementById('s-foto-input').value = '';
+};
+
+function resetFotoModal(fotoExistente) {
+  fotoBase64Temp = null;
+  const prev = document.getElementById('s-foto-preview');
+  const btnRem = document.getElementById('s-foto-remover');
+  document.getElementById('s-foto-input').value = '';
+  if (fotoExistente) {
+    prev.innerHTML = `<img src="${fotoExistente}" style="width:100%;height:100%;object-fit:cover">`;
+    btnRem.style.display = 'inline-flex';
+  } else {
+    prev.innerHTML = '👤';
+    btnRem.style.display = 'none';
+  }
+}
+
 window.openModalSocio = function() {
   editSocioKey = null;
   document.getElementById('modal-socio-title').textContent = 'Novo Sócio';
@@ -2265,6 +2328,7 @@ window.openModalSocio = function() {
   document.getElementById('s-cat').value = 'Atleta';
   document.getElementById('s-estado').value = 'Ativo';
   document.getElementById('s-insc').value = new Date().toISOString().slice(0,10);
+  resetFotoModal(null);
   openModal('modal-socio');
 };
 
@@ -2288,26 +2352,45 @@ window.editarSocio = function(key) {
 
 window.gravarSocio = async function() {
   const dados = {
-    numero: document.getElementById('s-num').value.trim(),
-    nome: document.getElementById('s-nome').value.trim(),
-    email: document.getElementById('s-email').value.trim(),
-    telefone: document.getElementById('s-tel').value.trim(),
-    nif: document.getElementById('s-nif').value.trim(),
+    numero:     document.getElementById('s-num').value.trim(),
+    nome:       document.getElementById('s-nome').value.trim(),
+    email:      document.getElementById('s-email').value.trim(),
+    telefone:   document.getElementById('s-tel').value.trim(),
+    nif:        document.getElementById('s-nif').value.trim(),
     nascimento: document.getElementById('s-nasc').value,
-    inscricao: document.getElementById('s-insc').value,
-    morada: document.getElementById('s-morada').value.trim(),
-    obs: document.getElementById('s-obs').value.trim(),
-    categoria: document.getElementById('s-cat').value,
-    estado: document.getElementById('s-estado').value,
+    inscricao:  document.getElementById('s-insc').value,
+    morada:     document.getElementById('s-morada').value.trim(),
+    obs:        document.getElementById('s-obs').value.trim(),
+    categoria:  document.getElementById('s-cat').value,
+    estado:     document.getElementById('s-estado').value,
   };
   if (!dados.nome) { toast('Nome obrigatório', 'error'); return; }
   try {
+    let socioKey = editSocioKey;
     if (editSocioKey) {
       await update(ref(db, `/portal/socios/${editSocioKey}`), dados);
       toast('Sócio atualizado ✅');
     } else {
-      await push(ref(db, '/portal/socios'), dados);
+      const newRef = await push(ref(db, '/portal/socios'), dados);
+      socioKey = newRef.key;
       toast('Sócio adicionado ✅');
+    }
+    // Foto — guardar/remover no Firebase Storage
+    if (fotoBase64Temp && socioKey) {
+      try {
+        const { getStorage, ref: sRef, uploadString, deleteObject } =
+          await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js');
+        const storage = getStorage();
+        if (fotoBase64Temp === 'REMOVER') {
+          try { await deleteObject(sRef(storage, `portal/fotos-socios/${socioKey}`)); } catch(_){}
+          await update(ref(db, `/portal/socios/${socioKey}`), { foto: null });
+        } else {
+          // Guardar base64 diretamente no DB (evita CORS do Storage com regras fechadas)
+          await update(ref(db, `/portal/socios/${socioKey}`), { foto: fotoBase64Temp });
+          toast('Foto guardada ✅');
+        }
+        fotoBase64Temp = null;
+      } catch(ef) { console.warn('Foto não guardada:', ef); }
     }
     closeModal('modal-socio');
   } catch(e) { toast('Erro: ' + e.message, 'error'); }
@@ -5144,6 +5227,7 @@ window.abrirFicha = function(key) {
   document.getElementById('ficha-btn-editar').onclick = () => { closeModal('modal-ficha'); editarSocio(key); };
   document.getElementById('ficha-btn-quota').onclick  = () => { closeModal('modal-ficha'); abrirModalQuota(key); };
   document.getElementById('ficha-btn-aviso').onclick  = () => gerarAvisoCobranca(key);
+  document.getElementById('ficha-btn-cartao').onclick = () => gerarCartaoSocio(key);
 
   // Calcular dados
   const anoAtual    = new Date().getFullYear().toString();
@@ -5170,8 +5254,13 @@ window.abrirFicha = function(key) {
   let html = '';
 
   // ── Hero ──
+  const fotoHtml = s.foto
+    ? `<img src="${s.foto}" style="width:68px;height:86px;border-radius:6px;object-fit:cover;flex-shrink:0;border:2px solid var(--accent)">`
+    : `<div style="width:68px;height:86px;border-radius:6px;background:var(--bg3);border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0">👤</div>`;
+
   html += `<div style="background:linear-gradient(135deg,var(--bg2),var(--bg3));padding:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
-    <div style="width:56px;height:56px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:24px;color:#000;flex-shrink:0">
+    ${fotoHtml}
+    <div style="width:48px;height:48px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:20px;color:#000;flex-shrink:0;display:none">
       ${(s.nome||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()}
     </div>
     <div style="flex:1;min-width:180px">
@@ -5403,6 +5492,159 @@ window.gerarAvisoCobranca = function(key) {
   </body></html>`;
 
   const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+};
+
+// ── CARTÃO DE SÓCIO ────────────────────────────────
+window.gerarCartaoSocio = function(key) {
+  const s = socios[key];
+  if (!s) return;
+
+  // Criar janela com o cartão
+  const anoAtual  = new Date().getFullYear().toString();
+  const minhasQ   = Object.entries(quotas).filter(([,q]) => q.socioKey === key);
+  const quotaAtual= minhasQ.find(([,q]) => String(q.ano) === anoAtual);
+  const qEstado   = quotaAtual?.[1]?.estado || 'pendente';
+  const validade  = qEstado === 'pago' ? `Válido ${anoAtual}` : `Quota pendente ${anoAtual}`;
+  const corValidade = qEstado === 'pago' ? '#2ecc71' : '#e74c3c';
+
+  const catAbrev = {
+    'Atleta':'ATL','Normal':'NOR','Reformado':'REF','Fundador':'FUN',
+    'Socio beneficios':'BEN','Honorário':'HON','Júnior':'JUN'
+  };
+  const catCod = catAbrev[s.categoria] || s.categoria?.slice(0,3).toUpperCase() || '---';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0a1628;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:24px;font-family:'DM Sans',sans-serif}
+    .cartao{width:340px;height:214px;border-radius:14px;position:relative;overflow:hidden;background:linear-gradient(135deg,#0f1e35 0%,#162444 50%,#0f1e35 100%);box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px rgba(212,130,10,.3);cursor:pointer}
+    .cartao-frente,.cartao-verso{width:100%;height:100%;position:absolute;top:0;left:0}
+    /* Frente */
+    .bg-pattern{position:absolute;inset:0;background:
+      radial-gradient(circle at 80% 20%,rgba(212,130,10,.12) 0%,transparent 50%),
+      radial-gradient(circle at 20% 80%,rgba(52,152,219,.08) 0%,transparent 50%);
+    }
+    .stripe{position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#d4820a,#f0a030,#d4820a)}
+    .logo-area{position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:8px}
+    .logo-img{width:32px;height:32px;object-fit:contain}
+    .logo-text{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:#d4820a;line-height:1}
+    .logo-sub{font-size:8px;color:rgba(232,240,254,.5);letter-spacing:1px;text-transform:uppercase}
+    .cat-badge{position:absolute;top:14px;right:14px;background:rgba(212,130,10,.2);border:1px solid rgba(212,130,10,.4);border-radius:4px;padding:3px 8px;font-family:'Bebas Neue',sans-serif;font-size:11px;color:#d4820a;letter-spacing:2px}
+    .foto-area{position:absolute;bottom:14px;left:16px;width:54px;height:68px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06);border:1.5px solid rgba(212,130,10,.4);display:flex;align-items:center;justify-content:center;font-size:20px;color:rgba(232,240,254,.3)}
+    .foto-area img{width:100%;height:100%;object-fit:cover}
+    .dados{position:absolute;bottom:14px;left:82px;right:14px}
+    .nome{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#e8f0fe;letter-spacing:1px;line-height:1.1;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .num{font-family:'DM Mono',monospace;font-size:11px;color:#d4820a;letter-spacing:2px;margin-bottom:2px}
+    .categoria{font-size:10px;color:rgba(232,240,254,.55);letter-spacing:.5px;margin-bottom:6px}
+    .validade{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:2px 7px;border-radius:10px;background:rgba(0,0,0,.3);border:1px solid}
+    .chip{position:absolute;top:50%;left:16px;transform:translateY(-50%);width:28px;height:20px;border-radius:3px;background:linear-gradient(135deg,#c8a84b,#f0c060,#c8a84b);opacity:.7}
+    /* Verso */
+    .verso-content{padding:14px;height:100%;display:flex;flex-direction:column;gap:8px}
+    .verso-faixa{height:36px;background:#111;margin:0 -14px;flex-shrink:0}
+    .verso-dados{background:rgba(255,255,255,.06);border-radius:6px;padding:10px 12px;flex:1}
+    .verso-linha{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:10px}
+    .verso-label{color:rgba(143,168,200,.7)}
+    .verso-val{color:#e8f0fe;font-weight:600;font-family:'DM Mono',monospace;font-size:10px}
+    .verso-footer{font-size:8px;color:rgba(143,168,200,.4);text-align:center;padding-top:4px}
+    /* Botões */
+    .acoes{display:flex;gap:10px}
+    .btn-c{padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
+    .btn-dl{background:#d4820a;color:#000}
+    .btn-pr{background:transparent;color:#8fa8c8;border:1px solid rgba(143,168,200,.3)}
+    .nota{font-size:10px;color:rgba(143,168,200,.5);text-align:center;max-width:340px}
+  <\/style><\/head><body>
+
+  <!-- CARTÃO FRENTE -->
+  <div class="cartao" id="cartao-frente" onclick="flipCard()">
+    <div class="cartao-frente" id="face-frente">
+      <div class="bg-pattern"></div>
+      <div class="stripe"></div>
+      <div class="logo-area">
+        <img class="logo-img" src="${LOGO_B64}" alt="Vizelgolfe">
+        <div>
+          <div class="logo-text">VIZELGOLFE</div>
+          <div class="logo-sub">Minigolfe de Vizela</div>
+        </div>
+      </div>
+      <div class="cat-badge">${catCod}</div>
+      <div class="chip"></div>
+      <div class="foto-area">
+        ${s.foto ? `<img src="${s.foto}" alt="">` : '👤'}
+      </div>
+      <div class="dados">
+        <div class="nome">${s.nome||'—'}</div>
+        <div class="num">Nº ${String(s.numero||'—').padStart(4,'0')}</div>
+        <div class="categoria">${s.categoria||'—'} · NIF ${s.nif||'—'}</div>
+        <div class="validade" style="color:${corValidade};border-color:${corValidade}40">
+          ${qEstado === 'pago' ? '●' : '○'} ${validade}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERSO (oculto até flip) -->
+  <div id="cartao-verso" style="display:none;width:340px;height:214px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#0f1e35,#162444);box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px rgba(212,130,10,.3)">
+    <div class="verso-content">
+      <div class="verso-faixa"></div>
+      <div class="verso-dados">
+        <div class="verso-linha"><span class="verso-label">Nome</span><span class="verso-val">${(s.nome||'').split(' ').slice(0,2).join(' ')}</span></div>
+        <div class="verso-linha"><span class="verso-label">Nº Sócio</span><span class="verso-val">${s.numero||'—'}</span></div>
+        <div class="verso-linha"><span class="verso-label">Categoria</span><span class="verso-val">${s.categoria||'—'}</span></div>
+        <div class="verso-linha"><span class="verso-label">NIF</span><span class="verso-val">${s.nif||'—'}</span></div>
+        <div class="verso-linha"><span class="verso-label">Estado</span><span class="verso-val" style="color:${corValidade}">${validade}</span></div>
+        <div class="verso-linha" style="border-bottom:none"><span class="verso-label">Inscrição</span><span class="verso-val">${s.inscricao||'—'}</span></div>
+      </div>
+      <div class="verso-footer">Vizelgolfe — Associação de Minigolfe de Vizela · NIF 509 227 902<br>Em caso de perda, devolver à associação</div>
+    </div>
+  </div>
+
+  <div class="acoes">
+    <button class="btn-c btn-dl" onclick="downloadCartao()">⬇️ Guardar PNG</button>
+    <button class="btn-c btn-pr" onclick="window.print()">🖨️ Imprimir</button>
+    <button class="btn-c btn-pr" onclick="window.close()">Fechar</button>
+  </div>
+  <div class="nota">Clica no cartão para ver o verso · O cartão tem dimensões de crédito padrão (85.6 × 54mm)</div>
+
+  <script>
+  let mostraFrente = true;
+  function flipCard() {
+    mostraFrente = !mostraFrente;
+    document.getElementById('cartao-frente').style.display = mostraFrente ? 'block' : 'none';
+    document.getElementById('cartao-verso').style.display  = mostraFrente ? 'none'  : 'block';
+  }
+
+  async function downloadCartao() {
+    const el = mostraFrente ? document.getElementById('cartao-frente') : document.getElementById('cartao-verso');
+    // Usar html2canvas se disponível, senão fallback simples
+    try {
+      const script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+      script.onload = async () => {
+        const canvas = await html2canvas(mostraFrente ? document.getElementById('cartao-frente') : document.getElementById('cartao-verso'), {
+          scale: 3, useCORS: true, backgroundColor: null,
+          width: 340, height: 214
+        });
+        const a = document.createElement('a');
+        a.download = 'Cartao_Socio_' + (document.querySelector('.num')||{}).textContent?.replace(/[^0-9]/g,'') + '.png';
+        a.href = canvas.toDataURL('image/png');
+        a.click();
+      };
+      document.head.appendChild(script);
+    } catch(e) { alert('Usa Ctrl+P para imprimir o cartão.'); }
+  }
+  <\/script>
+  <style>@media print{
+    body{background:white;padding:0;justify-content:flex-start}
+    .acoes,.nota{display:none}
+    #cartao-frente,#cartao-verso{box-shadow:none;border:1px solid #ccc;width:85.6mm;height:54mm;border-radius:3mm}
+    #cartao-verso{display:block!important;margin-top:4mm}
+  }<\/style>
+  <\/body><\/html>`;
+
+  const w = window.open('','_blank','width=500,height=600');
   w.document.write(html);
   w.document.close();
 };
