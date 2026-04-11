@@ -221,7 +221,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-box">
-    <h1>⛳ VIZELGOLFE</h1>
+    <img src="" id="login-logo" style="width:100px;height:100px;object-fit:contain;margin-bottom:8px" alt="Vizelgolfe">
     <p>Portal de Gestão de Sócios</p>
     <input type="password" id="login-pass" placeholder="Password de administrador" />
     <button class="btn-primary" onclick="doLogin()">ENTRAR</button>
@@ -232,7 +232,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 <!-- APP -->
 <div id="app">
   <header>
-    <div class="logo">⛳ VIZELGOLFE <span>Portal de Sócios</span></div>
+    <div class="logo"><img src="" id="header-logo" style="width:36px;height:36px;object-fit:contain;vertical-align:middle;margin-right:8px" alt="Vizelgolfe">VIZELGOLFE <span>Portal de Sócios</span></div>
     <div class="header-right">
       <span class="badge-live">ADMIN</span>
       <button id="btn-logout" onclick="doLogout()">Sair</button>
@@ -961,6 +961,10 @@ window._set = set;
 window._push = (r) => push(r);
 window._onValue = onValue;
 
+// Injetar logo nos elementos de UI
+document.getElementById('login-logo').src = LOGO_B64;
+document.getElementById('header-logo').src = LOGO_B64;
+
 // ─── ESTADO ───────────────────────────────────────
 const ADMIN_PASS = "Vizela2026***";
 let socios = {};
@@ -1301,7 +1305,7 @@ window.emitirRecibo = function(key, mode='direct') {
   document.getElementById('recibo-content').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px">
       <div>
-        <h2>⛳ VIZELGOLFE</h2>
+        <img src="${LOGO_B64}" style="width:60px;height:60px;object-fit:contain;display:block;margin-bottom:4px" alt="Vizelgolfe">
         <p style="color:#666;font-size:12px">Associação de Minigolfe de Vizela<br>NIF 509 227 902</p>
       </div>
       <div style="text-align:right">
