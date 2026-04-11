@@ -552,27 +552,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </select>
           <button class="btn btn-accent" onclick="imprimirBalanco()">🖨️ Imprimir Balanço</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
-          <div class="quota-card">
-            <h4>💚 Total Receitas</h4>
-            <div class="quota-amount" id="bal-receitas">—</div>
-          </div>
-          <div class="quota-card">
-            <h4>🔴 Total Despesas</h4>
-            <div class="quota-amount" id="bal-despesas" style="color:var(--red)">—</div>
-          </div>
-        </div>
-        <div class="quota-card" style="margin-bottom:20px;text-align:center">
-          <h4>⚖️ RESULTADO DO EXERCÍCIO</h4>
-          <div id="bal-resultado" style="font-family:'Bebas Neue';font-size:48px;margin-top:8px">—</div>
-          <div id="bal-resultado-label" style="font-size:13px;color:var(--text2);margin-top:4px"></div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Categoria</th><th>Receitas</th><th>Despesas</th><th>Saldo</th></tr></thead>
-            <tbody id="table-balanco"></tbody>
-          </table>
-        </div>
+        <div id="balanco-content" style="background:var(--card);border-radius:12px;padding:24px;overflow-x:auto"></div>
       </div>
 
       <!-- BALANCETE -->
@@ -2234,213 +2214,437 @@ window.apagarDespesa = async function(key) {
 
 // ── BALANÇO ──
 window.renderBalanco = function() {
-  const ano = document.getElementById('filter-ano-bal')?.value || new Date().getFullYear().toString();
-  const recAno = Object.values(receitas).filter(r=>r.data?.startsWith(ano));
-  const despAno = Object.values(despesas).filter(d=>d.data?.startsWith(ano));
-  const totalRec = recAno.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+  const ano   = document.getElementById('filter-ano-bal')?.value || new Date().getFullYear().toString();
+  const siAno = (saldosIniciais[ano]) || {};
+
+  // ── Calcular saldos por subconta (mesmo método do balancete) ──
+  const recAno  = Object.values(receitas).filter(r => r.data?.startsWith(ano));
+  const despAno = Object.values(despesas).filter(d => d.data?.startsWith(ano));
+  const acAno   = Object.values(acertos).filter(a => a.data?.startsWith(ano));
+
+  const mov = {};
+  PLANO_CONTAS.forEach(c => { mov[c.codigo] = { deb: 0, cre: 0 }; });
+
+  recAno.forEach(r => {
+    const c = r.conta || CAT_CONTA_REC[r.categoria] || '782';
+    const v = parseFloat(r.valor || 0);
+    if (mov[c])    mov[c].cre += v;
+    const cc = r.meio === 'caixa' ? '1101' : '1201';
+    if (mov[cc])   mov[cc].deb += v;
+  });
+  despAno.forEach(d => {
+    const c = d.conta || CAT_CONTA_DESP[d.categoria] || '688';
+    const v = parseFloat(d.valor || 0);
+    if (mov[c])    mov[c].deb += v;
+    const cc = d.meio === 'caixa' ? '1101' : '1201';
+    if (mov[cc])   mov[cc].cre += v;
+  });
+  acAno.forEach(a => {
+    const v = parseFloat(a.valor || 0);
+    if (a.sentido === 'caixa-banco') { if(mov['1101']) mov['1101'].cre+=v; if(mov['1201']) mov['1201'].deb+=v; }
+    else                              { if(mov['1201']) mov['1201'].cre+=v; if(mov['1101']) mov['1101'].deb+=v; }
+  });
+
+  // Saldo final por conta
+  const sf = codigo => {
+    const c  = PLANO_CONTAS.find(x => x.codigo === codigo);
+    const si = siAno[codigo] || 0;
+    const m  = mov[codigo] || { deb:0, cre:0 };
+    if (!c) return 0;
+    return c.dc === 'D' ? si + m.deb - m.cre : si + m.cre - m.deb;
+  };
+
+  // Agregar por grupo para o Balanço
+  const grp = {};
+  Object.entries(GRUPOS_CONTAS).forEach(([g, info]) => {
+    const contas = PLANO_CONTAS.filter(c => c.grupo === g);
+    grp[g] = { ...info, valor: contas.reduce((a,c) => a + sf(c.codigo), 0) };
+  });
+
+  // Totais
+  const totalAtivo = ['11','12','21','27','26','43'].reduce((a,g) => a + Math.max(0, grp[g]?.valor||0), 0);
+  const totalPassivo = ['22','24','262'].reduce((a,g) => a + Math.abs(Math.min(0, grp[g]?.valor||0)) + (grp[g]?.tipo==='P'?Math.max(0,grp[g]?.valor||0):0), 0);
+  const totalRec  = recAno.reduce((a,r)=>a+parseFloat(r.valor||0),0);
   const totalDesp = despAno.reduce((a,d)=>a+parseFloat(d.valor||0),0);
   const resultado = totalRec - totalDesp;
-  document.getElementById('bal-receitas').textContent = totalRec.toFixed(2)+'€';
-  document.getElementById('bal-despesas').textContent = totalDesp.toFixed(2)+'€';
-  const resEl = document.getElementById('bal-resultado');
-  resEl.textContent = (resultado>=0?'+':'')+resultado.toFixed(2)+'€';
-  resEl.style.color = resultado>=0 ? 'var(--green)' : 'var(--red)';
-  document.getElementById('bal-resultado-label').textContent = resultado>=0 ? 'Superávit' : 'Déficit';
-  // Tabela por categoria
-  const cats = {};
-  recAno.forEach(r=>{ if(!cats[r.categoria]) cats[r.categoria]={rec:0,desp:0}; cats[r.categoria].rec+=parseFloat(r.valor||0); });
-  despAno.forEach(d=>{ if(!cats[d.categoria]) cats[d.categoria]={rec:0,desp:0}; cats[d.categoria].desp+=parseFloat(d.valor||0); });
-  const tbody = document.getElementById('table-balanco');
-  tbody.innerHTML = Object.entries(cats).map(([cat,v])=>{
-    const saldo = v.rec - v.desp;
-    return `<tr>
-      <td><strong>${cat}</strong></td>
-      <td style="color:var(--green)">${v.rec>0?v.rec.toFixed(2)+'€':'—'}</td>
-      <td style="color:var(--red)">${v.desp>0?v.desp.toFixed(2)+'€':'—'}</td>
-      <td style="color:${saldo>=0?'var(--green)':'var(--red)'};font-weight:700">${(saldo>=0?'+':'')+saldo.toFixed(2)}€</td>
+  const fundos    = (siAno['51']||0) + (siAno['56']||0);
+  const totalCP   = fundos + resultado;
+
+  const fmt = v => v.toFixed(2);
+  const fmtR = (v, cor) => `<span style="color:${v>=0?'var(--green)':'var(--red)'};font-weight:700">${v>=0?'+':''}${fmt(v)}</span>`;
+
+  const linhaAtivo = (codigo, nome, indent=false) => {
+    const v = sf(codigo);
+    if (v === 0 && !(siAno[codigo])) return '';
+    return `<tr style="border-bottom:1px solid var(--border2)">
+      <td style="padding:6px 8px 6px ${indent?'24px':'8px'};font-size:12px">
+        <span style="font-family:'DM Mono';font-size:10px;color:var(--accent);margin-right:8px">${codigo}</span>${nome}
+      </td>
+      <td style="text-align:right;padding:6px 8px;font-family:'DM Mono';font-size:12px;color:${v>=0?'var(--text)':'var(--red)'}">
+        ${v !== 0 ? fmt(Math.abs(v)) : '—'}
+      </td>
     </tr>`;
-  }).join('') + `<tr style="border-top:2px solid var(--accent)">
-    <td><strong>TOTAL</strong></td>
-    <td style="color:var(--green);font-weight:700">${totalRec.toFixed(2)}€</td>
-    <td style="color:var(--red);font-weight:700">${totalDesp.toFixed(2)}€</td>
-    <td style="color:${resultado>=0?'var(--green)':'var(--red)'};font-weight:700">${(resultado>=0?'+':'')+resultado.toFixed(2)}€</td>
-  </tr>`;
+  };
+
+  document.getElementById('balanco-content').innerHTML = `
+    <div style="max-width:760px;margin:0 auto">
+      ${docHeader('BALANÇO', `Exercício ${ano}`, '')}
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+        <!-- ATIVO -->
+        <div>
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;padding:8px 0;border-bottom:2px solid var(--accent);margin-bottom:4px">ATIVO</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:var(--bg2)">
+              <th style="padding:7px 8px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px">Rubricas</th>
+              <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px">${ano} (€)</th>
+            </tr></thead>
+            <tbody>
+              <tr style="background:var(--bg2)"><td colspan="2" style="padding:7px 8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text2)">Ativo Corrente</td></tr>
+              ${linhaAtivo('1101','Caixa Geral',true)}
+              ${linhaAtivo('1201','Depósitos à ordem',true)}
+              ${linhaAtivo('2711','Quotas a receber de sócios',true)}
+              ${linhaAtivo('211','Outros clientes / devedores',true)}
+              ${linhaAtivo('261','Outros devedores correntes',true)}
+              <tr style="border-top:1px solid var(--accent);background:var(--bg2)">
+                <td style="padding:7px 8px;font-weight:700;font-size:12px">Total Ativo Corrente</td>
+                <td style="text-align:right;padding:7px 8px;font-weight:700;font-family:'DM Mono'">${fmt(['1101','1201','2711','211','261'].reduce((a,c)=>a+Math.max(0,sf(c)),0))}</td>
+              </tr>
+
+              <tr style="background:var(--bg2)"><td colspan="2" style="padding:7px 8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text2)">Ativo Não Corrente</td></tr>
+              ${linhaAtivo('431','Terrenos e recursos naturais',true)}
+              ${linhaAtivo('432','Edifícios e construções',true)}
+              ${linhaAtivo('433','Equipamento básico',true)}
+              ${linhaAtivo('434','Equipamento de transporte',true)}
+              ${linhaAtivo('435','Equipamento administrativo',true)}
+              ${linhaAtivo('438','Outros ativos fixos tangíveis',true)}
+              <tr style="border-top:1px solid var(--accent);background:var(--bg2)">
+                <td style="padding:7px 8px;font-weight:700;font-size:12px">Total Ativo Não Corrente</td>
+                <td style="text-align:right;padding:7px 8px;font-weight:700;font-family:'DM Mono'">${fmt(['431','432','433','434','435','438'].reduce((a,c)=>a+Math.max(0,sf(c)),0))}</td>
+              </tr>
+              <tr style="border-top:2px solid var(--accent);background:var(--bg3)">
+                <td style="padding:10px 8px;font-weight:800;font-size:13px">TOTAL ATIVO</td>
+                <td style="text-align:right;padding:10px 8px;font-weight:800;font-size:13px;font-family:'DM Mono';color:var(--accent)">${fmt(totalAtivo)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- PASSIVO + CAPITAL PRÓPRIO -->
+        <div>
+          <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;padding:8px 0;border-bottom:2px solid var(--accent);margin-bottom:4px">CAPITAL PRÓPRIO E PASSIVO</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:var(--bg2)">
+              <th style="padding:7px 8px;text-align:left;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px">Rubricas</th>
+              <th style="padding:7px 8px;text-align:right;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px">${ano} (€)</th>
+            </tr></thead>
+            <tbody>
+              <tr style="background:var(--bg2)"><td colspan="2" style="padding:7px 8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text2)">Capital Próprio</td></tr>
+              <tr style="border-bottom:1px solid var(--border2)">
+                <td style="padding:6px 8px 6px 24px"><span style="font-family:'DM Mono';font-size:10px;color:var(--accent);margin-right:8px">51</span>Fundos patrimoniais</td>
+                <td style="text-align:right;padding:6px 8px;font-family:'DM Mono'">${fmt(siAno['51']||0)}</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border2)">
+                <td style="padding:6px 8px 6px 24px"><span style="font-family:'DM Mono';font-size:10px;color:var(--accent);margin-right:8px">56</span>Resultados transitados</td>
+                <td style="text-align:right;padding:6px 8px;font-family:'DM Mono'">${fmt(siAno['56']||0)}</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border2)">
+                <td style="padding:6px 8px 6px 24px"><span style="font-family:'DM Mono';font-size:10px;color:var(--accent);margin-right:8px">59</span>Resultado líquido do período</td>
+                <td style="text-align:right;padding:6px 8px;font-family:'DM Mono';color:${resultado>=0?'var(--green)':'var(--red)'};font-weight:700">${fmt(resultado)}</td>
+              </tr>
+              <tr style="border-top:1px solid var(--accent);background:var(--bg2)">
+                <td style="padding:7px 8px;font-weight:700">Total Capital Próprio</td>
+                <td style="text-align:right;padding:7px 8px;font-weight:700;font-family:'DM Mono';color:${totalCP>=0?'var(--green)':'var(--red)'}">${fmt(totalCP)}</td>
+              </tr>
+
+              <tr style="background:var(--bg2)"><td colspan="2" style="padding:7px 8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text2)">Passivo Corrente</td></tr>
+              <tr style="border-bottom:1px solid var(--border2)">
+                <td style="padding:6px 8px 6px 24px"><span style="font-family:'DM Mono';font-size:10px;color:var(--accent);margin-right:8px">221</span>Fornecedores c/c</td>
+                <td style="text-align:right;padding:6px 8px;font-family:'DM Mono'">${fmt(Math.abs(sf('221')))}</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border2)">
+                <td style="padding:6px 8px 6px 24px"><span style="font-family:'DM Mono';font-size:10px;color:var(--accent);margin-right:8px">241</span>IRS retido na fonte</td>
+                <td style="text-align:right;padding:6px 8px;font-family:'DM Mono'">${fmt(Math.abs(sf('241')))}</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border2)">
+                <td style="padding:6px 8px 6px 24px"><span style="font-family:'DM Mono';font-size:10px;color:var(--accent);margin-right:8px">242</span>Seg. Social a pagar</td>
+                <td style="text-align:right;padding:6px 8px;font-family:'DM Mono'">${fmt(Math.abs(sf('242')))}</td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--border2)">
+                <td style="padding:6px 8px 6px 24px"><span style="font-family:'DM Mono';font-size:10px;color:var(--accent);margin-right:8px">262</span>Outros credores</td>
+                <td style="text-align:right;padding:6px 8px;font-family:'DM Mono'">${fmt(Math.abs(sf('262')))}</td>
+              </tr>
+              <tr style="border-top:1px solid var(--accent);background:var(--bg2)">
+                <td style="padding:7px 8px;font-weight:700">Total Passivo</td>
+                <td style="text-align:right;padding:7px 8px;font-weight:700;font-family:'DM Mono'">${fmt(Math.abs(sf('221'))+Math.abs(sf('241'))+Math.abs(sf('242'))+Math.abs(sf('262')))}</td>
+              </tr>
+              <tr style="border-top:2px solid var(--accent);background:var(--bg3)">
+                <td style="padding:10px 8px;font-weight:800;font-size:13px">TOTAL CP + PASSIVO</td>
+                <td style="text-align:right;padding:10px 8px;font-weight:800;font-size:13px;font-family:'DM Mono';color:var(--accent)">${fmt(totalCP + Math.abs(sf('221'))+Math.abs(sf('241'))+Math.abs(sf('242'))+Math.abs(sf('262')))}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Assinaturas -->
+      <div style="margin-top:32px;padding-top:16px;border-top:1px solid var(--border2);display:flex;justify-content:space-around;flex-wrap:wrap;gap:24px;font-size:12px;color:var(--text2);text-align:center">
+        <div><div style="border-top:1px solid var(--text2);padding-top:6px;margin-top:48px;min-width:180px">O Presidente da Direção</div></div>
+        <div><div style="border-top:1px solid var(--text2);padding-top:6px;margin-top:48px;min-width:180px">O Presidente do Conselho Fiscal</div></div>
+        <div><div style="border-top:1px solid var(--text2);padding-top:6px;margin-top:48px;min-width:180px">O Contabilista Certificado<br><span style="font-size:10px">OCC 46003</span></div></div>
+      </div>
+      <div style="margin-top:12px;font-size:10px;color:var(--text2);text-align:center">
+        Valores expressos em euros · SNC-ESNL · Regime de caixa · Gerado em ${new Date().toLocaleDateString('pt-PT')}
+      </div>
+    </div>`;
 };
 
-// ── DRN ──
+// ── DRN — Demonstração de Resultados por Natureza ──
 window.renderDRN = function() {
-  const ano = document.getElementById('filter-ano-drn')?.value || new Date().getFullYear().toString();
-  const recAno = Object.values(receitas).filter(r=>r.data?.startsWith(ano));
-  const despAno = Object.values(despesas).filter(d=>d.data?.startsWith(ano));
+  const ano     = document.getElementById('filter-ano-drn')?.value || new Date().getFullYear().toString();
+  const recAno  = Object.values(receitas).filter(r => r.data?.startsWith(ano));
+  const despAno = Object.values(despesas).filter(d => d.data?.startsWith(ano));
+
+  // Agrupamento por subconta SNC
+  const somaRec  = cat => recAno.filter(r => (r.conta||CAT_CONTA_REC[r.categoria]) === cat || (r.conta||CAT_CONTA_REC[r.categoria])?.startsWith(cat)).reduce((a,r)=>a+parseFloat(r.valor||0),0);
+  const somaDesp = cat => despAno.filter(d => (d.conta||CAT_CONTA_DESP[d.categoria]) === cat || (d.conta||CAT_CONTA_DESP[d.categoria])?.startsWith(cat)).reduce((a,d)=>a+parseFloat(d.valor||0),0);
+  // Totais por grupo SNC
+  const r7211 = somaRec('7211'); const r7212 = somaRec('7212');
+  const r7213 = somaRec('7213'); const r7214 = somaRec('7214');
+  const r7241 = somaRec('7241'); const r7242 = somaRec('7242');
+  const r731  = somaRec('731');  const r732  = somaRec('732');
+  const r741  = somaRec('741');  const r742  = somaRec('742');
+  const r743  = somaRec('743');  const r744  = somaRec('744');
+  const r781  = somaRec('781');  const r782  = somaRec('782');
   const totalRec = recAno.reduce((a,r)=>a+parseFloat(r.valor||0),0);
-  const totalDesp = despAno.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+
+  const d62   = despAno.filter(d=>(d.conta||CAT_CONTA_DESP[d.categoria]||'').startsWith('62')).reduce((a,d)=>a+parseFloat(d.valor||0),0);
+  const d63   = despAno.filter(d=>(d.conta||CAT_CONTA_DESP[d.categoria]||'').startsWith('63')||['632','635','638'].includes(d.conta||CAT_CONTA_DESP[d.categoria]||'')).reduce((a,d)=>a+parseFloat(d.valor||0),0);
+  const d641  = somaDesp('641');
+  const d68   = despAno.filter(d=>(d.conta||CAT_CONTA_DESP[d.categoria]||'').startsWith('68')).reduce((a,d)=>a+parseFloat(d.valor||0),0);
+  const totalDesp = despAno.reduce((a,d)=>a+parseFloat(d.valor||0),0);
   const resultado = totalRec - totalDesp;
 
-  // Quotas separadas
-  const quotasVal = recAno.filter(r=>r.categoria==='Quotas').reduce((a,r)=>a+parseFloat(r.valor||0),0);
-  const subsidios = recAno.filter(r=>r.categoria==='Subsídios/Apoios').reduce((a,r)=>a+parseFloat(r.valor||0),0);
-  const patrocinios = recAno.filter(r=>r.categoria==='Patrocínios').reduce((a,r)=>a+parseFloat(r.valor||0),0);
-  const outrasRec = totalRec - quotasVal - subsidios - patrocinios;
+  const linhaD = (cod, nome, valor, indent=1) => valor > 0 ? `
+    <tr style="border-bottom:1px solid var(--border2)">
+      <td style="padding:5px 8px 5px ${indent*16}px;font-size:12px">
+        <span style="font-family:'DM Mono';font-size:10px;color:var(--accent);margin-right:6px">${cod}</span>${nome}
+      </td>
+      <td style="text-align:right;padding:5px 8px;font-family:'DM Mono';font-size:12px">${valor.toFixed(2)}</td>
+      <td></td>
+    </tr>` : '';
+
+  const linhaR = (cod, nome, valor, indent=1) => valor > 0 ? `
+    <tr style="border-bottom:1px solid var(--border2)">
+      <td style="padding:5px 8px 5px ${indent*16}px;font-size:12px">
+        <span style="font-family:'DM Mono';font-size:10px;color:var(--accent);margin-right:6px">${cod}</span>${nome}
+      </td>
+      <td></td>
+      <td style="text-align:right;padding:5px 8px;font-family:'DM Mono';font-size:12px;color:var(--green)">${valor.toFixed(2)}</td>
+    </tr>` : '';
+
+  const secHeader = (letra, titulo, cor) => `
+    <tr style="background:var(--bg2)">
+      <td colspan="3" style="padding:8px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:${cor||'var(--accent)'}">
+        ${letra} — ${titulo}
+      </td>
+    </tr>`;
+
+  const subtotal = (label, val, cor) => `
+    <tr style="background:var(--bg2);border-top:1px solid var(--accent)">
+      <td style="padding:7px 8px;font-weight:700;font-size:12px">${label}</td>
+      <td colspan="2" style="text-align:right;padding:7px 8px;font-weight:700;font-family:'DM Mono';color:${cor||'var(--text)'}">${val.toFixed(2)}</td>
+    </tr>`;
 
   document.getElementById('drn-content').innerHTML = `
     <div style="max-width:700px;margin:0 auto">
-      ${docHeader("DEMONSTRAÇÃO DE RESULTADOS", "SNC-ESNL · Regime de Caixa", ano)}
+      ${docHeader('DEMONSTRAÇÃO DE RESULTADOS POR NATUREZA', `Exercício ${ano} · SNC-ESNL · Regime de Caixa`, '')}
       <table style="width:100%;border-collapse:collapse">
-        <thead><tr>
-          <th style="text-align:left;padding:8px;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px">Rubricas</th>
-          <th style="text-align:right;padding:8px;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px">${ano} (€)</th>
-        </tr></thead>
+        <thead>
+          <tr style="background:var(--bg3);border-bottom:2px solid var(--accent)">
+            <th style="padding:8px;text-align:left;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text2)">Rubricas</th>
+            <th style="padding:8px;text-align:right;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--red);width:110px">Gastos</th>
+            <th style="padding:8px;text-align:right;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--green);width:110px">Rendimentos</th>
+          </tr>
+        </thead>
         <tbody>
-          <tr><td colspan="2" style="padding:10px 8px 4px;font-weight:700;color:var(--green);font-size:12px;text-transform:uppercase;letter-spacing:1px">A — RENDIMENTOS</td></tr>
-          <tr style="border-bottom:1px solid var(--border2)"><td style="padding:6px 8px 6px 20px">Quotas de sócios</td><td style="text-align:right;padding:6px 8px;color:var(--green)">${quotasVal.toFixed(2)}</td></tr>
-          <tr style="border-bottom:1px solid var(--border2)"><td style="padding:6px 8px 6px 20px">Subsídios e apoios</td><td style="text-align:right;padding:6px 8px;color:var(--green)">${subsidios.toFixed(2)}</td></tr>
-          <tr style="border-bottom:1px solid var(--border2)"><td style="padding:6px 8px 6px 20px">Patrocínios</td><td style="text-align:right;padding:6px 8px;color:var(--green)">${patrocinios.toFixed(2)}</td></tr>
-          <tr style="border-bottom:2px solid var(--border2)"><td style="padding:6px 8px 6px 20px">Outros rendimentos</td><td style="text-align:right;padding:6px 8px;color:var(--green)">${outrasRec.toFixed(2)}</td></tr>
-          <tr><td style="padding:8px;font-weight:700">TOTAL RENDIMENTOS (A)</td><td style="text-align:right;padding:8px;font-weight:700;color:var(--green)">${totalRec.toFixed(2)}</td></tr>
-          <tr><td colspan="2" style="padding:16px 8px 4px;font-weight:700;color:var(--red);font-size:12px;text-transform:uppercase;letter-spacing:1px">B — GASTOS</td></tr>
-          ${['Instalações','Equipamento','Água/Luz/Gás','Seguros','Deslocações','Comunicação','Material de escritório','Taxas e impostos','Competições','Formação','Outros'].map(cat=>{
-            const v = despAno.filter(d=>d.categoria===cat).reduce((a,d)=>a+parseFloat(d.valor||0),0);
-            return v>0 ? `<tr style="border-bottom:1px solid var(--border2)"><td style="padding:6px 8px 6px 20px">${cat}</td><td style="text-align:right;padding:6px 8px;color:var(--red)">${v.toFixed(2)}</td></tr>` : '';
-          }).join('')}
-          <tr><td style="padding:8px;font-weight:700">TOTAL GASTOS (B)</td><td style="text-align:right;padding:8px;font-weight:700;color:var(--red)">${totalDesp.toFixed(2)}</td></tr>
-          <tr style="border-top:2px solid var(--accent)">
-            <td style="padding:12px 8px;font-weight:700;font-size:15px">RESULTADO DO PERÍODO (A-B)</td>
-            <td style="text-align:right;padding:12px 8px;font-weight:700;font-size:15px;color:${resultado>=0?'var(--green)':'var(--red)'}">${resultado.toFixed(2)}</td>
+          ${secHeader('A','RENDIMENTOS E GANHOS','var(--green)')}
+          ${secHeader('A.1','Quotas e Jóias de Associados (72)',null)}
+          ${linhaR('7211','Quotas normais',r7211)}
+          ${linhaR('7212','Quotas atletas',r7212)}
+          ${linhaR('7213','Jóias de inscrição',r7213)}
+          ${linhaR('7214','Quotas extraordinárias',r7214)}
+          ${secHeader('A.2','Subsídios e Apoios (72)',null)}
+          ${linhaR('7241','Subsídios Estado/Autarquias',r7241)}
+          ${linhaR('7242','Apoios de federações',r7242)}
+          ${secHeader('A.3','Patrocínios (73)',null)}
+          ${linhaR('731','Patrocínios em dinheiro',r731)}
+          ${linhaR('732','Patrocínios em espécie',r732)}
+          ${secHeader('A.4','Prestações de Serviços (74)',null)}
+          ${linhaR('741','Inscrições em competições',r741)}
+          ${linhaR('742','Aluguer de instalações',r742)}
+          ${linhaR('743','Bar / Restauração',r743)}
+          ${linhaR('744','Formação e workshops',r744)}
+          ${secHeader('A.5','Outros Rendimentos (78)',null)}
+          ${linhaR('781','Donativos recebidos',r781)}
+          ${linhaR('782','Outros rendimentos',r782)}
+          ${subtotal('TOTAL RENDIMENTOS (A)',totalRec,'var(--green)')}
+
+          ${secHeader('B','GASTOS E PERDAS','var(--red)')}
+          ${secHeader('B.1','Fornecimentos e Serviços Externos (62)',null)}
+          ${linhaD('622x','Água, energia e combustíveis',somaDesp('6221')+somaDesp('6222')+somaDesp('6223')+somaDesp('6224'))}
+          ${linhaD('623x','Serviços especializados e honorários',somaDesp('6231')+somaDesp('6232')+somaDesp('6234')+somaDesp('6236')+somaDesp('6237')+somaDesp('6238'))}
+          ${linhaD('624x','Rendas e alugueres',somaDesp('6241')+somaDesp('6242'))}
+          ${linhaD('625x','Deslocações e transportes',somaDesp('6251')+somaDesp('6252')+somaDesp('6253'))}
+          ${linhaD('626x','Seguros, comunicações e material',somaDesp('6262')+somaDesp('6263')+somaDesp('6264')+somaDesp('6265')+somaDesp('6266'))}
+          ${secHeader('B.2','Gastos com Pessoal (63)',null)}
+          ${linhaD('632','Remunerações do pessoal',somaDesp('632'))}
+          ${linhaD('635','Encargos sociais — Segurança Social',somaDesp('635'))}
+          ${linhaD('638','Outros gastos com pessoal',somaDesp('638'))}
+          ${secHeader('B.3','Depreciações e Outros Gastos',null)}
+          ${linhaD('641','Depreciações — Ativos fixos tangíveis',d641)}
+          ${linhaD('681','Impostos e taxas',somaDesp('681'))}
+          ${linhaD('684','Quotizações e donativos',somaDesp('684'))}
+          ${linhaD('685','Inscrições e taxas federativas',somaDesp('685'))}
+          ${linhaD('686','Gastos em competições desportivas',somaDesp('686'))}
+          ${linhaD('688','Outros gastos e perdas',somaDesp('688'))}
+          ${subtotal('TOTAL GASTOS (B)',totalDesp,'var(--red)')}
+
+          <tr style="border-top:2px solid var(--accent);background:var(--bg3)">
+            <td style="padding:12px 8px;font-weight:800;font-size:14px">RESULTADO DO PERÍODO (A − B)</td>
+            <td colspan="2" style="text-align:right;padding:12px 8px;font-weight:800;font-size:15px;font-family:'DM Mono';color:${resultado>=0?'var(--green)':'var(--red)'}">
+              ${resultado>=0?'+':''}${resultado.toFixed(2)}
+            </td>
           </tr>
         </tbody>
       </table>
-      <div style="margin-top:24px;font-size:11px;color:var(--text2);text-align:center">
-        Valores expressos em euros · Regime de caixa · SNC-ESNL
+
+      <div style="margin-top:32px;padding-top:16px;border-top:1px solid var(--border2);display:flex;justify-content:space-around;flex-wrap:wrap;gap:24px;font-size:12px;color:var(--text2);text-align:center">
+        <div><div style="border-top:1px solid var(--text2);padding-top:6px;margin-top:48px;min-width:160px">O Presidente da Direção</div></div>
+        <div><div style="border-top:1px solid var(--text2);padding-top:6px;margin-top:48px;min-width:160px">O Presidente do Conselho Fiscal</div></div>
+        <div><div style="border-top:1px solid var(--text2);padding-top:6px;margin-top:48px;min-width:160px">O Contabilista Certificado<br><span style="font-size:10px">OCC 46003</span></div></div>
+      </div>
+      <div style="margin-top:12px;font-size:10px;color:var(--text2);text-align:center">
+        Valores expressos em euros · SNC-ESNL · Regime de caixa · Gerado em ${new Date().toLocaleDateString('pt-PT')}
       </div>
     </div>`;
 };
 
 window.imprimirDRN = function() {
-  var ano = document.getElementById("filter-ano-drn").value;
-  var body = document.getElementById("drn-content").innerHTML;
-  var css = "*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;padding:32px;max-width:780px;margin:0 auto;color:#1a1a2e;font-size:13px;line-height:1.5}.doc-header{display:flex;align-items:center;gap:20px;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1a3a6b}.doc-header img{width:80px;height:80px;object-fit:contain}.org{flex:1}.org h1{font-size:22px;color:#1a3a6b;letter-spacing:2px;font-weight:900;text-transform:uppercase}.org p{font-size:11px;color:#666;margin-top:2px}.doc-title{text-align:right}.doc-title h2{font-size:18px;color:#d4820a;letter-spacing:1px;font-weight:900;text-transform:uppercase}.doc-title p{font-size:12px;color:#666}table{width:100%;border-collapse:collapse}th{background:#f0f4f8;color:#1a3a6b;font-size:11px;text-transform:uppercase;padding:8px;text-align:left;font-weight:700}td{padding:7px 8px;border-bottom:1px solid #e8ecf0;font-size:12px}.green{color:#1a7a4a;font-weight:600}.red{color:#c0392b;font-weight:600}.sig-line{border-top:1px solid #666;padding-top:8px;margin-top:48px;font-size:12px;color:#333;text-align:center}@media print{button{display:none}}";
-  var fonts = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap";
-  var html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><link href=\"" + fonts + "\" rel=\"stylesheet\"><style>" + css + "</style></head><body>" + body + "</body></html>";
-  var w = window.open("", "_blank");
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  setTimeout(function() { w.print(); }, 800);
+  const body = document.getElementById('drn-content').innerHTML;
+  const css  = "*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;padding:28px 36px;max-width:800px;margin:0 auto;color:#0f1e35;font-size:12px;line-height:1.5}.doc-header{display:flex;align-items:center;gap:20px;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #1a3a6b}.doc-header img{width:72px;height:72px;object-fit:contain}.org{flex:1}.org h1{font-size:20px;color:#1a3a6b;letter-spacing:2px;font-weight:900;text-transform:uppercase}.org p{font-size:10px;color:#555;margin-top:2px}.doc-title{text-align:right;margin-left:auto}.doc-title h2{font-size:16px;color:#d4820a;letter-spacing:1px;font-weight:900;text-transform:uppercase}.doc-title p{font-size:11px;color:#555}table{width:100%;border-collapse:collapse}th{background:#e8eef6;color:#1a3a6b;font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:7px 8px;font-weight:800;border-bottom:2px solid #1a3a6b}td{padding:5px 8px;border-bottom:1px solid #dde4ee;font-size:11px;vertical-align:top}.section-header td{background:#f4f7fb;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#1a3a6b;padding:8px;border-top:1px solid #c8d4e8}.subtotal td{background:#f9fbfd;font-weight:700;border-top:1px solid #c8d4e8}.total-row td{background:#1a3a6b;color:#fff;font-weight:800;font-size:12px;padding:8px}.verde{color:#1a6b3a;font-weight:700}.vermelho{color:#8b1a1a;font-weight:700}.num{text-align:right;font-family:monospace}.sig-area{margin-top:60px;display:flex;justify-content:space-around}.sig-line{border-top:1px solid #666;padding-top:6px;margin-top:50px;font-size:11px;color:#333;text-align:center;width:200px}.nota{font-size:10px;color:#777;margin-top:16px;text-align:center;font-style:italic}@media print{button{display:none}body{padding:14px 20px}}";
+  const w = window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"><style>' + css + '</style></head><body>' + body + '</body></html>');
+  w.document.close(); setTimeout(()=>w.print(),800);
 };
 
 // ── RELATÓRIO DE GESTÃO ──
 window.renderRelatorio = function() {
-  const ano = document.getElementById('filter-ano-rel')?.value || new Date().getFullYear().toString();
-  const recAno = Object.values(receitas).filter(r=>r.data?.startsWith(ano));
-  const despAno = Object.values(despesas).filter(d=>d.data?.startsWith(ano));
-  const totalRec = recAno.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+  const ano     = document.getElementById('filter-ano-rel')?.value || new Date().getFullYear().toString();
+  const recAno  = Object.values(receitas).filter(r => r.data?.startsWith(ano));
+  const despAno = Object.values(despesas).filter(d => d.data?.startsWith(ano));
+  const totalRec  = recAno.reduce((a,r)=>a+parseFloat(r.valor||0),0);
   const totalDesp = despAno.reduce((a,d)=>a+parseFloat(d.valor||0),0);
   const resultado = totalRec - totalDesp;
   const totalSocios = Object.keys(socios).length;
   const ativos = Object.values(socios).filter(s=>s.estado==='Ativo').length;
-  const quotasPagas = Object.values(quotas).filter(q=>q.ano==ano && q.estado==='pago').length;
+  const atletasAtivos = Object.values(socios).filter(s=>s.estado==='Ativo'&&s.categoria==='Atleta').length;
+  const quotasPagas = Object.values(quotas).filter(q=>q.ano==ano&&q.estado==='pago').length;
+  const quotasPendentes = ativos - quotasPagas;
+  const cfg = configuracoes;
+
+  // Receitas por grupo
+  const grpRec = {};
+  recAno.forEach(r => {
+    const g = r.categoria || 'Outros';
+    grpRec[g] = (grpRec[g]||0) + parseFloat(r.valor||0);
+  });
+  // Despesas por grupo
+  const grpDesp = {};
+  despAno.forEach(d => {
+    const g = d.categoria || 'Outros';
+    grpDesp[g] = (grpDesp[g]||0) + parseFloat(d.valor||0);
+  });
+
+  const secao = (num, titulo) => `<div style="font-weight:800;color:var(--accent);margin:20px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:1px;padding-bottom:4px;border-bottom:1px solid var(--border)">${num}. ${titulo}</div>`;
+  const paragrafo = txt => `<p style="font-size:13px;line-height:1.75;color:var(--text2);margin-bottom:8px">${txt}</p>`;
 
   document.getElementById('relatorio-content').innerHTML = `
-    <div style="max-width:700px;margin:0 auto">
-      ${docHeader("RELATÓRIO DE GESTÃO", "Assembleia Geral", ano)}
+    <div style="max-width:720px;margin:0 auto">
+      ${docHeader('RELATÓRIO DE GESTÃO', `Exercício ${ano}`, '')}
 
-      <div style="margin-bottom:20px">
-        <div style="font-weight:700;color:var(--accent);margin-bottom:8px;font-size:13px;text-transform:uppercase;letter-spacing:1px">1. Enquadramento</div>
-        <p style="font-size:13px;line-height:1.7;color:var(--text2)">
-          A Vizelgolfe — Associação de Minigolfe de Vizela, pessoa coletiva com o NIF 509 227 902, 
-          é uma associação desportiva sem fins lucrativos, enquadrada no regime SNC-ESNL. 
-          O presente relatório reporta à atividade desenvolvida durante o exercício de ${ano}.
-        </p>
-      </div>
+      ${secao(1,'Enquadramento')}
+      ${paragrafo(`A <strong>${cfg.nome||'Vizelgolfe — Associação de Minigolfe de Vizela'}</strong>, pessoa coletiva com o NIF ${cfg.nif||'509 227 902'}, é uma associação desportiva sem fins lucrativos, enquadrada no regime SNC-ESNL e sujeita ao regime de caixa. O presente relatório reporta à atividade desenvolvida durante o exercício de ${ano}.`)}
 
-      <div style="margin-bottom:20px">
-        <div style="font-weight:700;color:var(--accent);margin-bottom:8px;font-size:13px;text-transform:uppercase;letter-spacing:1px">2. Associados</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px">
+      ${secao(2,'Situação Associativa')}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:12px">
+        ${[['Total Sócios',totalSocios,'var(--text)'],['Ativos',ativos,'var(--green)'],['Atletas Ativos',atletasAtivos,'var(--blue)'],['Quotas Pagas',quotasPagas,'var(--green)'],['Quotas Pendentes',quotasPendentes,'var(--accent)']].map(([l,v,c])=>`
           <div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center">
-            <div style="font-family:'Bebas Neue';font-size:28px;color:var(--accent)">${totalSocios}</div>
-            <div style="font-size:11px;color:var(--text2)">Total Sócios</div>
-          </div>
-          <div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center">
-            <div style="font-family:'Bebas Neue';font-size:28px;color:var(--green)">${ativos}</div>
-            <div style="font-size:11px;color:var(--text2)">Ativos</div>
-          </div>
-          <div style="background:var(--bg2);border-radius:8px;padding:12px;text-align:center">
-            <div style="font-family:'Bebas Neue';font-size:28px;color:var(--blue)">${quotasPagas}</div>
-            <div style="font-size:11px;color:var(--text2)">Quotas Pagas ${ano}</div>
-          </div>
-        </div>
+            <div style="font-family:'Bebas Neue';font-size:28px;color:${c}">${v}</div>
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px">${l}</div>
+          </div>`).join('')}
       </div>
+      ${paragrafo(`À data de encerramento do exercício ${ano}, a associação conta com <strong>${ativos} sócios ativos</strong>, dos quais <strong>${atletasAtivos} são atletas</strong>. Registaram-se <strong>${quotasPagas} quotas pagas</strong> (${ativos?Math.round(quotasPagas/ativos*100):0}% de cobrança).`)}
 
-      <div style="margin-bottom:20px">
-        <div style="font-weight:700;color:var(--accent);margin-bottom:8px;font-size:13px;text-transform:uppercase;letter-spacing:1px">3. Situação Financeira</div>
-        <table style="width:100%;border-collapse:collapse;font-size:13px">
-          <tr style="border-bottom:1px solid var(--border2)">
-            <td style="padding:8px">Total de Rendimentos</td>
-            <td style="text-align:right;color:var(--green);font-weight:700">${totalRec.toFixed(2)} €</td>
+      ${secao(3,'Atividade Financeira')}
+      <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px">
+        <thead><tr style="background:var(--bg2)">
+          <th style="padding:7px 8px;text-align:left;font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.8px">Rubrica</th>
+          <th style="padding:7px 8px;text-align:right;font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:.8px">Rendimentos (€)</th>
+          <th style="padding:7px 8px;text-align:right;font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:.8px">Gastos (€)</th>
+        </tr></thead>
+        <tbody>
+          ${Object.entries(grpRec).map(([g,v])=>`<tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:5px 8px">${g}</td>
+            <td style="text-align:right;padding:5px 8px;color:var(--green);font-family:'DM Mono'">${v.toFixed(2)}</td>
+            <td style="text-align:right;padding:5px 8px;color:var(--text2)">—</td>
+          </tr>`).join('')}
+          ${Object.entries(grpDesp).map(([g,v])=>`<tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:5px 8px">${g}</td>
+            <td style="text-align:right;padding:5px 8px;color:var(--text2)">—</td>
+            <td style="text-align:right;padding:5px 8px;color:var(--red);font-family:'DM Mono'">${v.toFixed(2)}</td>
+          </tr>`).join('')}
+          <tr style="border-top:2px solid var(--accent);background:var(--bg2)">
+            <td style="padding:8px;font-weight:800">TOTAL</td>
+            <td style="text-align:right;padding:8px;font-weight:800;color:var(--green);font-family:'DM Mono'">${totalRec.toFixed(2)}</td>
+            <td style="text-align:right;padding:8px;font-weight:800;color:var(--red);font-family:'DM Mono'">${totalDesp.toFixed(2)}</td>
           </tr>
-          <tr style="border-bottom:1px solid var(--border2)">
-            <td style="padding:8px">Total de Gastos</td>
-            <td style="text-align:right;color:var(--red);font-weight:700">${totalDesp.toFixed(2)} €</td>
+          <tr style="background:var(--bg3)">
+            <td style="padding:10px 8px;font-weight:800;font-size:13px">RESULTADO DO EXERCÍCIO</td>
+            <td colspan="2" style="text-align:right;padding:10px 8px;font-weight:800;font-size:14px;font-family:'DM Mono';color:${resultado>=0?'var(--green)':'var(--red)'}">
+              ${resultado>=0?'+':''}${resultado.toFixed(2)} €
+            </td>
           </tr>
-          <tr style="border-top:2px solid var(--accent)">
-            <td style="padding:8px;font-weight:700">Resultado do Exercício</td>
-            <td style="text-align:right;font-weight:700;color:${resultado>=0?'var(--green)':'var(--red)'}">${resultado.toFixed(2)} €</td>
-          </tr>
-        </table>
-      </div>
+        </tbody>
+      </table>
 
-      <div style="margin-bottom:20px">
-        <div style="font-weight:700;color:var(--accent);margin-bottom:8px;font-size:13px;text-transform:uppercase;letter-spacing:1px">4. Proposta de Aplicação do Resultado</div>
-        <p style="font-size:13px;line-height:1.7;color:var(--text2)">
-          ${resultado >= 0 
-            ? `O resultado positivo de ${resultado.toFixed(2)} € propõe-se que seja incorporado nos fundos patrimoniais da associação, para reforço da capacidade financeira e realização dos objetivos estatutários.`
-            : `O resultado negativo de ${Math.abs(resultado).toFixed(2)} € será coberto pelos fundos patrimoniais existentes. A Direção compromete-se a adotar medidas de contenção de gastos e reforço de rendimentos no exercício seguinte.`
-          }
-        </p>
-      </div>
+      ${secao(4,'Proposta de Aplicação do Resultado')}
+      ${paragrafo(resultado >= 0
+        ? `O resultado positivo do exercício de <strong>${resultado.toFixed(2)} €</strong> (superávit) propõe-se que seja incorporado nos fundos patrimoniais da associação, para reforço da capacidade financeira e prossecução dos objetivos estatutários, nomeadamente o desenvolvimento da modalidade de Minigolfe e o apoio à participação dos atletas nas competições nacionais e internacionais.`
+        : `O resultado negativo do exercício de <strong>${Math.abs(resultado).toFixed(2)} €</strong> (déficit) será coberto pelos fundos patrimoniais existentes. A Direção compromete-se a adotar medidas de contenção de gastos e reforço de rendimentos no exercício seguinte, com especial incidência na captação de patrocínios e no reforço da cobrança de quotas.`
+      )}
 
-      <div style="margin-top:40px;font-size:12px;border-top:1px solid var(--border2);padding-top:20px">
-        <p style="color:var(--text2);font-size:11px;margin-bottom:24px">Vizela, ${new Date().toLocaleDateString('pt-PT', {day:'2-digit',month:'long',year:'numeric'})}</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-bottom:30px">
-          <div style="text-align:center">
-            <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:50px;font-size:12px">O Presidente da Direção</div>
-          </div>
-          <div style="text-align:center">
-            <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:50px;font-size:12px">O Secretário da Direção</div>
-          </div>
-        </div>
-        <div style="border-top:1px solid var(--border2);padding-top:20px;margin-top:10px">
-          <p style="color:var(--text2);font-size:11px;margin-bottom:16px;font-style:italic">Aprovado pelo Conselho Fiscal em reunião de ____/____/______</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-bottom:30px">
-            <div style="text-align:center">
-              <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:50px;font-size:12px">O Presidente do Conselho Fiscal</div>
-            </div>
-            <div style="text-align:center">
-              <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:50px;font-size:12px">Vogal do Conselho Fiscal</div>
-            </div>
-          </div>
-        </div>
-        <div style="border-top:1px solid var(--border2);padding-top:20px;margin-top:10px">
-          <p style="color:var(--text2);font-size:11px;margin-bottom:16px;font-style:italic">Presente e rubricado na Mesa da Assembleia Geral em ____/____/______</p>
-          <div style="text-align:center;max-width:300px;margin:0 auto">
-            <div style="border-top:1px solid var(--text2);padding-top:8px;margin-top:50px;font-size:12px">O Presidente da Mesa da Assembleia Geral</div>
-          </div>
+      ${secao(5,'Nota Final')}
+      ${paragrafo('A Direção agradece a todos os sócios, atletas, colaboradores, patrocinadores e entidades parceiras o apoio prestado durante o exercício, sem o qual não seria possível prosseguir a missão da associação.')}
+
+      <div style="margin-top:32px;padding-top:16px;border-top:1px solid var(--border2)">
+        <p style="font-size:11px;color:var(--text2);font-style:italic;margin-bottom:20px">Aprovado em Assembleia Geral realizada em ____/____/${ano}</p>
+        <div style="display:flex;justify-content:space-around;flex-wrap:wrap;gap:24px;font-size:12px;color:var(--text2);text-align:center">
+          <div><div style="border-top:1px solid var(--text2);padding-top:6px;margin-top:48px;min-width:160px">O Presidente da Direção</div></div>
+          <div><div style="border-top:1px solid var(--text2);padding-top:6px;margin-top:48px;min-width:160px">O Presidente do Conselho Fiscal</div></div>
+          <div><div style="border-top:1px solid var(--text2);padding-top:6px;margin-top:48px;min-width:160px">O Presidente da Mesa da AG<br><span style="font-size:10px">Rui Gonçalves</span></div></div>
         </div>
       </div>
     </div>`;
 };
 
 window.imprimirRelatorio = function() {
-  var ano = document.getElementById("filter-ano-rel").value;
-  var body = document.getElementById("relatorio-content").innerHTML;
-  var css = "*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;padding:32px;max-width:780px;margin:0 auto;color:#1a1a2e;font-size:13px;line-height:1.5}.doc-header{display:flex;align-items:center;gap:20px;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1a3a6b}.doc-header img{width:80px;height:80px;object-fit:contain}.org{flex:1}.org h1{font-size:22px;color:#1a3a6b;letter-spacing:2px;font-weight:900;text-transform:uppercase}.org p{font-size:11px;color:#666;margin-top:2px}.doc-title{text-align:right}.doc-title h2{font-size:18px;color:#d4820a;letter-spacing:1px;font-weight:900;text-transform:uppercase}.doc-title p{font-size:12px;color:#666}table{width:100%;border-collapse:collapse}th{background:#f0f4f8;color:#1a3a6b;font-size:11px;text-transform:uppercase;padding:8px;text-align:left;font-weight:700}td{padding:7px 8px;border-bottom:1px solid #e8ecf0;font-size:12px}.green{color:#1a7a4a;font-weight:600}.red{color:#c0392b;font-weight:600}.sig-line{border-top:1px solid #666;padding-top:8px;margin-top:48px;font-size:12px;color:#333;text-align:center}@media print{button{display:none}}";
-  var fonts = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap";
-  var html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><link href=\"" + fonts + "\" rel=\"stylesheet\"><style>" + css + "</style></head><body>" + body + "</body></html>";
-  var w = window.open("", "_blank");
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  setTimeout(function() { w.print(); }, 800);
+  const body = document.getElementById('relatorio-content').innerHTML;
+  const css  = "*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;padding:28px 36px;max-width:800px;margin:0 auto;color:#0f1e35;font-size:12px;line-height:1.5}.doc-header{display:flex;align-items:center;gap:20px;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #1a3a6b}.doc-header img{width:72px;height:72px;object-fit:contain}.org{flex:1}.org h1{font-size:20px;color:#1a3a6b;letter-spacing:2px;font-weight:900;text-transform:uppercase}.org p{font-size:10px;color:#555;margin-top:2px}.doc-title{text-align:right;margin-left:auto}.doc-title h2{font-size:16px;color:#d4820a;letter-spacing:1px;font-weight:900;text-transform:uppercase}.doc-title p{font-size:11px;color:#555}table{width:100%;border-collapse:collapse}th{background:#e8eef6;color:#1a3a6b;font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:7px 8px;font-weight:800;border-bottom:2px solid #1a3a6b}td{padding:5px 8px;border-bottom:1px solid #dde4ee;font-size:11px;vertical-align:top}.section-header td{background:#f4f7fb;font-weight:800;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#1a3a6b;padding:8px;border-top:1px solid #c8d4e8}.subtotal td{background:#f9fbfd;font-weight:700;border-top:1px solid #c8d4e8}.total-row td{background:#1a3a6b;color:#fff;font-weight:800;font-size:12px;padding:8px}.verde{color:#1a6b3a;font-weight:700}.vermelho{color:#8b1a1a;font-weight:700}.num{text-align:right;font-family:monospace}.sig-area{margin-top:60px;display:flex;justify-content:space-around}.sig-line{border-top:1px solid #666;padding-top:6px;margin-top:50px;font-size:11px;color:#333;text-align:center;width:200px}.nota{font-size:10px;color:#777;margin-top:16px;text-align:center;font-style:italic}@media print{button{display:none}body{padding:14px 20px}}";
+  const w = window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"><style>' + css + '</style></head><body>' + body + '</body></html>');
+  w.document.close(); setTimeout(()=>w.print(),800);
 };
 
 
@@ -2889,28 +3093,11 @@ window.imprimirBalancete = function() {
 };
 
 window.imprimirBalanco = function() {
-  var ano = document.getElementById("filter-ano-bal").value;
-  var totalRec  = document.getElementById("bal-receitas").textContent;
-  var totalDesp = document.getElementById("bal-despesas").textContent;
-  var resultado = document.getElementById("bal-resultado").textContent;
-  var resLabel  = document.getElementById("bal-resultado-label").textContent;
-  var rows      = document.getElementById("table-balanco").innerHTML;
-  var css   = "*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;padding:32px;max-width:780px;margin:0 auto;color:#1a1a2e;font-size:13px;line-height:1.5}.doc-header{display:flex;align-items:center;gap:20px;margin-bottom:24px;padding-bottom:16px;border-bottom:3px solid #1a3a6b}.doc-header img{width:80px;height:80px;object-fit:contain}.org{flex:1}.org h1{font-size:22px;color:#1a3a6b;letter-spacing:2px;font-weight:900;text-transform:uppercase}.org p{font-size:11px;color:#666;margin-top:2px}.doc-title{text-align:right}.doc-title h2{font-size:18px;color:#d4820a;letter-spacing:1px;font-weight:900;text-transform:uppercase}.doc-title p{font-size:12px;color:#666}table{width:100%;border-collapse:collapse}th{background:#f0f4f8;color:#1a3a6b;font-size:11px;text-transform:uppercase;padding:8px;text-align:left;font-weight:700}td{padding:7px 8px;border-bottom:1px solid #e8ecf0;font-size:12px}.green{color:#1a7a4a;font-weight:600}.red{color:#c0392b;font-weight:600}.sig-line{border-top:1px solid #666;padding-top:8px;margin-top:48px;font-size:12px;color:#333;text-align:center}@media print{button{display:none}}";
-  var fonts = "https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap";
-  var logo  = LOGO_B64;
-  var header = "<div class=\"doc-header\"><img src=\"" + logo + "\" style=\"width:80px;height:80px;object-fit:contain\"/><div class=\"org\"><h1>VIZELGOLFE</h1><p>Associa&ccedil;&atilde;o de Minigolfe de Vizela &middot; NIF 509 227 902</p><p>IBAN PT50 0045 1401 4037 3110 4744 6</p></div><div class=\"doc-title\"><h2>BALAN&Ccedil;O</h2><p>Exerc&iacute;cio " + ano + "</p></div></div>";
-  var cards = "<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px\">"
-    + "<div style=\"border:2px solid #1a3a6b;border-radius:8px;padding:14px;text-align:center\"><div style=\"font-size:10px;color:#666;text-transform:uppercase;margin-bottom:6px\">Total Receitas</div><div style=\"font-size:22px;font-weight:700;color:#1a7a4a\">" + totalRec + "</div></div>"
-    + "<div style=\"border:2px solid #c0392b;border-radius:8px;padding:14px;text-align:center\"><div style=\"font-size:10px;color:#666;text-transform:uppercase;margin-bottom:6px\">Total Despesas</div><div style=\"font-size:22px;font-weight:700;color:#c0392b\">" + totalDesp + "</div></div>"
-    + "<div style=\"border:2px solid #d4820a;border-radius:8px;padding:14px;text-align:center\"><div style=\"font-size:10px;color:#666;text-transform:uppercase;margin-bottom:6px\">Resultado</div><div style=\"font-size:22px;font-weight:700;color:#d4820a\">" + resultado + "</div><div style=\"font-size:10px;color:#999\">" + resLabel + "</div></div>"
-    + "</div>";
-  var tabela = "<table><thead><tr><th>Categoria</th><th style=\"text-align:right\">Receitas</th><th style=\"text-align:right\">Despesas</th><th style=\"text-align:right\">Saldo</th></tr></thead><tbody>" + rows + "</tbody></table>";
-  var html = "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><link href=\"" + fonts + "\" rel=\"stylesheet\"><style>" + css + "</style></head><body>" + header + cards + tabela + "</body></html>";
-  var w = window.open("", "_blank");
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  setTimeout(function() { w.print(); }, 800);
+  var body = document.getElementById('balanco-content').innerHTML;
+  var css  = "*{box-sizing:border-box;margin:0;padding:0}body{font-family:'DM Sans',sans-serif;padding:28px 36px;max-width:800px;margin:0 auto;color:#0f1e35;font-size:12px;line-height:1.5}.doc-header{display:flex;align-items:center;gap:20px;margin-bottom:20px;padding-bottom:14px;border-bottom:3px solid #1a3a6b}.doc-header img{width:72px;height:72px;object-fit:contain}.org h1{font-size:20px;color:#1a3a6b;letter-spacing:2px;font-weight:900;text-transform:uppercase}.org p{font-size:10px;color:#555;margin-top:2px}.doc-title{text-align:right;margin-left:auto}.doc-title h2{font-size:16px;color:#d4820a;letter-spacing:1px;font-weight:900;text-transform:uppercase}.doc-title p{font-size:11px;color:#555}table{width:100%;border-collapse:collapse}th{background:#e8eef6;color:#1a3a6b;font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:7px 8px;font-weight:800;border-bottom:2px solid #1a3a6b}td{padding:5px 8px;border-bottom:1px solid #dde4ee;font-size:11px}@media print{button{display:none}body{padding:14px 20px}}";
+  var w = window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"><style>' + css + '</style></head><body>' + body + '</body></html>');
+  w.document.close(); setTimeout(function(){w.print();},800);
 };
 
 
