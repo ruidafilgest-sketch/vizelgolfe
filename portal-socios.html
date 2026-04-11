@@ -1290,7 +1290,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
 <!-- MODAL RECIBO -->
 <div class="modal-overlay" id="modal-recibo">
-  <div class="modal" style="max-width:520px">
+  <div class="modal" style="max-width:640px">
     <div class="modal-header">
       <h3>Recibo</h3>
       <button class="modal-close" onclick="closeModal('modal-recibo')">✕</button>
@@ -1916,28 +1916,11 @@ window.verReciboSocio = function(key) {
   if (!r) return;
   const s = socios[currentSocioKey] || {};
   currentReciboData = r;
-  document.getElementById('recibo-content').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px">
-      <div>
-        <img src="${LOGO_B64}" style="width:60px;height:60px;object-fit:contain;display:block;margin-bottom:4px" alt="Vizelgolfe">
-        <p style="color:#666;font-size:12px">Associação de Minigolfe de Vizela<br>NIF 509 227 902</p>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px">Recibo</div>
-        <div style="font-family:'Bebas Neue';font-size:24px;color:#d4820a">${r.numero}</div>
-      </div>
-    </div>
-    <div class="recibo-line"><span>Sócio</span><span><strong>${r.socioNome}</strong></span></div>
-    <div class="recibo-line"><span>Nº Sócio</span><span>${s.numero||'—'}</span></div>
-    <div class="recibo-line"><span>NIF</span><span>${s.nif||'—'}</span></div>
-    <div class="recibo-line"><span>Descrição</span><span>${r.descricao}</span></div>
-    <div class="recibo-line"><span>Data</span><span>${r.data}</span></div>
-    <div class="recibo-line recibo-total"><span>TOTAL</span><span>${parseFloat(r.valor||0).toFixed(2)} €</span></div>
-    <p style="font-size:10px;color:#999;margin-top:20px;text-align:center">
-      Vizelgolfe — Associação de Minigolfe de Vizela · NIF 509 227 902<br>
-      IBAN PT50 0045 1401 4037 3110 4744 6
-    </p>
-  `;
+  const { css, bodyHTML } = htmlRecibo(r, s, false);
+  let styleEl = document.getElementById('recibo-modal-style');
+  if (!styleEl) { styleEl = document.createElement('style'); styleEl.id = 'recibo-modal-style'; document.head.appendChild(styleEl); }
+  styleEl.textContent = css;
+  document.getElementById('recibo-content').innerHTML = bodyHTML;
   openModal('modal-recibo');
 };
 
@@ -2565,46 +2548,193 @@ window.renderRecibos = function() {
   </tr>`).join('');
 };
 
+// ── Gera HTML completo do recibo (modal + impressão) ──
+function htmlRecibo(r, s, paraImprimir) {
+  const cfg       = configuracoes || {};
+  const nomeAssoc = cfg.nome  || 'Vizelgolfe — Associação de Minigolfe de Vizela';
+  const nifAssoc  = cfg.nif   || '509 227 902';
+  const iban      = cfg.iban  || 'PT50 0045 1401 4037 3110 4744 6';
+  const titular   = cfg.titular || nomeAssoc;
+  const banco     = cfg.banco || '';
+  const mbway     = cfg.mbway || '';
+  const email     = cfg.email || '';
+  const moradaAssoc = cfg.morada || '';
+  const numRecibo = r.numero || '—';
+  const valor     = parseFloat(r.valor || 0);
+  const hoje      = r.data || new Date().toISOString().slice(0,10);
+
+  // Número por extenso simplificado
+  function valorExtenso(v) {
+    const inteiro = Math.floor(v);
+    const cents   = Math.round((v - inteiro) * 100);
+    const unidades = ['','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez',
+      'onze','doze','treze','catorze','quinze','dezasseis','dezassete','dezoito','dezanove'];
+    const dezenas  = ['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
+    const centenas = ['','cem','duzentos','trezentos','quatrocentos','quinhentos','seiscentos','setecentos','oitocentos','novecentos'];
+    function conv(n) {
+      if (n === 0) return 'zero';
+      if (n < 20) return unidades[n];
+      if (n < 100) return dezenas[Math.floor(n/10)] + (n%10 ? ' e ' + unidades[n%10] : '');
+      if (n === 100) return 'cem';
+      if (n < 200) return 'cento e ' + conv(n-100);
+      return centenas[Math.floor(n/100)] + (n%100 ? ' e ' + conv(n%100) : '');
+    }
+    let txt = conv(inteiro) + (inteiro === 1 ? ' euro' : ' euros');
+    if (cents > 0) txt += ' e ' + conv(cents) + (cents === 1 ? ' cêntimo' : ' cêntimos');
+    return txt.charAt(0).toUpperCase() + txt.slice(1);
+  }
+
+  const css = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans',sans-serif;color:#0f1e35;background:#fff;font-size:13px;line-height:1.5}
+    .rec-wrap{max-width:600px;margin:0 auto;padding:${paraImprimir?'36px 40px':'20px'}}
+    .rec-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:20px;border-bottom:3px solid #1a3a6b;margin-bottom:24px}
+    .rec-logo{width:60px;height:60px;object-fit:contain;flex-shrink:0}
+    .rec-org{flex:1}
+    .rec-org h1{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#1a3a6b;letter-spacing:2px;text-transform:uppercase;line-height:1.1}
+    .rec-org p{font-size:10px;color:#666;margin-top:3px;line-height:1.5}
+    .rec-num-block{text-align:right;flex-shrink:0}
+    .rec-num-label{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:#999;font-weight:700}
+    .rec-num{font-family:'Bebas Neue',sans-serif;font-size:32px;color:#d4820a;letter-spacing:2px;line-height:1}
+    .rec-data{font-size:11px;color:#666;margin-top:2px}
+    .rec-destinatario{background:#f4f7fb;border-left:4px solid #1a3a6b;border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:20px}
+    .rec-dest-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#666;font-weight:700;margin-bottom:4px}
+    .rec-dest-nome{font-size:15px;font-weight:700;color:#0f1e35}
+    .rec-dest-meta{font-size:11px;color:#555;margin-top:2px}
+    .rec-corpo{margin-bottom:20px}
+    .rec-corpo p{font-size:13px;line-height:1.7;color:#1a2a3a}
+    .rec-tabela{width:100%;border-collapse:collapse;margin-bottom:4px}
+    .rec-tabela th{background:#e8eef6;color:#1a3a6b;font-size:10px;text-transform:uppercase;letter-spacing:.8px;padding:8px 10px;font-weight:800;border-bottom:2px solid #1a3a6b;text-align:left}
+    .rec-tabela td{padding:9px 10px;border-bottom:1px solid #dde4ee;font-size:12px;vertical-align:top}
+    .rec-tabela tfoot td{background:#0f1e35;color:#fff;font-weight:800;font-size:14px;padding:10px}
+    .rec-extenso{font-size:11px;color:#555;font-style:italic;margin-bottom:20px;text-align:right;padding-right:4px}
+    .rec-pagamento{border:1px solid #c8d4e8;border-radius:8px;padding:14px 16px;margin-bottom:20px}
+    .rec-pag-title{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:#666;font-weight:700;margin-bottom:10px}
+    .rec-pag-row{display:flex;gap:16px;flex-wrap:wrap}
+    .rec-pag-item{flex:1;min-width:140px}
+    .rec-pag-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#999;margin-bottom:2px}
+    .rec-pag-val{font-family:monospace;font-size:12px;font-weight:600;color:#0f1e35}
+    .rec-footer{border-top:1px solid #dde4ee;padding-top:14px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px}
+    .rec-assinatura{text-align:center;min-width:180px}
+    .rec-assinatura-linha{border-top:1px solid #666;padding-top:6px;margin-top:48px;font-size:11px;color:#333}
+    .rec-nota{font-size:9px;color:#aaa;text-align:center;margin-top:14px}
+    @media print{body{padding:0}button{display:none!important}.rec-wrap{padding:20px 24px}}
+  `;
+
+  const meio = r.meio || 'banco';
+  const meioLabel = {banco:'Transferência bancária',caixa:'Numerário (caixa)',mbway:'MBWay',cheque:'Cheque',cartao:'Cartão'}[meio] || meio;
+
+  const bodyHTML = `
+    <div class="rec-wrap">
+      <div class="rec-header">
+        <img class="rec-logo" src="${LOGO_B64}" alt="${nomeAssoc}">
+        <div class="rec-org">
+          <h1>${nomeAssoc}</h1>
+          <p>NIF ${nifAssoc}${moradaAssoc ? '<br>'+moradaAssoc : ''}${email ? '<br>'+email : ''}</p>
+        </div>
+        <div class="rec-num-block">
+          <div class="rec-num-label">Recibo</div>
+          <div class="rec-num">${numRecibo}</div>
+          <div class="rec-data">${hoje}</div>
+        </div>
+      </div>
+
+      <div class="rec-destinatario">
+        <div class="rec-dest-label">Recebido de</div>
+        <div class="rec-dest-nome">${r.socioNome || s.nome || '—'}</div>
+        <div class="rec-dest-meta">
+          Sócio Nº ${s.numero || '—'} · ${s.categoria || '—'}
+          ${s.nif ? ' · NIF ' + s.nif : ''}
+          ${s.morada ? '<br>' + s.morada : ''}
+        </div>
+      </div>
+
+      <table class="rec-tabela">
+        <thead>
+          <tr><th>Descrição</th><th style="text-align:right;width:110px">Valor (€)</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div style="font-weight:600">${r.descricao || '—'}</div>
+              ${r.referencia ? '<div style="font-size:11px;color:#666;margin-top:2px">Ref: '+r.referencia+'</div>' : ''}
+              <div style="font-size:11px;color:#666;margin-top:2px">Meio de pagamento: ${meioLabel}</div>
+            </td>
+            <td style="text-align:right;font-weight:600">${valor.toFixed(2)}</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td>TOTAL</td>
+            <td style="text-align:right">${valor.toFixed(2)} €</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="rec-extenso">${valorExtenso(valor)}</div>
+
+      <div class="rec-pagamento">
+        <div class="rec-pag-title">Dados de Pagamento</div>
+        <div class="rec-pag-row">
+          <div class="rec-pag-item">
+            <div class="rec-pag-label">IBAN</div>
+            <div class="rec-pag-val">${iban}</div>
+            <div style="font-size:10px;color:#999;margin-top:1px">${titular}</div>
+          </div>
+          ${banco ? '<div class="rec-pag-item"><div class="rec-pag-label">Banco</div><div class="rec-pag-val">'+banco+'</div></div>' : ''}
+          ${mbway ? '<div class="rec-pag-item"><div class="rec-pag-label">MBWay</div><div class="rec-pag-val">'+mbway+'</div></div>' : ''}
+        </div>
+      </div>
+
+      <div class="rec-footer">
+        <div style="font-size:11px;color:#555;max-width:280px;line-height:1.5">
+          A ${nomeAssoc} declara ter recebido do sócio acima identificado a quantia descrita, referente ao pagamento indicado.
+        </div>
+        <div class="rec-assinatura">
+          <div class="rec-assinatura-linha">
+            Pela ${nomeAssoc.split('—')[0].trim()}<br>
+            <span style="font-size:10px;color:#666">O Tesoureiro / Direção</span>
+          </div>
+        </div>
+      </div>
+      <div class="rec-nota">
+        Documento emitido electronicamente · ${nomeAssoc} · NIF ${nifAssoc} · ${hoje}
+      </div>
+    </div>
+  `;
+
+  return { css, bodyHTML };
+}
+
 window.emitirRecibo = function(key, mode='direct') {
   const r = recibos[key];
   if (!r) { toast('Recibo não encontrado', 'error'); return; }
   const s = socios[r.socioKey] || {};
   currentReciboData = r;
-  document.getElementById('recibo-content').innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:20px">
-      <div>
-        <img src="${LOGO_B64}" style="width:60px;height:60px;object-fit:contain;display:block;margin-bottom:4px" alt="Vizelgolfe">
-        <p style="color:#666;font-size:12px">Associação de Minigolfe de Vizela<br>NIF 509 227 902</p>
-      </div>
-      <div style="text-align:right">
-        <div style="font-size:11px;color:#999;text-transform:uppercase;letter-spacing:1px">Recibo</div>
-        <div style="font-family:'Bebas Neue';font-size:24px;color:#d4820a">${r.numero}</div>
-      </div>
-    </div>
-    <div class="recibo-line"><span>Sócio</span><span><strong>${r.socioNome}</strong></span></div>
-    <div class="recibo-line"><span>Nº Sócio</span><span>${s.numero||'—'}</span></div>
-    <div class="recibo-line"><span>NIF</span><span>${s.nif||'—'}</span></div>
-    <div class="recibo-line"><span>Descrição</span><span>${r.descricao}</span></div>
-    <div class="recibo-line"><span>Data</span><span>${r.data}</span></div>
-    <div class="recibo-line recibo-total"><span>TOTAL</span><span>${parseFloat(r.valor||0).toFixed(2)} €</span></div>
-    <p style="font-size:10px;color:#999;margin-top:20px;text-align:center">
-      Vizelgolfe — Associação de Minigolfe de Vizela · NIF 509 227 902<br>
-      IBAN PT50 0045 1401 4037 3110 4744 6
-    </p>
-  `;
+
+  const { css, bodyHTML } = htmlRecibo(r, s, false);
+
+  // Injectar CSS de impressão no modal
+  let styleEl = document.getElementById('recibo-modal-style');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'recibo-modal-style';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = css;
+
+  document.getElementById('recibo-content').innerHTML = bodyHTML;
   openModal('modal-recibo');
 };
 
 window.imprimirRecibo = function() {
-  const content = document.getElementById('recibo-content').innerHTML;
-  const w = window.open('', '_blank');
-  w.document.write(`<html><head><title>Recibo</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans&display=swap" rel="stylesheet">
-    <style>body{font-family:'DM Sans',sans-serif;padding:40px;max-width:500px;margin:0 auto}
-    .recibo-line{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee;font-size:13px}
-    .recibo-total{font-weight:700;font-size:16px;color:#d4820a}</style>
-    </head><body>${content}</body></html>`);
-  w.document.close(); w.print();
+  const r = currentReciboData;
+  if (!r) return;
+  const s = socios[r.socioKey] || {};
+  const { css, bodyHTML } = htmlRecibo(r, s, true);
+  const w = window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"><style>' + css + '</style></head><body>' + bodyHTML + '</body></html>');
+  w.document.close();
+  setTimeout(()=>w.print(), 800);
 };
 
 window.apagarRecibo = async function(key) {
