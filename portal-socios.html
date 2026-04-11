@@ -981,16 +981,26 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
         <!-- EMAIL -->
         <div class="quota-card">
-          <h4>📧 Configurações de Email</h4>
-          <div style="padding:12px;background:rgba(212,130,10,0.1);border:1px solid var(--accent);border-radius:8px;font-size:12px;color:var(--text2);margin-top:12px;margin-bottom:16px">
-            ⚠️ O envio de emails usa o <strong>EmailJS</strong> (gratuito até 200 emails/mês). 
-            Precisas de criar conta em <strong>emailjs.com</strong> e configurar abaixo.
+          <h4>📧 Configurações de Email — Resend</h4>
+          <div style="padding:12px;background:rgba(46,204,113,0.08);border:1px solid rgba(46,204,113,0.3);border-radius:8px;font-size:12px;color:var(--text2);margin-top:12px;margin-bottom:16px">
+            ✅ O envio de emails usa o <strong>Resend</strong> — <strong>3000 emails/mês grátis</strong>.
+            Cria conta em <a href="https://resend.com" target="_blank" style="color:var(--accent)">resend.com</a>,
+            vai a <strong>API Keys → Create API Key</strong> e cola abaixo.
+            Para enviar a partir do domínio <strong>vizelgolfe.net</strong>, adiciona-o em <strong>Domains</strong> e verifica o DNS.
           </div>
           <div class="form-grid">
-            <div class="form-group full"><label>EmailJS Service ID</label><input id="cfg-ejs-service" type="text" placeholder="service_xxxxxxx"/></div>
-            <div class="form-group full"><label>EmailJS Template ID (Recibo)</label><input id="cfg-ejs-template-recibo" type="text" placeholder="template_xxxxxxx"/></div>
-            <div class="form-group full"><label>EmailJS Template ID (Aviso)</label><input id="cfg-ejs-template-aviso" type="text" placeholder="template_xxxxxxx"/></div>
-            <div class="form-group full"><label>EmailJS Public Key</label><input id="cfg-ejs-key" type="text" placeholder="xxxxxxxxxxxxxxx"/></div>
+            <div class="form-group full">
+              <label>Resend API Key <span style="font-size:10px;color:var(--text2)">(começa com re_...)</span></label>
+              <input id="cfg-resend-key" type="password" placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx"/>
+            </div>
+            <div class="form-group full">
+              <label>Email remetente <span style="font-size:10px;color:var(--text2)">(ex: secretaria@vizelgolfe.net)</span></label>
+              <input id="cfg-resend-from" type="text" placeholder="Vizelgolfe &lt;secretaria@vizelgolfe.net&gt;"/>
+            </div>
+            <div class="form-group full" style="grid-column:1/-1">
+              <button class="btn btn-outline" onclick="testarEmail()" style="width:auto">📨 Testar envio de email</button>
+              <span id="email-test-result" style="font-size:12px;color:var(--text2);margin-left:10px"></span>
+            </div>
           </div>
         </div>
 
@@ -1356,6 +1366,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-recibo')">Fechar</button>
+      <button class="btn btn-outline" id="btn-email-recibo" onclick="enviarReciboEmail()">📧 Enviar por Email</button>
       <button class="btn btn-accent" onclick="imprimirRecibo()">🖨️ Imprimir</button>
     </div>
   </div>
@@ -1664,6 +1675,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <button class="btn btn-outline" id="ficha-btn-editar" onclick="">✏️ Editar</button>
       <button class="btn btn-outline" id="ficha-btn-quota" onclick="">💰 Nova Quota</button>
       <button class="btn btn-danger" id="ficha-btn-aviso" onclick="">📄 Aviso</button>
+      <button class="btn btn-outline" id="ficha-btn-email-aviso" onclick="">📧 Email Aviso</button>
       <button class="btn btn-outline" id="ficha-btn-cartao" onclick="">🪪 Cartão</button>
       <button class="btn btn-accent" onclick="imprimirFicha()">🖨️ Imprimir</button>
     </div>
@@ -4016,10 +4028,8 @@ function preencherFormConfig() {
     "cfg-quota-junior": c.quotaJunior || "0",
     "cfg-joia": c.joia || "0",
     "cfg-ano": c.ano || "2026",
-    "cfg-ejs-service": c.ejsService || "",
-    "cfg-ejs-template-recibo": c.ejsTemplateRecibo || "",
-    "cfg-ejs-template-aviso": c.ejsTemplateAviso || "",
-    "cfg-ejs-key": c.ejsKey || "",
+    "cfg-resend-key": c.resendKey || "",
+    "cfg-resend-from": c.resendFrom || "Vizelgolfe <secretaria@vizelgolfe.net>",
     "cfg-slogan": c.slogan || "",
     "cfg-historia": c.historia || "",
     "cfg-obs": c.obsAssoc || "",
@@ -4064,10 +4074,8 @@ window.gravarConfiguracoes = async function() {
     quotaJunior: document.getElementById("cfg-quota-junior").value,
     joia: document.getElementById("cfg-joia").value,
     ano: document.getElementById("cfg-ano").value,
-    ejsService: document.getElementById("cfg-ejs-service").value.trim(),
-    ejsTemplateRecibo: document.getElementById("cfg-ejs-template-recibo").value.trim(),
-    ejsTemplateAviso: document.getElementById("cfg-ejs-template-aviso").value.trim(),
-    ejsKey: document.getElementById("cfg-ejs-key").value.trim(),
+    resendKey: document.getElementById("cfg-resend-key").value.trim(),
+    resendFrom: document.getElementById("cfg-resend-from").value.trim(),
     slogan: document.getElementById("cfg-slogan").value.trim(),
     historia: document.getElementById("cfg-historia").value.trim(),
     obsAssoc: document.getElementById("cfg-obs").value.trim(),
@@ -5435,6 +5443,12 @@ window.abrirFicha = function(key) {
 
   // Mostrar/ocultar botão aviso
   document.getElementById('ficha-btn-aviso').style.display = qEstado !== 'pago' ? 'inline-flex' : 'none';
+  const emailAvisoBtn = document.getElementById('ficha-btn-email-aviso');
+  if (emailAvisoBtn) {
+    emailAvisoBtn.style.display = qEstado !== 'pago' ? 'inline-flex' : 'none';
+    emailAvisoBtn.disabled = !s.email;
+    emailAvisoBtn.title = s.email ? 'Enviar aviso por email' : 'Sócio sem email registado';
+  }
 
   const secTitle = (t, cor) => `<div style="font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:${cor||'var(--accent)'};padding:16px 20px 8px;border-top:1px solid var(--border2)">${t}</div>`;
   const infoRow  = (l, v, mono) => v ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 20px;border-bottom:1px solid var(--border2);font-size:13px"><span style="color:var(--text2)">${l}</span><span style="${mono?'font-family:DM Mono,monospace;':''}font-weight:500">${v}</span></div>` : '';
@@ -5912,6 +5926,7 @@ window.renderRelatorioDevedores = function() {
       <td style="display:flex;gap:5px;flex-wrap:wrap">
         <button class="btn btn-outline btn-sm" onclick="abrirFicha('${key}')" title="Ficha">👤</button>
         <button class="btn btn-danger btn-sm" onclick="gerarAvisoCobranca('${key}')" title="Aviso de cobrança">📄</button>
+        <button class="btn btn-outline btn-sm" onclick="enviarAvisoEmail('${key}')" title="Enviar aviso por email" ${d.s.email?'':'disabled style="opacity:.4"'}>📧</button>
       </td>
     </tr>`;
   }).join('');
@@ -6007,6 +6022,224 @@ window.imprimirRelatorioDevedores = function() {
   const w = window.open('','_blank');
   w.document.write(html);
   w.document.close();
+};
+
+// ── RESEND — ENVIO DE EMAILS ───────────────────────
+
+async function resendEnviar(to, toName, subject, htmlBody) {
+  const cfg    = configuracoes || {};
+  const apiKey = cfg.resendKey || '';
+  const from   = cfg.resendFrom || 'Vizelgolfe <secretaria@vizelgolfe.net>';
+
+  if (!apiKey || !apiKey.startsWith('re_')) {
+    toast('API Key do Resend não configurada. Vai a ⚙️ Configurações → Email.', 'error');
+    return false;
+  }
+  if (!to) {
+    toast('Este sócio não tem email registado.', 'error');
+    return false;
+  }
+
+  try {
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from,
+        to: [toName ? `${toName} <${to}>` : to],
+        subject,
+        html: htmlBody
+      })
+    });
+
+    const data = await resp.json();
+    if (resp.ok) {
+      return true;
+    } else {
+      console.error('Resend error:', data);
+      toast('Erro Resend: ' + (data.message || resp.status), 'error');
+      return false;
+    }
+  } catch(e) {
+    toast('Erro de rede: ' + e.message, 'error');
+    return false;
+  }
+}
+
+// ── Testar email ──────────────────────────────────
+window.testarEmail = async function() {
+  const resultEl = document.getElementById('email-test-result');
+  if (resultEl) resultEl.textContent = '⏳ A enviar...';
+  const cfg = configuracoes || {};
+  const emailDestino = cfg.email || '';
+  if (!emailDestino) {
+    if (resultEl) resultEl.textContent = '❌ Preenche o email da associação nas configurações.';
+    return;
+  }
+  const ok = await resendEnviar(
+    emailDestino,
+    'Vizelgolfe Admin',
+    '✅ Teste de email — Portal Vizelgolfe',
+    `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px">
+      <h2 style="color:#1a3a6b">✅ Email de teste</h2>
+      <p>O sistema de envio de emails do Portal Vizelgolfe está a funcionar correctamente.</p>
+      <p style="color:#666;font-size:12px;margin-top:16px">Enviado em ${new Date().toLocaleString('pt-PT')}</p>
+    </div>`
+  );
+  if (resultEl) resultEl.textContent = ok ? '✅ Email enviado com sucesso!' : '❌ Falhou — verifica a API key.';
+};
+
+// ── Enviar recibo por email ───────────────────────
+window.enviarReciboEmail = async function() {
+  const r = currentReciboData;
+  if (!r) return;
+  const s = socios[r.socioKey] || {};
+  const emailDestino = s.email || '';
+
+  if (!emailDestino) {
+    toast('Este sócio não tem email registado.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-email-recibo');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ A enviar...'; }
+
+  const { bodyHTML } = htmlRecibo(r, s, true);
+  const cfg = configuracoes || {};
+  const nomeAssoc = cfg.nome || 'Vizelgolfe — Associação de Minigolfe de Vizela';
+
+  // Email com o HTML do recibo embutido
+  const emailHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{margin:0;padding:0;background:#f0f4f8;font-family:'Segoe UI',Arial,sans-serif}
+    .wrap{max-width:620px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+    .top{background:#0f1e35;padding:20px 28px;display:flex;align-items:center;gap:14px}
+    .top img{width:44px;height:44px;object-fit:contain}
+    .top h1{font-family:Arial,sans-serif;font-size:16px;color:#d4820a;letter-spacing:2px;text-transform:uppercase;margin:0}
+    .top p{font-size:11px;color:rgba(232,240,254,.6);margin:2px 0 0}
+    .msg{padding:24px 28px 8px;font-size:14px;color:#1a2a3a;line-height:1.6}
+    .rec-wrap{padding:0 28px 24px}
+    .bottom{background:#f4f7fb;padding:16px 28px;font-size:11px;color:#888;text-align:center;border-top:1px solid #e0e8f0}
+    .bottom a{color:#1a3a6b}
+  </style></head><body>
+  <div class="wrap">
+    <div class="top">
+      <img src="${LOGO_B64}" alt="${nomeAssoc}">
+      <div><h1>${nomeAssoc.split('—')[0].trim()}</h1><p>Portal de Sócios</p></div>
+    </div>
+    <div class="msg">
+      <p>Caro(a) <strong>${s.nome || r.socioNome || 'Sócio'}</strong>,</p>
+      <p>Segue em anexo o recibo Nº <strong>${r.numero || '—'}</strong> referente ao pagamento de <strong>${parseFloat(r.valor||0).toFixed(2)} €</strong>.</p>
+      <p>Obrigado pela sua colaboração.</p>
+    </div>
+    <div class="rec-wrap">${bodyHTML}</div>
+    <div class="bottom">
+      ${nomeAssoc} · <a href="https://vizelgolfe.net">vizelgolfe.net</a><br>
+      Este email foi gerado automaticamente pelo Portal de Sócios.
+    </div>
+  </div>
+  </body></html>`;
+
+  const ok = await resendEnviar(
+    emailDestino,
+    s.nome || r.socioNome,
+    `Recibo Nº ${r.numero || '—'} — ${nomeAssoc}`,
+    emailHTML
+  );
+
+  if (btn) { btn.disabled = false; btn.textContent = '📧 Enviar por Email'; }
+  if (ok) {
+    toast(`Email enviado para ${emailDestino} ✅`);
+    closeModal('modal-recibo');
+  }
+};
+
+// ── Enviar aviso de cobrança por email ───────────
+window.enviarAvisoEmail = async function(key) {
+  const s = socios[key];
+  if (!s) return;
+  const emailDestino = s.email || '';
+  if (!emailDestino) { toast('Este sócio não tem email registado.', 'error'); return; }
+
+  const anoAtual  = new Date().getFullYear().toString();
+  const minhasQ   = Object.entries(quotas).filter(([,q]) => q.socioKey === key && q.estado !== 'pago');
+  const totalDivida = minhasQ.reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
+  if (!totalDivida) { toast('Sem quotas em dívida.', 'error'); return; }
+
+  const cfg = configuracoes || {};
+  const nomeAssoc = cfg.nome || 'Vizelgolfe — Associação de Minigolfe de Vizela';
+  const nifAssoc  = cfg.nif  || '509 227 902';
+  const iban      = cfg.iban || 'PT50 0045 1401 4037 3110 4744 6';
+  const mbway     = cfg.mbway || '';
+  const hoje      = new Date().toLocaleDateString('pt-PT');
+  const prazo     = new Date(Date.now()+15*24*60*60*1000).toLocaleDateString('pt-PT');
+
+  const linhasQ = minhasQ.map(([,q])=>`
+    <tr>
+      <td style="padding:7px 10px;border-bottom:1px solid #e8eef6">${q.ano}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #e8eef6">${q.descricao||'Quota anual'}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #e8eef6;text-align:right;font-weight:700">${parseFloat(q.valor||0).toFixed(2)} €</td>
+    </tr>`).join('');
+
+  const emailHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{margin:0;padding:0;background:#f0f4f8;font-family:'Segoe UI',Arial,sans-serif}
+    .wrap{max-width:600px;margin:24px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+    .top{background:#0f1e35;padding:20px 28px;display:flex;align-items:center;gap:14px}
+    .top img{width:44px;height:44px;object-fit:contain}
+    .top h1{font-family:Arial,sans-serif;font-size:16px;color:#d4820a;letter-spacing:2px;text-transform:uppercase;margin:0}
+    .top p{font-size:11px;color:rgba(232,240,254,.6);margin:2px 0 0}
+    .alert{background:#fff3f3;border-left:4px solid #e74c3c;margin:20px 24px;padding:12px 16px;border-radius:0 6px 6px 0;font-size:13px;color:#c0392b;font-weight:600}
+    .body{padding:8px 28px 20px;font-size:13px;color:#1a2a3a;line-height:1.7}
+    table{width:100%;border-collapse:collapse;margin:16px 0}
+    th{background:#1a3a6b;color:#fff;padding:8px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;text-align:left}
+    tfoot td{background:#1a3a6b;color:#fff;font-weight:700;padding:9px 10px}
+    .pag{background:#f4f7fb;border:1px solid #c8d4e8;border-radius:8px;padding:14px 16px;margin:16px 0}
+    .pag-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:3px}
+    .pag-val{font-family:monospace;font-weight:700;font-size:13px;color:#0f1e35}
+    .bottom{background:#f4f7fb;padding:14px 28px;font-size:10px;color:#999;text-align:center;border-top:1px solid #e0e8f0}
+  </style></head><body>
+  <div class="wrap">
+    <div class="top">
+      <img src="${LOGO_B64}" alt="${nomeAssoc}">
+      <div><h1>${nomeAssoc.split('—')[0].trim()}</h1><p>Portal de Sócios</p></div>
+    </div>
+    <div class="alert">⚠️ Aviso de Cobrança — Quota(s) em dívida</div>
+    <div class="body">
+      <p>Caro(a) <strong>${s.nome}</strong> (Sócio Nº ${s.numero||'—'}),</p>
+      <p>Informamos que se encontra(m) em dívida as seguintes quotas associativas:</p>
+      <table>
+        <thead><tr><th>Ano</th><th>Descrição</th><th style="text-align:right">Valor</th></tr></thead>
+        <tbody>${linhasQ}</tbody>
+        <tfoot><tr><td colspan="2">TOTAL EM DÍVIDA</td><td style="text-align:right">${totalDivida.toFixed(2)} €</td></tr></tfoot>
+      </table>
+      <p>Solicitamos a regularização até ao dia <strong>${prazo}</strong>, através de:</p>
+      <div class="pag">
+        <div class="pag-label">Transferência Bancária</div>
+        <div class="pag-val">${iban}</div>
+        <div style="font-size:11px;color:#666;margin-top:2px">${nomeAssoc}</div>
+      </div>
+      ${mbway ? `<div class="pag"><div class="pag-label">MBWay</div><div class="pag-val">${mbway}</div></div>` : ''}
+      <p style="font-size:12px;color:#666">Indica o teu nome e número de sócio na descrição do pagamento. Caso o pagamento já tenha sido efectuado, agradecemos que ignore este aviso.</p>
+      <p>Com os melhores cumprimentos,<br><strong>A Direção</strong><br>${nomeAssoc}</p>
+    </div>
+    <div class="bottom">${nomeAssoc} · NIF ${nifAssoc} · Email enviado em ${hoje}</div>
+  </div>
+  </body></html>`;
+
+  toast('A enviar email...', 'success');
+  const ok = await resendEnviar(
+    emailDestino,
+    s.nome,
+    `Aviso de Cobrança — Quota(s) em dívida — ${nomeAssoc}`,
+    emailHTML
+  );
+  if (ok) toast(`Aviso enviado para ${emailDestino} ✅`);
 };
 
 window.toast = function(msg, type='success') {
