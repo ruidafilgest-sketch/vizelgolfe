@@ -991,10 +991,10 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           <div class="form-grid">
             <div class="form-group full">
               <label>Resend API Key <span style="font-size:10px;color:var(--text2)">(começa com re_...)</span></label>
-              <input id="cfg-resend-key" type="password" placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx"/>
+              <input id="cfg-resend-key" type="text" placeholder="re_xxxxxxxxxxxxxxxxxxxxxxxx"/>
             </div>
             <div class="form-group full">
-              <label>Email remetente <span style="font-size:10px;color:var(--text2)">(ex: secretaria@vizelgolfe.net)</span></label>
+              <label>Email remetente <span style="font-size:10px;color:var(--text2)">(ex: <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="a6d5c3c5d4c3d2c7d4cfc7e6d0cfdcc3cac1c9cac0c388c8c3d2">[email&#160;protected]</a>)</span></label>
               <input id="cfg-resend-from" type="text" placeholder="Vizelgolfe &lt;secretaria@vizelgolfe.net&gt;"/>
             </div>
             <div class="form-group full" style="grid-column:1/-1">
@@ -1685,7 +1685,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 <div id="toast"></div>
 
 <!-- FIREBASE -->
-<script type="module">
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, update, remove, push, onValue }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -6073,23 +6073,43 @@ async function resendEnviar(to, toName, subject, htmlBody) {
 window.testarEmail = async function() {
   const resultEl = document.getElementById('email-test-result');
   if (resultEl) resultEl.textContent = '⏳ A enviar...';
-  const cfg = configuracoes || {};
-  const emailDestino = cfg.email || '';
+
+  // Ler DIRECTAMENTE dos campos — não depende de ter gravado primeiro
+  const apiKey  = document.getElementById('cfg-resend-key')?.value.trim() || configuracoes?.resendKey || '';
+  const from    = document.getElementById('cfg-resend-from')?.value.trim() || configuracoes?.resendFrom || 'Vizelgolfe <onboarding@resend.dev>';
+  const emailDestino = document.getElementById('cfg-email')?.value.trim() || configuracoes?.email || '';
+
   if (!emailDestino) {
-    if (resultEl) resultEl.textContent = '❌ Preenche o email da associação nas configurações.';
+    if (resultEl) resultEl.textContent = '❌ Preenche o campo Email na secção Contactos acima.';
     return;
   }
-  const ok = await resendEnviar(
-    emailDestino,
-    'Vizelgolfe Admin',
-    '✅ Teste de email — Portal Vizelgolfe',
-    `<div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px">
-      <h2 style="color:#1a3a6b">✅ Email de teste</h2>
-      <p>O sistema de envio de emails do Portal Vizelgolfe está a funcionar correctamente.</p>
-      <p style="color:#666;font-size:12px;margin-top:16px">Enviado em ${new Date().toLocaleString('pt-PT')}</p>
-    </div>`
-  );
-  if (resultEl) resultEl.textContent = ok ? '✅ Email enviado com sucesso!' : '❌ Falhou — verifica a API key.';
+  if (!apiKey || !apiKey.startsWith('re_')) {
+    if (resultEl) resultEl.textContent = '❌ API Key inválida — deve começar com re_';
+    return;
+  }
+
+  // Usar directamente sem passar por resendEnviar (para maior controlo de erros)
+  try {
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from,
+        to: [emailDestino],
+        subject: '✅ Teste de email — Portal Vizelgolfe',
+        html: '<div style="font-family:sans-serif;padding:24px;max-width:500px"><h2 style="color:#1a3a6b">✅ Email de teste</h2><p>O sistema de envio de emails do Portal Vizelgolfe está a funcionar correctamente.</p><p style="color:#666;font-size:12px;margin-top:16px">Enviado em ' + new Date().toLocaleString('pt-PT') + '</p></div>'
+      })
+    });
+    const data = await resp.json();
+    if (resp.ok) {
+      if (resultEl) resultEl.textContent = '✅ Enviado! Verifica o email ' + emailDestino;
+    } else {
+      if (resultEl) resultEl.textContent = '❌ Erro Resend: ' + (data.message || data.name || resp.status);
+      console.error('Resend:', data);
+    }
+  } catch(e) {
+    if (resultEl) resultEl.textContent = '❌ Erro de rede: ' + e.message;
+  }
 };
 
 // ── Enviar recibo por email ───────────────────────
@@ -6239,14 +6259,4 @@ window.enviarAvisoEmail = async function(key) {
     `Aviso de Cobrança — Quota(s) em dívida — ${nomeAssoc}`,
     emailHTML
   );
-  if (ok) toast(`Aviso enviado para ${emailDestino} ✅`);
-};
-
-window.toast = function(msg, type='success') {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.className = 'show ' + type;
-  setTimeout(() => t.className = '', 3000);
-};
-</script>
-</body>
-</html>
+  if (ok) toast(`Aviso enviado para ${emailDes
