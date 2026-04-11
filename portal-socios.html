@@ -6259,4 +6259,15 @@ window.enviarAvisoEmail = async function(key) {
     `Aviso de Cobrança — Quota(s) em dívida — ${nomeAssoc}`,
     emailHTML
   );
-  if (ok) toast(`Aviso enviado para ${emailDes
+  );
+  if (ok) toast(`Aviso enviado para ${emailDestino} ✅`);
+};
+
+window.toast = function(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'show ' + type;
+  setTimeout(() => t.className = '', 3000);
+};
+</script>
+</body>
+</html>
