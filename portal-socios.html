@@ -562,12 +562,12 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
       <!-- BALANCETE -->
       <div id="ctab-page-balancete" class="ctab-page" style="display:none">
-        <div class="toolbar">
+        <div class="toolbar" style="flex-wrap:wrap;gap:8px">
           <select id="filter-ano-blc" onchange="renderBalancete()">
             <option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option>
           </select>
           <select id="filter-mes-blc" onchange="renderBalancete()">
-            <option value="">Acumulado Anual</option>
+            <option value="">── Acumulado Anual ──</option>
             <option value="01">Janeiro</option><option value="02">Fevereiro</option>
             <option value="03">Março</option><option value="04">Abril</option>
             <option value="05">Maio</option><option value="06">Junho</option>
@@ -575,10 +575,21 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <option value="09">Setembro</option><option value="10">Outubro</option>
             <option value="11">Novembro</option><option value="12">Dezembro</option>
           </select>
+          <div style="display:flex;border-radius:8px;overflow:hidden;border:1px solid var(--border2)">
+            <button id="blc-modo-acum" onclick="setModoBlc('acumulado')"
+              style="padding:8px 14px;font-size:12px;font-weight:600;background:var(--accent);color:#000;border:none;cursor:pointer">
+              📈 Acumulado
+            </button>
+            <button id="blc-modo-mes" onclick="setModoBlc('mensal')"
+              style="padding:8px 14px;font-size:12px;font-weight:600;background:transparent;color:var(--text2);border:none;cursor:pointer">
+              📅 Só o Mês
+            </button>
+          </div>
           <button class="btn btn-outline" onclick="abrirModalSaldosIniciais()">⚖️ Saldos Iniciais</button>
-          <button class="btn btn-accent" onclick="imprimirBalancete()">🖨️ Imprimir Balancete</button>
+          <button class="btn btn-accent" onclick="imprimirBalancete()">🖨️ Imprimir</button>
         </div>
-        <div id="balancete-content" style="background:var(--card);border-radius:12px;padding:24px"></div>
+        <div id="blc-info" style="margin-bottom:12px;padding:10px 16px;background:var(--bg2);border-radius:8px;font-size:12px;color:var(--text2)"></div>
+        <div id="balancete-content" style="background:var(--card);border-radius:12px;padding:24px;overflow-x:auto"></div>
       </div>
 
       <!-- DRN -->
@@ -966,11 +977,40 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <div class="form-group"><label>Data</label><input id="r-data" type="date" /></div>
         <div class="form-group"><label>Valor (€)</label><input id="r-valor" type="number" step="0.01" placeholder="0.00" /></div>
         <div class="form-group full"><label>Descrição</label><input id="r-desc" type="text" placeholder="Ex: Quotas mensais" /></div>
-        <div class="form-group"><label>Categoria</label>
+        <div class="form-group"><label>Conta SNC / Categoria</label>
           <select id="r-cat">
-            <option>Quotas</option><option>Subsídios/Apoios</option><option>Patrocínios</option>
-            <option>Inscrições competições</option><option>Donativo</option><option>Bar/Restauração</option>
-            <option>Aluguer instalações</option><option>Outros</option>
+            <optgroup label="── Quotas e Jóias ──">
+              <option value="Quotas normais">7211 — Quotas normais</option>
+              <option value="Quotas atletas">7212 — Quotas atletas</option>
+              <option value="Jóias de inscrição">7213 — Jóias de inscrição</option>
+              <option value="Quotas extraordinárias">7214 — Quotas extraordinárias</option>
+            </optgroup>
+            <optgroup label="── Subsídios e Apoios ──">
+              <option value="Subsídio Estado/Câmara">7241 — Subsídio Estado/Câmara</option>
+              <option value="Apoio federação">7242 — Apoio federação</option>
+            </optgroup>
+            <optgroup label="── Patrocínios ──">
+              <option value="Patrocínio dinheiro">731 — Patrocínio em dinheiro</option>
+              <option value="Patrocínio espécie">732 — Patrocínio em espécie</option>
+            </optgroup>
+            <optgroup label="── Prestações de Serviços ──">
+              <option value="Inscrições competições">741 — Inscrições em competições</option>
+              <option value="Aluguer instalações">742 — Aluguer de instalações</option>
+              <option value="Bar/Restauração">743 — Bar / Restauração</option>
+              <option value="Formação/Workshops">744 — Formação / Workshops</option>
+            </optgroup>
+            <optgroup label="── Outros ──">
+              <option value="Donativos">781 — Donativos recebidos</option>
+              <option value="Outros rendimentos">782 — Outros rendimentos</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group"><label>Meio de Pagamento</label>
+          <select id="r-meio">
+            <option value="banco">🏦 Banco (transferência/MB)</option>
+            <option value="caixa">💵 Caixa (numerário)</option>
+            <option value="mbway">📱 MBWay</option>
+            <option value="cheque">📄 Cheque</option>
           </select>
         </div>
         <div class="form-group"><label>Referência / Documento</label><input id="r-ref" type="text" placeholder="Ex: REC-001" /></div>
@@ -996,12 +1036,54 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <div class="form-group"><label>Data</label><input id="d-data" type="date" /></div>
         <div class="form-group"><label>Valor (€)</label><input id="d-valor" type="number" step="0.01" placeholder="0.00" /></div>
         <div class="form-group full"><label>Descrição</label><input id="d-desc" type="text" placeholder="Ex: Fatura água" /></div>
-        <div class="form-group"><label>Categoria</label>
+        <div class="form-group"><label>Conta SNC / Categoria</label>
           <select id="d-cat">
-            <option>Instalações</option><option>Equipamento</option><option>Água/Luz/Gás</option>
-            <option>Seguros</option><option>Deslocações</option><option>Comunicação</option>
-            <option>Material de escritório</option><option>Taxas e impostos</option>
-            <option>Competições</option><option>Formação</option><option>Outros</option>
+            <optgroup label="── Fornecimentos e Serviços (622) ──">
+              <option value="Água">6221 — Água</option>
+              <option value="Electricidade">6222 — Electricidade</option>
+              <option value="Gás">6223 — Gás</option>
+              <option value="Combustíveis">6224 — Combustíveis</option>
+            </optgroup>
+            <optgroup label="── Serviços Especializados (623) ──">
+              <option value="Trabalhos especializados">6231 — Trabalhos especializados</option>
+              <option value="Publicidade/Propaganda">6232 — Publicidade / Propaganda</option>
+              <option value="Honorários/Contabilista">6234 — Honorários / Contabilista</option>
+              <option value="Conservação/Reparação">6236 — Conservação e reparação</option>
+              <option value="Limpeza e higiene">6237 — Limpeza e higiene</option>
+              <option value="Outros serviços externos">6238 — Outros serviços externos</option>
+            </optgroup>
+            <optgroup label="── Rendas e Comunicações (624-626) ──">
+              <option value="Rendas instalações">6241 — Rendas de instalações</option>
+              <option value="Seguros">6262 — Seguros</option>
+              <option value="Comunicações/Telefone">6263 — Comunicações / Telefone</option>
+              <option value="Internet">6264 — Internet e dados</option>
+              <option value="Material de escritório">6265 — Material de escritório</option>
+            </optgroup>
+            <optgroup label="── Deslocações e Transportes (625) ──">
+              <option value="Deslocações/Estadas">6251 — Deslocações e estadas</option>
+              <option value="Transportes pessoal">6252 — Transportes de pessoal</option>
+              <option value="Transportes mercadorias">6253 — Transportes de mercadorias</option>
+            </optgroup>
+            <optgroup label="── Gastos com Pessoal (63) ──">
+              <option value="Remunerações pessoal">632 — Remunerações do pessoal</option>
+              <option value="Enc. sociais (SS)">635 — Encargos sociais (SS)</option>
+              <option value="Outros gastos pessoal">638 — Outros gastos com pessoal</option>
+            </optgroup>
+            <optgroup label="── Outros Gastos (68) ──">
+              <option value="Impostos/Taxas">681 — Impostos e taxas</option>
+              <option value="Quotizações/Federação">684 — Quotizações / Federação</option>
+              <option value="Inscrições/Taxas fed.">685 — Inscrições e taxas federativas</option>
+              <option value="Gastos competições">686 — Gastos em competições</option>
+              <option value="Outros gastos">688 — Outros gastos e perdas</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="form-group"><label>Meio de Pagamento</label>
+          <select id="d-meio">
+            <option value="banco">🏦 Banco (transferência/MB)</option>
+            <option value="caixa">💵 Caixa (numerário)</option>
+            <option value="cheque">📄 Cheque</option>
+            <option value="cartao">💳 Cartão</option>
           </select>
         </div>
         <div class="form-group"><label>Fornecedor</label><input id="d-forn" type="text" placeholder="Nome do fornecedor" /></div>
@@ -1777,12 +1859,13 @@ window.renderReceitas = function() {
   document.getElementById('rec-outras-val').textContent = (total-quotasVal).toFixed(2)+'€';
   const tbody = document.getElementById('table-receitas');
   if(!lista.length){ tbody.innerHTML='<tr><td colspan="6"><div class="empty"><div class="icon">💚</div><p>Sem receitas registadas</p></div></td></tr>'; return; }
+  const meioIcon = {banco:'🏦',caixa:'💵',mbway:'📱',cheque:'📄'};
   tbody.innerHTML = lista.sort((a,b)=>b[1].data?.localeCompare(a[1].data||'')).map(([k,r])=>`<tr>
     <td style="color:var(--text2)">${r.data||'—'}</td>
-    <td><strong>${r.descricao||'—'}</strong></td>
-    <td><span class="badge badge-pago">${r.categoria||'—'}</span></td>
-    <td style="color:var(--green);font-weight:700">${parseFloat(r.valor||0).toFixed(2)}€</td>
-    <td style="color:var(--text2);font-family:'DM Mono'">${r.referencia||'—'}</td>
+    <td><strong>${r.descricao||'—'}</strong><br><span style="font-size:11px;color:var(--text2);font-family:'DM Mono'">${r.conta||CAT_CONTA_REC[r.categoria]||''} ${r.categoria||''}</span></td>
+    <td style="color:var(--green);font-weight:700;white-space:nowrap">+${parseFloat(r.valor||0).toFixed(2)}€</td>
+    <td style="color:var(--text2);font-size:12px">${meioIcon[r.meio]||''} ${r.meio||'—'}</td>
+    <td style="color:var(--text2);font-family:'DM Mono';font-size:12px">${r.referencia||'—'}</td>
     <td style="display:flex;gap:6px">
       <button class="btn btn-outline btn-sm" onclick="editarReceita('${k}')">✏️</button>
       <button class="btn btn-danger btn-sm" onclick="apagarReceita('${k}')">🗑️</button>
@@ -1807,7 +1890,8 @@ window.editarReceita = function(key) {
   document.getElementById('r-data').value = r.data||'';
   document.getElementById('r-valor').value = r.valor||'';
   document.getElementById('r-desc').value = r.descricao||'';
-  document.getElementById('r-cat').value = r.categoria||'Quotas';
+  document.getElementById('r-cat').value = r.categoria||'Quotas normais';
+  document.getElementById('r-meio').value = r.meio||'banco';
   document.getElementById('r-ref').value = r.referencia||'';
   document.getElementById('r-obs').value = r.obs||'';
   openModal('modal-receita');
@@ -1819,6 +1903,8 @@ window.gravarReceita = async function() {
     valor: document.getElementById('r-valor').value,
     descricao: document.getElementById('r-desc').value.trim(),
     categoria: document.getElementById('r-cat').value,
+    conta: CAT_CONTA_REC[document.getElementById('r-cat').value] || '782',
+    meio: document.getElementById('r-meio').value,
     referencia: document.getElementById('r-ref').value.trim(),
     obs: document.getElementById('r-obs').value.trim(),
     ano: document.getElementById('r-data').value.slice(0,4),
@@ -1858,12 +1944,13 @@ window.renderDespesas = function() {
   document.getElementById('desp-maior-cat').textContent = maiorCat ? `${maiorCat[0]} (${maiorCat[1].toFixed(0)}€)` : '—';
   const tbody = document.getElementById('table-despesas');
   if(!lista.length){ tbody.innerHTML='<tr><td colspan="6"><div class="empty"><div class="icon">🔴</div><p>Sem despesas registadas</p></div></td></tr>'; return; }
+  const meioIconD = {banco:'🏦',caixa:'💵',cheque:'📄',cartao:'💳'};
   tbody.innerHTML = lista.sort((a,b)=>b[1].data?.localeCompare(a[1].data||'')).map(([k,d])=>`<tr>
     <td style="color:var(--text2)">${d.data||'—'}</td>
-    <td><strong>${d.descricao||'—'}</strong></td>
-    <td><span class="badge badge-pendente">${d.categoria||'—'}</span></td>
-    <td style="color:var(--text2)">${d.fornecedor||'—'}</td>
-    <td style="color:var(--red);font-weight:700">${parseFloat(d.valor||0).toFixed(2)}€</td>
+    <td><strong>${d.descricao||'—'}</strong><br><span style="font-size:11px;color:var(--text2);font-family:'DM Mono'">${d.conta||CAT_CONTA_DESP[d.categoria]||''} ${d.categoria||''}</span></td>
+    <td style="color:var(--text2);font-size:12px">${d.fornecedor||'—'}</td>
+    <td style="color:var(--red);font-weight:700;white-space:nowrap">-${parseFloat(d.valor||0).toFixed(2)}€</td>
+    <td style="color:var(--text2);font-size:12px">${meioIconD[d.meio]||''} ${d.meio||'—'}</td>
     <td style="display:flex;gap:6px">
       <button class="btn btn-outline btn-sm" onclick="editarDespesa('${k}')">✏️</button>
       <button class="btn btn-danger btn-sm" onclick="apagarDespesa('${k}')">🗑️</button>
@@ -1887,7 +1974,8 @@ window.editarDespesa = function(key) {
   document.getElementById('d-data').value = d.data||'';
   document.getElementById('d-valor').value = d.valor||'';
   document.getElementById('d-desc').value = d.descricao||'';
-  document.getElementById('d-cat').value = d.categoria||'Outros';
+  document.getElementById('d-cat').value = d.categoria||'Outros gastos';
+  document.getElementById('d-meio').value = d.meio||'banco';
   document.getElementById('d-forn').value = d.fornecedor||'';
   document.getElementById('d-ref').value = d.referencia||'';
   document.getElementById('d-obs').value = d.obs||'';
@@ -1900,6 +1988,8 @@ window.gravarDespesa = async function() {
     valor: document.getElementById('d-valor').value,
     descricao: document.getElementById('d-desc').value.trim(),
     categoria: document.getElementById('d-cat').value,
+    conta: CAT_CONTA_DESP[document.getElementById('d-cat').value] || '688',
+    meio: document.getElementById('d-meio').value,
     fornecedor: document.getElementById('d-forn').value.trim(),
     referencia: document.getElementById('d-ref').value.trim(),
     obs: document.getElementById('d-obs').value.trim(),
@@ -2132,49 +2222,167 @@ window.imprimirRelatorio = function() {
 };
 
 
-// ── PLANO DE CONTAS SNC-ESNL ──────────────────────
+// ── PLANO DE CONTAS SNC-ESNL COMPLETO ─────────────
 const PLANO_CONTAS = [
-  // ATIVO
-  { codigo:'11', nome:'Caixa', classe:'1', tipo:'A', sinal:1 },
-  { codigo:'12', nome:'Depósitos à ordem', classe:'1', tipo:'A', sinal:1 },
-  { codigo:'13', nome:'Outros depósitos bancários', classe:'1', tipo:'A', sinal:1 },
-  { codigo:'21', nome:'Clientes / Devedores', classe:'2', tipo:'A', sinal:1 },
-  { codigo:'22', nome:'Fornecedores / Credores', classe:'2', tipo:'P', sinal:-1 },
-  { codigo:'24', nome:'Estado e outros entes públicos', classe:'2', tipo:'P', sinal:-1 },
-  { codigo:'26', nome:'Outros devedores e credores', classe:'2', tipo:'A', sinal:1 },
-  { codigo:'32', nome:'Mercadorias', classe:'3', tipo:'A', sinal:1 },
-  { codigo:'43', nome:'Ativos fixos tangíveis', classe:'4', tipo:'A', sinal:1 },
-  { codigo:'44', nome:'Ativos intangíveis', classe:'4', tipo:'A', sinal:1 },
-  // CAPITAL PRÓPRIO
-  { codigo:'51', nome:'Fundos patrimoniais', classe:'5', tipo:'CP', sinal:1 },
-  { codigo:'56', nome:'Resultados transitados', classe:'5', tipo:'CP', sinal:1 },
-  { codigo:'59', nome:'Resultado líquido do período', classe:'5', tipo:'CP', sinal:1 },
-  // RENDIMENTOS (Classe 7)
-  { codigo:'71', nome:'Quotas de associados', classe:'7', tipo:'R', sinal:1 },
-  { codigo:'72', nome:'Subsídios, doações e legados', classe:'7', tipo:'R', sinal:1 },
-  { codigo:'73', nome:'Patrocínios', classe:'7', tipo:'R', sinal:1 },
-  { codigo:'74', nome:'Prestações de serviços', classe:'7', tipo:'R', sinal:1 },
-  { codigo:'75', nome:'Quotas extraordinárias', classe:'7', tipo:'R', sinal:1 },
-  { codigo:'78', nome:'Outros rendimentos', classe:'7', tipo:'R', sinal:1 },
-  // GASTOS (Classe 6)
-  { codigo:'61', nome:'CMVMC / Consumos', classe:'6', tipo:'G', sinal:1 },
-  { codigo:'62', nome:'Fornecimentos e serviços externos', classe:'6', tipo:'G', sinal:1 },
-  { codigo:'63', nome:'Gastos com pessoal', classe:'6', tipo:'G', sinal:1 },
-  { codigo:'64', nome:'Gastos de depreciação', classe:'6', tipo:'G', sinal:1 },
-  { codigo:'65', nome:'Perdas por imparidade', classe:'6', tipo:'G', sinal:1 },
-  { codigo:'68', nome:'Outros gastos', classe:'6', tipo:'G', sinal:1 },
+  // CLASSE 1 — MEIOS FINANCEIROS LÍQUIDOS
+  { codigo:'11',   nome:'Caixa',                              classe:'1', tipo:'A',  dc:'D', grupo:'11' },
+  { codigo:'1101', nome:'Caixa Geral',                        classe:'1', tipo:'A',  dc:'D', grupo:'11' },
+  { codigo:'12',   nome:'Depósitos à ordem',                  classe:'1', tipo:'A',  dc:'D', grupo:'12' },
+  { codigo:'1201', nome:'Banco — Conta Principal',            classe:'1', tipo:'A',  dc:'D', grupo:'12' },
+  // CLASSE 2 — CONTAS A RECEBER E A PAGAR
+  { codigo:'211',  nome:'Clientes c/c',                       classe:'2', tipo:'A',  dc:'D', grupo:'21' },
+  { codigo:'2711', nome:'Sócios — Quotas a receber',          classe:'2', tipo:'A',  dc:'D', grupo:'27' },
+  { codigo:'221',  nome:'Fornecedores c/c',                   classe:'2', tipo:'P',  dc:'C', grupo:'22' },
+  { codigo:'241',  nome:'IRS retido na fonte',                classe:'2', tipo:'P',  dc:'C', grupo:'24' },
+  { codigo:'242',  nome:'SS — contribuições a pagar',         classe:'2', tipo:'P',  dc:'C', grupo:'24' },
+  { codigo:'261',  nome:'Outros devedores',                   classe:'2', tipo:'A',  dc:'D', grupo:'26' },
+  { codigo:'262',  nome:'Outros credores',                    classe:'2', tipo:'P',  dc:'C', grupo:'26' },
+  // CLASSE 4 — INVESTIMENTOS
+  { codigo:'431',  nome:'Terrenos e recursos naturais',       classe:'4', tipo:'A',  dc:'D', grupo:'43' },
+  { codigo:'432',  nome:'Edifícios e outras construções',     classe:'4', tipo:'A',  dc:'D', grupo:'43' },
+  { codigo:'433',  nome:'Equipamento básico',                 classe:'4', tipo:'A',  dc:'D', grupo:'43' },
+  { codigo:'434',  nome:'Equipamento de transporte',          classe:'4', tipo:'A',  dc:'D', grupo:'43' },
+  { codigo:'435',  nome:'Equipamento administrativo',         classe:'4', tipo:'A',  dc:'D', grupo:'43' },
+  { codigo:'438',  nome:'Outros ativos fixos tangíveis',      classe:'4', tipo:'A',  dc:'D', grupo:'43' },
+  // CLASSE 5 — CAPITAL PRÓPRIO
+  { codigo:'51',   nome:'Fundos patrimoniais',                classe:'5', tipo:'CP', dc:'C', grupo:'51' },
+  { codigo:'56',   nome:'Resultados transitados',             classe:'5', tipo:'CP', dc:'C', grupo:'56' },
+  { codigo:'59',   nome:'Resultado líquido do período',       classe:'5', tipo:'CP', dc:'C', grupo:'59' },
+  // CLASSE 6 — GASTOS
+  { codigo:'611',  nome:'Matérias-primas e subsidiárias',     classe:'6', tipo:'G',  dc:'D', grupo:'61' },
+  { codigo:'612',  nome:'Mercadorias',                        classe:'6', tipo:'G',  dc:'D', grupo:'61' },
+  { codigo:'6211', nome:'FSE — Subcontratos',                 classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6221', nome:'FSE — Água',                        classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6222', nome:'FSE — Electricidade',               classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6223', nome:'FSE — Gás',                        classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6224', nome:'FSE — Combustíveis',               classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6225', nome:'FSE — Ferramentas e utensilios',   classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6226', nome:'FSE — Livros e documentação',      classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6231', nome:'FSE — Trabalhos especializados',   classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6232', nome:'FSE — Publicidade e propaganda',   classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6233', nome:'FSE — Vigilância e segurança',     classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6234', nome:'FSE — Honorários',                 classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6235', nome:'FSE — Comissões',                  classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6236', nome:'FSE — Conservação e reparação',    classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6237', nome:'FSE — Limpeza, higiene e conforto',classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6238', nome:'FSE — Outros serviços',            classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6241', nome:'FSE — Rendas e alugueres',        classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6242', nome:'FSE — Royalties',                 classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6251', nome:'FSE — Deslocações e estadas',     classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6252', nome:'FSE — Transportes de pessoal',    classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6253', nome:'FSE — Transportes de mercadorias',classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6261', nome:'FSE — Rendas instalações',        classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6262', nome:'FSE — Seguros',                   classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6263', nome:'FSE — Comunicação (telefone)',    classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6264', nome:'FSE — Internet e dados',          classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6265', nome:'FSE — Material de escritório',    classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6266', nome:'FSE — Limpeza e higiene',         classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'6267', nome:'FSE — Outras ferramentas',        classe:'6', tipo:'G',  dc:'D', grupo:'62' },
+  { codigo:'631',  nome:'Remunerações do órgão de gestão', classe:'6', tipo:'G',  dc:'D', grupo:'63' },
+  { codigo:'632',  nome:'Remunerações do pessoal',         classe:'6', tipo:'G',  dc:'D', grupo:'63' },
+  { codigo:'633',  nome:'Benefícios pós-emprego',          classe:'6', tipo:'G',  dc:'D', grupo:'63' },
+  { codigo:'635',  nome:'Encargos sobre remunerações (SS)',classe:'6', tipo:'G',  dc:'D', grupo:'63' },
+  { codigo:'638',  nome:'Outros gastos com pessoal',       classe:'6', tipo:'G',  dc:'D', grupo:'63' },
+  { codigo:'641',  nome:'Deprec. — Activos fixos tangíveis',clase:'6', tipo:'G',  dc:'D', grupo:'64' },
+  { codigo:'681',  nome:'Impostos indiretos',              classe:'6', tipo:'G',  dc:'D', grupo:'68' },
+  { codigo:'682',  nome:'Impostos diretos',                classe:'6', tipo:'G',  dc:'D', grupo:'68' },
+  { codigo:'683',  nome:'Coimas e penalidades',            classe:'6', tipo:'G',  dc:'D', grupo:'68' },
+  { codigo:'684',  nome:'Quotizações e donativos',         classe:'6', tipo:'G',  dc:'D', grupo:'68' },
+  { codigo:'685',  nome:'Inscrições e taxas federativas',  classe:'6', tipo:'G',  dc:'D', grupo:'68' },
+  { codigo:'686',  nome:'Gastos em competições desportivas',classe:'6', tipo:'G',  dc:'D', grupo:'68' },
+  { codigo:'688',  nome:'Outros gastos e perdas',          classe:'6', tipo:'G',  dc:'D', grupo:'68' },
+  // CLASSE 7 — RENDIMENTOS
+  { codigo:'7211', nome:'Quotas de associados — Normais',  classe:'7', tipo:'R',  dc:'C', grupo:'72' },
+  { codigo:'7212', nome:'Quotas de associados — Atletas',  classe:'7', tipo:'R',  dc:'C', grupo:'72' },
+  { codigo:'7213', nome:'Jóias de inscrição',              classe:'7', tipo:'R',  dc:'C', grupo:'72' },
+  { codigo:'7214', nome:'Quotas extraordinárias',          classe:'7', tipo:'R',  dc:'C', grupo:'72' },
+  { codigo:'7241', nome:'Subsídios do Estado/Autarquias',  classe:'7', tipo:'R',  dc:'C', grupo:'72' },
+  { codigo:'7242', nome:'Apoios de federações',            classe:'7', tipo:'R',  dc:'C', grupo:'72' },
+  { codigo:'731',  nome:'Patrocínios em dinheiro',         classe:'7', tipo:'R',  dc:'C', grupo:'73' },
+  { codigo:'732',  nome:'Patrocínios em espécie',          classe:'7', tipo:'R',  dc:'C', grupo:'73' },
+  { codigo:'741',  nome:'Inscrições em competições',       classe:'7', tipo:'R',  dc:'C', grupo:'74' },
+  { codigo:'742',  nome:'Aluguer de instalações/pistas',   classe:'7', tipo:'R',  dc:'C', grupo:'74' },
+  { codigo:'743',  nome:'Prestações de serviços — Bar',    classe:'7', tipo:'R',  dc:'C', grupo:'74' },
+  { codigo:'744',  nome:'Formação e workshops',            classe:'7', tipo:'R',  dc:'C', grupo:'74' },
+  { codigo:'781',  nome:'Donativos recebidos',             classe:'7', tipo:'R',  dc:'C', grupo:'78' },
+  { codigo:'782',  nome:'Outros rendimentos e ganhos',     classe:'7', tipo:'R',  dc:'C', grupo:'78' },
 ];
 
-// Mapa categoria → conta SNC
-const CAT_CONTA = {
-  'Quotas': '71', 'Subsídios/Apoios': '72', 'Patrocínios': '73',
-  'Inscrições competições': '74', 'Donativo': '72', 'Bar/Restauração': '74',
-  'Aluguer instalações': '74', 'Outros': '78',
-  'Instalações': '62', 'Equipamento': '62', 'Água/Luz/Gás': '62',
-  'Seguros': '62', 'Deslocações': '62', 'Comunicação': '62',
-  'Material de escritório': '62', 'Taxas e impostos': '68',
-  'Competições': '62', 'Formação': '62',
+// Grupos agregados para relatórios (Balanço, DRN)
+const GRUPOS_CONTAS = {
+  '11': { nome:'Caixa', classe:'1', tipo:'A' },
+  '12': { nome:'Depósitos à ordem', classe:'1', tipo:'A' },
+  '21': { nome:'Clientes c/c', classe:'2', tipo:'A' },
+  '22': { nome:'Fornecedores c/c', classe:'2', tipo:'P' },
+  '24': { nome:'Estado e outros entes públicos', classe:'2', tipo:'P' },
+  '26': { nome:'Outros devedores e credores', classe:'2', tipo:'A' },
+  '27': { nome:'Sócios — quotas a receber', classe:'2', tipo:'A' },
+  '43': { nome:'Ativos fixos tangíveis', classe:'4', tipo:'A' },
+  '51': { nome:'Fundos patrimoniais', classe:'5', tipo:'CP' },
+  '56': { nome:'Resultados transitados', classe:'5', tipo:'CP' },
+  '59': { nome:'Resultado líquido do período', classe:'5', tipo:'CP' },
+  '61': { nome:'CMVMC / Consumos', classe:'6', tipo:'G' },
+  '62': { nome:'Fornecimentos e serviços externos', classe:'6', tipo:'G' },
+  '63': { nome:'Gastos com pessoal', classe:'6', tipo:'G' },
+  '64': { nome:'Depreciações e amortizações', classe:'6', tipo:'G' },
+  '68': { nome:'Outros gastos e perdas', classe:'6', tipo:'G' },
+  '72': { nome:'Quotas e jóias de associados', classe:'7', tipo:'R' },
+  '73': { nome:'Patrocínios', classe:'7', tipo:'R' },
+  '74': { nome:'Prestações de serviços', classe:'7', tipo:'R' },
+  '78': { nome:'Outros rendimentos', classe:'7', tipo:'R' },
 };
+
+// Mapa subconta → conta SNC (receitas)
+const CAT_CONTA_REC = {
+  'Quotas normais':          '7211',
+  'Quotas atletas':          '7212',
+  'Jóias de inscrição':      '7213',
+  'Quotas extraordinárias':  '7214',
+  'Subsídio Estado/Câmara':  '7241',
+  'Apoio federação':         '7242',
+  'Patrocínio dinheiro':     '731',
+  'Patrocínio espécie':      '732',
+  'Inscrições competições':  '741',
+  'Aluguer instalações':     '742',
+  'Bar/Restauração':         '743',
+  'Formação/Workshops':      '744',
+  'Donativos':               '781',
+  'Outros rendimentos':      '782',
+};
+
+// Mapa subconta → conta SNC (despesas)
+const CAT_CONTA_DESP = {
+  'Água':                    '6221',
+  'Electricidade':           '6222',
+  'Gás':                     '6223',
+  'Combustíveis':            '6224',
+  'Trabalhos especializados':'6231',
+  'Publicidade/Propaganda':  '6232',
+  'Honorários/Contabilista': '6234',
+  'Conservação/Reparação':   '6236',
+  'Limpeza e higiene':       '6237',
+  'Outros serviços externos':'6238',
+  'Rendas instalações':      '6241',
+  'Seguros':                 '6262',
+  'Comunicações/Telefone':   '6263',
+  'Internet':                '6264',
+  'Material de escritório':  '6265',
+  'Deslocações/Estadas':     '6251',
+  'Transportes pessoal':     '6252',
+  'Transportes mercadorias': '6253',
+  'Remunerações pessoal':    '632',
+  'Enc. sociais (SS)':       '635',
+  'Outros gastos pessoal':   '638',
+  'Depreciações':            '641',
+  'Impostos/Taxas':          '681',
+  'Quotizações/Federação':   '684',
+  'Inscrições/Taxas fed.':   '685',
+  'Gastos competições':      '686',
+  'Outros gastos':           '688',
+};
+
+// CAT_CONTA unificado (legado + novo)
+const CAT_CONTA = { ...CAT_CONTA_REC, ...CAT_CONTA_DESP };
 
 // ── SALDOS INICIAIS ────────────────────────────────
 let saldosIniciais = {}; // { ano: { codigo: valor } }
@@ -2229,95 +2437,197 @@ window.gravarSaldosIniciais = async function() {
   } catch(e) { toast('Erro: ' + e.message, 'error'); }
 };
 
+// ── MODO BALANCETE ─────────────────────────────────
+let modoBalancete = 'acumulado'; // 'acumulado' | 'mensal'
+
+window.setModoBlc = function(modo) {
+  modoBalancete = modo;
+  document.getElementById('blc-modo-acum').style.background = modo==='acumulado' ? 'var(--accent)' : 'transparent';
+  document.getElementById('blc-modo-acum').style.color = modo==='acumulado' ? '#000' : 'var(--text2)';
+  document.getElementById('blc-modo-mes').style.background = modo==='mensal' ? 'var(--blue)' : 'transparent';
+  document.getElementById('blc-modo-mes').style.color = modo==='mensal' ? '#fff' : 'var(--text2)';
+  renderBalancete();
+};
+
 window.renderBalancete = function() {
-  const ano = document.getElementById('filter-ano-blc')?.value || new Date().getFullYear().toString();
-  const mes = document.getElementById('filter-mes-blc')?.value || '';
-  const periodo = mes ? `${ano}-${mes}` : ano;
-  const mesTxt = mes ? ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][parseInt(mes)] : 'Acumulado';
+  const ano    = document.getElementById('filter-ano-blc')?.value || new Date().getFullYear().toString();
+  const mes    = document.getElementById('filter-mes-blc')?.value || '';
+  const MESES  = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesTxt = mes ? MESES[parseInt(mes)] : 'Anual';
+  const siAno  = saldosIniciais[ano] || {};
 
-  // Filtrar movimentos
-  const recPer = Object.values(receitas).filter(r => mes ? r.data?.startsWith(periodo) : r.data?.startsWith(ano));
-  const despPer = Object.values(despesas).filter(d => mes ? d.data?.startsWith(periodo) : d.data?.startsWith(ano));
+  // ── Função auxiliar: determinar conta do movimento
+  const contaRec  = r => r.conta || CAT_CONTA_REC[r.categoria] || '782';
+  const contaDesp = d => d.conta || CAT_CONTA_DESP[d.categoria] || '688';
 
-  // Acumulado até ao mês (se mensal)
-  const recAcum = mes ? Object.values(receitas).filter(r => r.data?.startsWith(ano) && r.data <= `${ano}-${mes}-31`) : recPer;
-  const despAcum = mes ? Object.values(despesas).filter(d => d.data?.startsWith(ano) && d.data <= `${ano}-${mes}-31`) : despPer;
+  // ── Todos os movimentos do ano
+  const todasRec  = Object.values(receitas).filter(r => r.data?.startsWith(ano));
+  const todasDesp = Object.values(despesas).filter(d => d.data?.startsWith(ano));
 
-  // Saldos iniciais do ano
-  const siAno = (saldosIniciais[ano]) || {};
+  // ── Movimentos do mês selecionado
+  const periodo   = mes ? `${ano}-${mes}` : ano;
+  const recMes    = mes ? todasRec.filter(r => r.data?.startsWith(periodo))  : todasRec;
+  const despMes   = mes ? todasDesp.filter(d => d.data?.startsWith(periodo)) : todasDesp;
 
-  // Agregar por conta
-  const saldos = {};
-  PLANO_CONTAS.forEach(c => { saldos[c.codigo] = { inicial: siAno[c.codigo]||0, periodo: 0, acumulado: 0 }; });
+  // ── Movimentos acumulados de Jan até ao mês
+  const recAcum   = mes ? todasRec.filter(r => r.data >= `${ano}-01` && r.data <= `${ano}-${mes}-31`)  : todasRec;
+  const despAcum  = mes ? todasDesp.filter(d => d.data >= `${ano}-01` && d.data <= `${ano}-${mes}-31`) : todasDesp;
 
-  recPer.forEach(r => { const c = CAT_CONTA[r.categoria]||'78'; if(saldos[c]) saldos[c].periodo += parseFloat(r.valor||0); });
-  despPer.forEach(d => { const c = CAT_CONTA[d.categoria]||'68'; if(saldos[c]) saldos[c].periodo += parseFloat(d.valor||0); });
-  recAcum.forEach(r => { const c = CAT_CONTA[r.categoria]||'78'; if(saldos[c]) saldos[c].acumulado += parseFloat(r.valor||0); });
-  despAcum.forEach(d => { const c = CAT_CONTA[d.categoria]||'68'; if(saldos[c]) saldos[c].acumulado += parseFloat(d.valor||0); });
+  // ── Escolher conjunto a usar conforme modo
+  const recUsar   = modoBalancete === 'mensal' ? recMes  : recAcum;
+  const despUsar  = modoBalancete === 'mensal' ? despMes : despAcum;
+  // Saldo inicial: no modo Acumulado = saldo abertura; no modo Mensal = 0 (só o mês)
+  const usarSI    = modoBalancete === 'acumulado';
 
-  const totalRecPer = recPer.reduce((a,r)=>a+parseFloat(r.valor||0),0);
-  const totalDespPer = despPer.reduce((a,r)=>a+parseFloat(r.valor||0),0);
-  const totalRecAcum = recAcum.reduce((a,r)=>a+parseFloat(r.valor||0),0);
-  const totalDespAcum = despAcum.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+  // ── Agregar por conta SNC (subcontas)
+  const mov = {}; // { codigo: { deb: 0, cre: 0 } }
+  PLANO_CONTAS.forEach(c => { mov[c.codigo] = { deb: 0, cre: 0 }; });
 
-  const classes = ['1','2','3','4','5','6','7'];
-  const classNomes = {'1':'Classe 1 — Meios Financeiros Líquidos','2':'Classe 2 — Contas a Receber e a Pagar','3':'Classe 3 — Inventários','4':'Classe 4 — Investimentos','5':'Classe 5 — Capital Próprio','6':'Classe 6 — Gastos','7':'Classe 7 — Rendimentos'};
+  recUsar.forEach(r => {
+    const c = contaRec(r);
+    const v = parseFloat(r.valor || 0);
+    // Receita: Crédito na conta de rendimento (7xx), Débito em Caixa/Banco
+    if (mov[c]) mov[c].cre += v;
+    const cc = r.meio === 'caixa' ? '1101' : '1201';
+    if (mov[cc]) mov[cc].deb += v;
+  });
+
+  despUsar.forEach(d => {
+    const c = contaDesp(d);
+    const v = parseFloat(d.valor || 0);
+    // Despesa: Débito na conta de gasto (6xx), Crédito em Caixa/Banco
+    if (mov[c]) mov[c].deb += v;
+    const cc = d.meio === 'caixa' ? '1101' : '1201';
+    if (mov[cc]) mov[cc].cre += v;
+  });
+
+  // ── Construir linhas por classe e subconta
+  const classNomes = {
+    '1':'CLASSE 1 — MEIOS FINANCEIROS LÍQUIDOS',
+    '2':'CLASSE 2 — CONTAS A RECEBER E A PAGAR',
+    '4':'CLASSE 4 — INVESTIMENTOS',
+    '5':'CLASSE 5 — CAPITAL PRÓPRIO',
+    '6':'CLASSE 6 — GASTOS',
+    '7':'CLASSE 7 — RENDIMENTOS'
+  };
+
+  const fmt = v => v !== 0 ? v.toFixed(2) : '—';
+  const cor6 = 'color:#e74c3c'; const cor7 = 'color:#2ecc71';
+  const corN = 'color:var(--text)'; const corT = 'color:var(--text2)';
 
   let rows = '';
-  classes.forEach(cl => {
-    const contas = PLANO_CONTAS.filter(c=>c.classe===cl && (saldos[c.codigo].inicial!==0 || saldos[c.codigo].periodo!==0 || saldos[c.codigo].acumulado!==0));
-    if(!contas.length) return;
-    rows += `<tr style="background:var(--bg2)"><td colspan="5" style="padding:10px 8px;font-weight:700;color:var(--accent);font-size:11px;text-transform:uppercase;letter-spacing:1px">${classNomes[cl]}</td></tr>`;
-    contas.forEach(c => {
-      const s = saldos[c.codigo];
-      const saldoFinal = s.inicial + s.acumulado;
-      const isGasto = cl==='6';
-      const cor = isGasto ? 'var(--red)' : cl==='7' ? 'var(--green)' : 'var(--text)';
-      const corFinal = saldoFinal >= 0 ? 'var(--green)' : 'var(--red)';
-      rows += `<tr style="border-bottom:1px solid var(--border2)">
-        <td style="padding:7px 8px;font-family:'DM Mono';font-size:12px;color:var(--accent)">${c.codigo}</td>
-        <td style="padding:7px 8px;font-size:13px">${c.nome}</td>
-        <td style="text-align:right;padding:7px 8px;color:var(--text2);font-size:13px">${s.inicial!==0?s.inicial.toFixed(2)+'€':'—'}</td>
-        <td style="text-align:right;padding:7px 8px;color:${cor};font-size:13px">${s.periodo!==0?s.periodo.toFixed(2)+'€':'—'}</td>
-        <td style="text-align:right;padding:7px 8px;color:${!isGasto?corFinal:cor};font-weight:600;font-size:13px">${(!isGasto && s.inicial!==0||s.acumulado!==0)?saldoFinal.toFixed(2)+'€':s.acumulado!==0?s.acumulado.toFixed(2)+'€':'—'}</td>
+  let totDeb = 0, totCre = 0, totSI = 0, totSF = 0;
+
+  ['1','2','4','5','6','7'].forEach(cl => {
+    const contasCl = PLANO_CONTAS.filter(c => c.classe === cl);
+    const temMov = contasCl.some(c => {
+      const s = mov[c.codigo]; const si = usarSI ? (siAno[c.codigo]||0) : 0;
+      return si !== 0 || s.deb !== 0 || s.cre !== 0;
+    });
+    if (!temMov) return;
+
+    rows += `<tr><td colspan="6" style="padding:10px 8px 6px;background:var(--bg2);font-size:10px;font-weight:800;letter-spacing:1.5px;color:var(--accent);text-transform:uppercase;border-top:1px solid var(--border)">${classNomes[cl]||'Classe '+cl}</td></tr>`;
+
+    contasCl.forEach(c => {
+      const s  = mov[c.codigo];
+      const si = usarSI ? (siAno[c.codigo] || 0) : 0;
+      if (si === 0 && s.deb === 0 && s.cre === 0) return;
+
+      // Saldo final depende do tipo de conta
+      let sf;
+      if (cl === '6' || cl === '7') {
+        // Gastos e Rendimentos: saldo = deb - cre (gastos) ou cre - deb (rendimentos)
+        sf = cl === '6' ? si + s.deb - s.cre : si + s.cre - s.deb;
+      } else {
+        // Balanço: saldo devedor ou credor conforme tipo
+        sf = c.dc === 'D' ? si + s.deb - s.cre : si + s.cre - s.deb;
+      }
+
+      const corSF = sf >= 0 ? (cl==='6'?cor6:cl==='7'?cor7:corN) : cor6;
+      totDeb += s.deb; totCre += s.cre;
+      totSI  += si;    totSF  += sf;
+
+      rows += `<tr style="border-bottom:1px solid var(--border2);transition:background .1s" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background=''">
+        <td style="padding:6px 8px;font-family:'DM Mono';font-size:11px;color:var(--accent);white-space:nowrap">${c.codigo}</td>
+        <td style="padding:6px 8px;font-size:12px;max-width:220px">${c.nome}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'DM Mono';font-size:12px;${corT}">${usarSI && si !== 0 ? si.toFixed(2) : '—'}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'DM Mono';font-size:12px;color:#3498db">${s.deb !== 0 ? s.deb.toFixed(2) : '—'}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'DM Mono';font-size:12px;color:#e67e22">${s.cre !== 0 ? s.cre.toFixed(2) : '—'}</td>
+        <td style="text-align:right;padding:6px 8px;font-family:'DM Mono';font-size:12px;font-weight:700;${corSF}">${sf !== 0 ? sf.toFixed(2) : '—'}</td>
       </tr>`;
     });
   });
 
+  // ── Totalização
+  const tituloPeriodo = modoBalancete === 'mensal'
+    ? (mes ? `Balancete Mensal — ${mesTxt} ${ano}` : `Balancete Anual ${ano}`)
+    : (mes ? `Balancete Acumulado — Jan a ${mesTxt} ${ano}` : `Balancete Acumulado ${ano}`);
+
+  const totalRecVal  = recUsar.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+  const totalDespVal = despUsar.reduce((a,r)=>a+parseFloat(r.valor||0),0);
+  const resultado    = totalRecVal - totalDespVal;
+
+  // ── Info box
+  const modoLabel = modoBalancete === 'mensal'
+    ? `📅 Modo <strong>Mensal</strong> — movimentos exclusivos de ${mes ? mesTxt+' '+ano : ano}. Sem saldos de abertura.`
+    : `📈 Modo <strong>Acumulado</strong> — saldos de abertura ${ano} + movimentos ${mes ? 'de Janeiro a '+mesTxt+' '+ano : 'de todo o ano '+ano}.`;
+  document.getElementById('blc-info').innerHTML = modoLabel;
+
+  const thStyle = 'padding:9px 8px;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;background:var(--bg3);border-bottom:2px solid var(--accent)';
+
   document.getElementById('balancete-content').innerHTML = `
-    <div style="max-width:760px;margin:0 auto">
-      ${docHeader("BALANCETE DE VERIFICAÇÃO", mesTxt, ano)}
-      <table style="width:100%;border-collapse:collapse">
-        <thead>
-          <tr style="background:var(--bg2)">
-            <th style="padding:10px 8px;text-align:left;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px;width:55px">Conta</th>
-            <th style="padding:10px 8px;text-align:left;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px">Designação</th>
-            <th style="padding:10px 8px;text-align:right;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px">Saldo Inicial</th>
-            <th style="padding:10px 8px;text-align:right;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px">${mesTxt}</th>
-            <th style="padding:10px 8px;text-align:right;color:var(--text2);font-size:11px;text-transform:uppercase;letter-spacing:1px">Saldo Final</th>
-          </tr>
-        </thead>
-        <tbody>${rows}</tbody>
-        <tfoot>
-          <tr style="border-top:2px solid var(--accent)">
-            <td colspan="2" style="padding:10px 8px;font-weight:700">TOTAL RENDIMENTOS (Cl. 7)</td>
-            <td style="text-align:right;padding:10px 8px;color:var(--green);font-weight:700">${totalRecPer.toFixed(2)}€</td>
-            <td style="text-align:right;padding:10px 8px;color:var(--green);font-weight:700">${totalRecAcum.toFixed(2)}€</td>
-          </tr>
-          <tr>
-            <td colspan="2" style="padding:10px 8px;font-weight:700">TOTAL GASTOS (Cl. 6)</td>
-            <td style="text-align:right;padding:10px 8px;color:var(--red);font-weight:700">${totalDespPer.toFixed(2)}€</td>
-            <td style="text-align:right;padding:10px 8px;color:var(--red);font-weight:700">${totalDespAcum.toFixed(2)}€</td>
-          </tr>
-          <tr style="border-top:2px solid var(--accent)">
-            <td colspan="2" style="padding:10px 8px;font-weight:700;font-size:14px">RESULTADO</td>
-            <td style="text-align:right;padding:10px 8px;font-weight:700;font-size:14px;color:${(totalRecPer-totalDespPer)>=0?'var(--green)':'var(--red)'}">${((totalRecPer-totalDespPer)>=0?'+':'')}${(totalRecPer-totalDespPer).toFixed(2)}€</td>
-            <td style="text-align:right;padding:10px 8px;font-weight:700;font-size:14px;color:${(totalRecAcum-totalDespAcum)>=0?'var(--green)':'var(--red)'}">${((totalRecAcum-totalDespAcum)>=0?'+':'')}${(totalRecAcum-totalDespAcum).toFixed(2)}€</td>
-          </tr>
-        </tfoot>
-      </table>
-      <div style="margin-top:16px;font-size:11px;color:var(--text2);text-align:center">
-        Valores expressos em euros · SNC-ESNL · Regime de caixa
+    <div style="font-family:'DM Sans',sans-serif">
+      ${docHeader('BALANCETE DE VERIFICAÇÃO', tituloPeriodo, '')}
+      <div style="overflow-x:auto">
+        <table style="width:100%;border-collapse:collapse;min-width:600px">
+          <thead>
+            <tr>
+              <th style="${thStyle};text-align:left;width:60px;color:var(--accent)">Conta</th>
+              <th style="${thStyle};text-align:left;color:var(--accent)">Designação</th>
+              <th style="${thStyle};text-align:right;color:var(--text2)">${usarSI?'Saldo Abertura':'—'}</th>
+              <th style="${thStyle};text-align:right;color:#3498db">Débito</th>
+              <th style="${thStyle};text-align:right;color:#e67e22">Crédito</th>
+              <th style="${thStyle};text-align:right;color:var(--accent)">Saldo Final</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+          <tfoot>
+            <tr style="border-top:2px solid var(--accent);background:var(--bg2)">
+              <td colspan="2" style="padding:10px 8px;font-weight:800;font-size:13px">TOTAIS DO PERÍODO</td>
+              <td style="text-align:right;padding:10px 8px;font-family:'DM Mono';font-weight:700;color:var(--text2)">${usarSI ? fmt(totSI) : '—'}</td>
+              <td style="text-align:right;padding:10px 8px;font-family:'DM Mono';font-weight:700;color:#3498db">${fmt(totDeb)}</td>
+              <td style="text-align:right;padding:10px 8px;font-family:'DM Mono';font-weight:700;color:#e67e22">${fmt(totCre)}</td>
+              <td style="text-align:right;padding:10px 8px;font-family:'DM Mono';font-weight:700"></td>
+            </tr>
+            <tr style="background:var(--bg2)">
+              <td colspan="2" style="padding:6px 8px;font-weight:700;color:var(--green)">Total Rendimentos (Cl.7)</td>
+              <td colspan="3" style="text-align:right;padding:6px 8px;font-family:'DM Mono';font-weight:700;color:var(--green)">${totalRecVal.toFixed(2)} €</td>
+              <td></td>
+            </tr>
+            <tr style="background:var(--bg2)">
+              <td colspan="2" style="padding:6px 8px;font-weight:700;color:var(--red)">Total Gastos (Cl.6)</td>
+              <td colspan="3" style="text-align:right;padding:6px 8px;font-family:'DM Mono';font-weight:700;color:var(--red)">${totalDespVal.toFixed(2)} €</td>
+              <td></td>
+            </tr>
+            <tr style="border-top:2px solid var(--accent);background:var(--bg3)">
+              <td colspan="2" style="padding:10px 8px;font-weight:800;font-size:14px">${resultado>=0?'SUPERÁVIT':'DÉFICIT'} DO PERÍODO</td>
+              <td colspan="3" style="text-align:right;padding:10px 8px;font-family:'DM Mono';font-weight:800;font-size:15px;color:${resultado>=0?'var(--green)':'var(--red)'}">${resultado>=0?'+':''}${resultado.toFixed(2)} €</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:24px;flex-wrap:wrap">
+        <div style="font-size:11px;color:var(--text2)">
+          <strong style="color:var(--text)">Saldos Caixa/Banco no período:</strong><br>
+          💵 Caixa: <strong>${(()=>{let v=0;recUsar.filter(r=>r.meio==='caixa').forEach(r=>v+=parseFloat(r.valor||0));despUsar.filter(d=>d.meio==='caixa').forEach(d=>v-=parseFloat(d.valor||0));return v.toFixed(2)})()}</strong> €
+          &nbsp;|&nbsp;
+          🏦 Banco: <strong>${(()=>{let v=0;recUsar.filter(r=>r.meio!=='caixa').forEach(r=>v+=parseFloat(r.valor||0));despUsar.filter(d=>d.meio!=='caixa').forEach(d=>v-=parseFloat(d.valor||0));return v.toFixed(2)})()}</strong> €
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-left:auto">
+          Valores em euros · SNC-ESNL · Regime de caixa<br>
+          Gerado em ${new Date().toLocaleDateString('pt-PT')}
+        </div>
       </div>
     </div>`;
 };
