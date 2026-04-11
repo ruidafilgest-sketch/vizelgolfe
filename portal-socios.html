@@ -324,6 +324,19 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
     </div>
 
+    <!-- TORNEIOS -->
+    <div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:20px;margin-top:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;letter-spacing:1px">🏆 TORNEIOS E COMPETIÇÕES</div>
+        <select id="socio-filter-torneios" onchange="renderTorneisosSocio()" style="padding:6px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:12px;outline:none">
+          <option value="todos">Todos</option>
+          <option value="aberto">Inscrições abertas</option>
+          <option value="inscrito">Os meus</option>
+        </select>
+      </div>
+      <div id="socio-torneios-list"></div>
+    </div>
+
     <!-- AVISO PAGAMENTO (se pendente) -->
     <div id="socio-aviso-pendente" style="display:none;margin-top:16px;background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.3);border-radius:12px;padding:20px">
       <div style="font-size:13px;font-weight:600;color:var(--red);margin-bottom:8px">⚠️ Quota pendente</div>
@@ -856,6 +869,24 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
     </div><!-- /page-biblioteca -->
 
+    <!-- ── TORNEIOS ADMIN ── -->
+    <div id="page-torneios" class="page">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+        <div>
+          <h2 style="font-family:'Bebas Neue';font-size:28px;color:var(--accent);letter-spacing:2px">🏆 Torneios e Competições</h2>
+          <p style="font-size:13px;color:var(--text2);margin-top:2px">Gere torneios e confirma inscrições dos sócios</p>
+        </div>
+        <button class="btn btn-accent" onclick="openModalTorneio()">+ Novo Torneio</button>
+      </div>
+      <div class="stats-grid" style="margin-bottom:20px">
+        <div class="stat-card"><div class="val" id="torn-stat-total" style="font-size:32px">—</div><div class="lbl">Total Torneios</div></div>
+        <div class="stat-card"><div class="val" id="torn-stat-abertos" style="font-size:32px;color:var(--green)">—</div><div class="lbl">Inscrições Abertas</div></div>
+        <div class="stat-card"><div class="val" id="torn-stat-pendentes" style="font-size:32px;color:var(--accent)">—</div><div class="lbl">Pendentes Confirmação</div></div>
+        <div class="stat-card"><div class="val" id="torn-stat-inscritos" style="font-size:32px;color:var(--blue)">—</div><div class="lbl">Total Inscrições</div></div>
+      </div>
+      <div id="torn-lista-admin"></div>
+    </div><!-- /page-torneios -->
+
   </main>
 </div>
 
@@ -1212,6 +1243,94 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   </div>
 </div>
 
+
+<!-- MODAL TORNEIO (admin) -->
+<div class="modal-overlay" id="modal-torneio">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <h3 id="modal-torneio-title">Novo Torneio</h3>
+      <button class="modal-close" onclick="closeModal('modal-torneio')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group full"><label>Nome do Torneio / Competição</label>
+          <input id="t-nome" type="text" placeholder="Ex: Campeonato de Vizela 2026" />
+        </div>
+        <div class="form-group"><label>Tipo</label>
+          <input id="t-tipo" type="text" placeholder="Ex: Local, Nacional, Internacional..." />
+        </div>
+        <div class="form-group"><label>Local</label>
+          <input id="t-local" type="text" placeholder="Ex: Vizela — Pista Municipal" />
+        </div>
+        <div class="form-group"><label>Data do Torneio</label>
+          <input id="t-data" type="date" />
+        </div>
+        <div class="form-group"><label>Prazo de Inscrição</label>
+          <input id="t-prazo" type="date" />
+        </div>
+        <div class="form-group"><label>Vagas (0 = ilimitado)</label>
+          <input id="t-vagas" type="number" value="0" min="0" />
+        </div>
+        <div class="form-group"><label>Estado das Inscrições</label>
+          <select id="t-estado">
+            <option value="aberto">✅ Abertas</option>
+            <option value="fechado">🔒 Fechadas</option>
+            <option value="cancelado">❌ Cancelado</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Descrição / Informações</label>
+          <textarea id="t-desc" rows="3" placeholder="Regulamento, categorias, informações adicionais..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-torneio')">Cancelar</button>
+      <button class="btn btn-accent" onclick="gravarTorneio()">💾 Gravar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VER INSCRITOS (admin) -->
+<div class="modal-overlay" id="modal-inscritos">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <h3 id="modal-inscritos-title">Inscritos</h3>
+      <button class="modal-close" onclick="closeModal('modal-inscritos')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:65vh;overflow-y:auto">
+      <div id="modal-inscritos-content"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-inscritos')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL INSCRIÇÃO SÓCIO -->
+<div class="modal-overlay" id="modal-inscricao">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-header">
+      <h3 id="modal-inscricao-title">Inscrição</h3>
+      <button class="modal-close" onclick="closeModal('modal-inscricao')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="modal-inscricao-info" style="background:var(--bg2);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px"></div>
+      <div class="form-grid">
+        <div class="form-group full"><label>Categoria em que participa</label>
+          <input id="insc-categoria" type="text" placeholder="Ex: Homens, Seniores Masc., Veteranos..." />
+        </div>
+        <div class="form-group full"><label>Observações (opcional)</label>
+          <textarea id="insc-obs" rows="2" placeholder="Informações adicionais para o admin..."></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-inscricao')">Cancelar</button>
+      <button class="btn btn-accent" onclick="submeterInscricao()">🏆 Confirmar Inscrição</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <!-- FIREBASE -->
@@ -1489,6 +1608,7 @@ function carregarDados() {
   carregarConfiguracoes();
   carregarSecretaria();
   carregarBiblioteca();
+  carregarTorneios();
 }
 
 // ─── NAVEGAÇÃO ─────────────────────────────────────
@@ -1497,6 +1617,7 @@ window.showPage = function(page) {
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   event.target.classList.add('active');
+  if (page === 'torneios') renderTorneiosAdmin();
 };
 
 // ─── DASHBOARD ─────────────────────────────────────
@@ -3632,6 +3753,326 @@ window.renderAcertos = function() {
         </td>
       </tr>`;
     }).join('');
+};
+
+// ─── TORNEIOS ──────────────────────────────────────
+let torneios = {};
+let inscricoes = {};
+let editTorneioKey = null;
+let inscricaoTorneioKey = null; // torneio a que o sócio se quer inscrever
+
+function carregarTorneios() {
+  onValue(ref(db, '/portal/torneios'), snap => {
+    torneios = snap.val() || {};
+    renderTorneiosAdmin();
+    if (currentSocioKey) renderTorneisosSocio();
+  });
+  onValue(ref(db, '/portal/inscricoes'), snap => {
+    inscricoes = snap.val() || {};
+    renderTorneiosAdmin();
+    if (currentSocioKey) renderTorneisosSocio();
+  });
+}
+
+// ── ADMIN: criar/editar torneio ───────────────────
+window.openModalTorneio = function() {
+  editTorneioKey = null;
+  document.getElementById('modal-torneio-title').textContent = 'Novo Torneio';
+  document.getElementById('t-nome').value  = '';
+  document.getElementById('t-tipo').value  = '';
+  document.getElementById('t-local').value = '';
+  document.getElementById('t-data').value  = '';
+  document.getElementById('t-prazo').value = '';
+  document.getElementById('t-vagas').value = '0';
+  document.getElementById('t-estado').value = 'aberto';
+  document.getElementById('t-desc').value  = '';
+  openModal('modal-torneio');
+};
+
+window.editarTorneio = function(key) {
+  editTorneioKey = key;
+  const t = torneios[key];
+  document.getElementById('modal-torneio-title').textContent = 'Editar Torneio';
+  document.getElementById('t-nome').value   = t.nome   || '';
+  document.getElementById('t-tipo').value   = t.tipo   || '';
+  document.getElementById('t-local').value  = t.local  || '';
+  document.getElementById('t-data').value   = t.data   || '';
+  document.getElementById('t-prazo').value  = t.prazo  || '';
+  document.getElementById('t-vagas').value  = t.vagas  || '0';
+  document.getElementById('t-estado').value = t.estado || 'aberto';
+  document.getElementById('t-desc').value   = t.descricao || '';
+  openModal('modal-torneio');
+};
+
+window.gravarTorneio = async function() {
+  const nome = document.getElementById('t-nome').value.trim();
+  if (!nome) { toast('Preenche o nome do torneio', 'error'); return; }
+  const dados = {
+    nome,
+    tipo:      document.getElementById('t-tipo').value.trim(),
+    local:     document.getElementById('t-local').value.trim(),
+    data:      document.getElementById('t-data').value,
+    prazo:     document.getElementById('t-prazo').value,
+    vagas:     parseInt(document.getElementById('t-vagas').value) || 0,
+    estado:    document.getElementById('t-estado').value,
+    descricao: document.getElementById('t-desc').value.trim(),
+    criadoEm:  new Date().toISOString()
+  };
+  try {
+    if (editTorneioKey) {
+      await update(ref(db, `/portal/torneios/${editTorneioKey}`), dados);
+      toast('Torneio atualizado ✅');
+    } else {
+      await push(ref(db, '/portal/torneios'), dados);
+      toast('Torneio criado ✅');
+    }
+    closeModal('modal-torneio');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+};
+
+window.apagarTorneio = async function(key) {
+  if (!confirm('Apagar este torneio? As inscrições associadas também serão removidas.')) return;
+  // Apagar inscrições do torneio
+  const inscTorneio = Object.entries(inscricoes).filter(([,i]) => i.torneioKey === key);
+  for (const [ik] of inscTorneio) await remove(ref(db, `/portal/inscricoes/${ik}`));
+  await remove(ref(db, `/portal/torneios/${key}`));
+  toast('Torneio removido');
+};
+
+// ── ADMIN: ver e gerir inscritos ──────────────────
+window.verInscritos = function(key) {
+  const t = torneios[key];
+  document.getElementById('modal-inscritos-title').textContent = `🏆 ${t.nome} — Inscritos`;
+  const inscTorneio = Object.entries(inscricoes).filter(([,i]) => i.torneioKey === key);
+  const estadoCor = { pendente:'var(--accent)', confirmado:'var(--green)', rejeitado:'var(--red)' };
+  const estadoLabel = { pendente:'⏳ Pendente', confirmado:'✅ Confirmado', rejeitado:'❌ Rejeitado' };
+
+  if (!inscTorneio.length) {
+    document.getElementById('modal-inscritos-content').innerHTML =
+      '<div class="empty"><div class="icon">🏆</div><p>Sem inscrições ainda</p></div>';
+  } else {
+    document.getElementById('modal-inscritos-content').innerHTML = `
+      <div style="margin-bottom:12px;font-size:12px;color:var(--text2)">${inscTorneio.length} inscrição(ões) · ${inscTorneio.filter(([,i])=>i.estado==='confirmado').length} confirmadas</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${inscTorneio.sort((a,b)=>(a[1].criadoEm||'').localeCompare(b[1].criadoEm||'')).map(([ik,i]) => `
+          <div style="background:var(--bg2);border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="flex:1;min-width:160px">
+              <div style="font-weight:700;font-size:14px">${i.socioNome||'—'}</div>
+              <div style="font-size:12px;color:var(--text2)">Nº ${i.socioNum||'—'} · ${i.categoria||'—'}</div>
+              ${i.obs ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">${i.obs}</div>` : ''}
+              <div style="font-size:11px;color:var(--text2);margin-top:2px">Inscrito em ${i.criadoEm ? new Date(i.criadoEm).toLocaleDateString('pt-PT') : '—'}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-size:12px;font-weight:700;color:${estadoCor[i.estado]||'var(--text2)'};background:rgba(0,0,0,0.2);padding:4px 10px;border-radius:20px">
+                ${estadoLabel[i.estado]||i.estado}
+              </span>
+              ${i.estado === 'pendente' ? `
+                <button class="btn btn-green btn-sm" onclick="alterarEstadoInscricao('${ik}','confirmado')">✅ Confirmar</button>
+                <button class="btn btn-danger btn-sm" onclick="alterarEstadoInscricao('${ik}','rejeitado')">❌ Rejeitar</button>
+              ` : `
+                <button class="btn btn-outline btn-sm" onclick="alterarEstadoInscricao('${ik}','pendente')">↩ Repor</button>
+              `}
+              <button class="btn btn-danger btn-sm" onclick="apagarInscricao('${ik}')">🗑️</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+  }
+  openModal('modal-inscritos');
+};
+
+window.alterarEstadoInscricao = async function(key, estado) {
+  try {
+    await update(ref(db, `/portal/inscricoes/${key}`), { estado, atualizadoEm: new Date().toISOString() });
+    toast(estado === 'confirmado' ? 'Inscrição confirmada ✅' : estado === 'rejeitado' ? 'Inscrição rejeitada' : 'Estado reposto');
+    // Atualizar modal sem fechar
+    const insc = inscricoes[key];
+    if (insc) verInscritos(insc.torneioKey);
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+};
+
+window.apagarInscricao = async function(key) {
+  if (!confirm('Remover esta inscrição?')) return;
+  const insc = inscricoes[key];
+  await remove(ref(db, `/portal/inscricoes/${key}`));
+  toast('Inscrição removida');
+  if (insc) verInscritos(insc.torneioKey);
+};
+
+// ── ADMIN: render lista de torneios ──────────────
+window.renderTorneiosAdmin = function() {
+  const lista = Object.entries(torneios).sort((a,b) => (b[1].data||'').localeCompare(a[1].data||''));
+  const totalInsc = Object.values(inscricoes).length;
+  const pendentes = Object.values(inscricoes).filter(i => i.estado === 'pendente').length;
+  const abertos   = lista.filter(([,t]) => t.estado === 'aberto').length;
+
+  const el = id => document.getElementById(id);
+  if (el('torn-stat-total'))    el('torn-stat-total').textContent    = lista.length;
+  if (el('torn-stat-abertos'))  el('torn-stat-abertos').textContent  = abertos;
+  if (el('torn-stat-pendentes'))el('torn-stat-pendentes').textContent = pendentes;
+  if (el('torn-stat-inscritos'))el('torn-stat-inscritos').textContent = totalInsc;
+
+  const cont = document.getElementById('torn-lista-admin');
+  if (!cont) return;
+  if (!lista.length) {
+    cont.innerHTML = '<div class="empty"><div class="icon">🏆</div><p>Nenhum torneio criado</p></div>';
+    return;
+  }
+
+  const estadoBadge = {
+    aberto:    '<span style="background:#2ecc71;color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:1px">ABERTO</span>',
+    fechado:   '<span style="background:var(--text2);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:1px">FECHADO</span>',
+    cancelado: '<span style="background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:1px">CANCELADO</span>'
+  };
+
+  cont.innerHTML = lista.map(([key,t]) => {
+    const inscT = Object.values(inscricoes).filter(i => i.torneioKey === key);
+    const conf  = inscT.filter(i => i.estado === 'confirmado').length;
+    const pend  = inscT.filter(i => i.estado === 'pendente').length;
+    const prazoPass = t.prazo && t.prazo < new Date().toISOString().slice(0,10);
+    return `
+      <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;margin-bottom:14px">
+        <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
+          <div style="flex:1;min-width:220px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;flex-wrap:wrap">
+              <span style="font-family:'Bebas Neue';font-size:20px;color:var(--accent);letter-spacing:1px">${t.nome}</span>
+              ${estadoBadge[t.estado] || ''}
+              ${pend > 0 ? `<span style="background:var(--accent);color:#000;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px">${pend} PENDENTE${pend>1?'S':''}</span>` : ''}
+            </div>
+            <div style="font-size:12px;color:var(--text2);display:flex;gap:16px;flex-wrap:wrap">
+              ${t.tipo  ? `<span>📋 ${t.tipo}</span>` : ''}
+              ${t.data  ? `<span>📅 ${t.data}</span>` : ''}
+              ${t.local ? `<span>📍 ${t.local}</span>` : ''}
+              ${t.prazo ? `<span style="${prazoPass?'color:var(--red)':''}">⏰ Prazo: ${t.prazo}${prazoPass?' (expirado)':''}</span>` : ''}
+              ${t.vagas ? `<span>👥 Vagas: ${t.vagas}</span>` : '<span>👥 Vagas ilimitadas</span>'}
+            </div>
+            ${t.descricao ? `<div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.5">${t.descricao}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:120px">
+            <div style="text-align:center;background:var(--bg2);border-radius:8px;padding:10px 16px">
+              <div style="font-family:'Bebas Neue';font-size:24px;color:var(--blue)">${inscT.length}</div>
+              <div style="font-size:10px;color:var(--text2)">INSCRITOS</div>
+              <div style="font-size:10px;color:var(--green)">${conf} confirmados</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+              <button class="btn btn-outline btn-sm" onclick="verInscritos('${key}')">👥 Inscritos</button>
+              <button class="btn btn-outline btn-sm" onclick="editarTorneio('${key}')">✏️</button>
+              <button class="btn btn-danger btn-sm" onclick="apagarTorneio('${key}')">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+};
+
+// ── SÓCIO: ver e inscrever-se em torneios ─────────
+window.renderTorneisosSocio = function() {
+  const filtro = document.getElementById('socio-filter-torneios')?.value || 'todos';
+  const cont   = document.getElementById('socio-torneios-list');
+  if (!cont) return;
+
+  // Inscrições do sócio atual
+  const minhasInsc = Object.entries(inscricoes).filter(([,i]) => i.socioKey === currentSocioKey);
+  const torneiosInscritos = new Set(minhasInsc.map(([,i]) => i.torneioKey));
+
+  let lista = Object.entries(torneios).sort((a,b) => (b[1].data||'').localeCompare(a[1].data||''));
+  if (filtro === 'aberto')   lista = lista.filter(([,t]) => t.estado === 'aberto');
+  if (filtro === 'inscrito') lista = lista.filter(([key]) => torneiosInscritos.has(key));
+
+  if (!lista.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text2);font-size:13px">Nenhum torneio encontrado.</div>';
+    return;
+  }
+
+  const estadoCor   = { pendente:'var(--accent)', confirmado:'var(--green)', rejeitado:'var(--red)' };
+  const estadoLabel = { pendente:'⏳ Pendente confirmação', confirmado:'✅ Inscrito e confirmado', rejeitado:'❌ Inscrição rejeitada' };
+
+  cont.innerHTML = lista.map(([key,t]) => {
+    const minhaInsc = minhasInsc.find(([,i]) => i.torneioKey === key);
+    const prazoPass = t.prazo && t.prazo < new Date().toISOString().slice(0,10);
+    const podeInscrever = t.estado === 'aberto' && !prazoPass && !minhaInsc;
+    const inscT = Object.values(inscricoes).filter(i => i.torneioKey === key);
+    const vagasOcup = inscT.filter(i => i.estado === 'confirmado').length;
+    const semVagas = t.vagas > 0 && vagasOcup >= t.vagas;
+
+    return `
+      <div style="background:var(--bg2);border:1px solid ${minhaInsc ? 'var(--green)' : 'var(--border2)'};border-radius:12px;padding:18px;margin-bottom:12px">
+        <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap">
+          <div style="flex:1;min-width:200px">
+            <div style="font-family:'Bebas Neue';font-size:18px;color:var(--accent);letter-spacing:1px;margin-bottom:4px">${t.nome}</div>
+            <div style="font-size:12px;color:var(--text2);display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+              ${t.tipo  ? `<span>📋 ${t.tipo}</span>` : ''}
+              ${t.data  ? `<span>📅 ${t.data}</span>` : ''}
+              ${t.local ? `<span>📍 ${t.local}</span>` : ''}
+              ${t.prazo ? `<span style="${prazoPass?'color:var(--red)':''}">⏰ Prazo: ${t.prazo}</span>` : ''}
+            </div>
+            ${t.descricao ? `<div style="font-size:12px;color:var(--text2);line-height:1.5">${t.descricao}</div>` : ''}
+            ${t.vagas > 0 ? `<div style="font-size:11px;color:var(--text2);margin-top:4px">👥 ${vagasOcup}/${t.vagas} vagas preenchidas</div>` : ''}
+          </div>
+          <div style="min-width:140px;text-align:right">
+            ${minhaInsc ? `
+              <div style="font-size:12px;font-weight:700;color:${estadoCor[minhaInsc[1].estado]||'var(--text2)'};margin-bottom:8px">
+                ${estadoLabel[minhaInsc[1].estado]||minhaInsc[1].estado}
+              </div>
+              ${minhaInsc[1].estado === 'pendente' ? `
+                <button class="btn btn-danger btn-sm" onclick="cancelarInscricaoSocio('${minhaInsc[0]}')">Cancelar inscrição</button>
+              ` : ''}
+            ` : podeInscrever ? `
+              ${semVagas ? `<span style="font-size:12px;color:var(--red)">Sem vagas disponíveis</span>` : `
+                <button class="btn btn-accent" onclick="abrirInscricao('${key}')" style="font-size:12px;padding:8px 14px">🏆 Inscrever-me</button>
+              `}
+            ` : t.estado !== 'aberto' ? `
+              <span style="font-size:12px;color:var(--text2)">Inscrições ${t.estado === 'fechado' ? 'fechadas' : 'canceladas'}</span>
+            ` : prazoPass ? `
+              <span style="font-size:12px;color:var(--red)">Prazo expirado</span>
+            ` : ''}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+};
+
+window.abrirInscricao = function(torneioKey) {
+  inscricaoTorneioKey = torneioKey;
+  const t = torneios[torneioKey];
+  document.getElementById('modal-inscricao-title').textContent = `🏆 ${t.nome}`;
+  document.getElementById('modal-inscricao-info').innerHTML = `
+    <div style="font-weight:700;margin-bottom:6px">${t.nome}</div>
+    ${t.data  ? `<div style="font-size:12px;color:var(--text2)">📅 Data: ${t.data}</div>` : ''}
+    ${t.local ? `<div style="font-size:12px;color:var(--text2)">📍 Local: ${t.local}</div>` : ''}
+    ${t.prazo ? `<div style="font-size:12px;color:var(--text2)">⏰ Prazo: ${t.prazo}</div>` : ''}
+    <div style="margin-top:8px;font-size:12px;color:var(--accent)">A inscrição fica pendente até confirmação do admin.</div>
+  `;
+  document.getElementById('insc-categoria').value = currentSocioData?.categoria || '';
+  document.getElementById('insc-obs').value = '';
+  openModal('modal-inscricao');
+};
+
+window.submeterInscricao = async function() {
+  if (!inscricaoTorneioKey || !currentSocioKey) return;
+  const s = currentSocioData;
+  const dados = {
+    torneioKey:  inscricaoTorneioKey,
+    torneioNome: torneios[inscricaoTorneioKey]?.nome || '',
+    socioKey:    currentSocioKey,
+    socioNome:   s.nome || '',
+    socioNum:    s.numero || '',
+    categoria:   document.getElementById('insc-categoria').value.trim(),
+    obs:         document.getElementById('insc-obs').value.trim(),
+    estado:      'pendente',
+    criadoEm:    new Date().toISOString()
+  };
+  try {
+    await push(ref(db, '/portal/inscricoes'), dados);
+    toast('Inscrição submetida ✅ — aguarda confirmação do admin');
+    closeModal('modal-inscricao');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+};
+
+window.cancelarInscricaoSocio = async function(key) {
+  if (!confirm('Cancelar a tua inscrição?')) return;
+  await remove(ref(db, `/portal/inscricoes/${key}`));
+  toast('Inscrição cancelada');
 };
 
 window.toast = function(msg, type='success') {
