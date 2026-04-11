@@ -5707,150 +5707,254 @@ window.gerarCartaoSocio = function(key) {
   const s = socios[key];
   if (!s) return;
 
-  // Criar janela com o cartão
-  const anoAtual  = new Date().getFullYear().toString();
-  const minhasQ   = Object.entries(quotas).filter(([,q]) => q.socioKey === key);
-  const quotaAtual= minhasQ.find(([,q]) => String(q.ano) === anoAtual);
-  const qEstado   = quotaAtual?.[1]?.estado || 'pendente';
-  const validade  = qEstado === 'pago' ? `Válido ${anoAtual}` : `Quota pendente ${anoAtual}`;
-  const corValidade = qEstado === 'pago' ? '#2ecc71' : '#e74c3c';
+  const anoAtual   = new Date().getFullYear().toString();
+  const minhasQ    = Object.entries(quotas).filter(([,q]) => q.socioKey === key);
+  const quotaAtual = minhasQ.find(([,q]) => String(q.ano) === anoAtual);
+  const qEstado    = quotaAtual?.[1]?.estado || 'pendente';
+  const corVal     = qEstado === 'pago' ? '#2ecc71' : '#e74c3c';
+  const lblVal     = qEstado === 'pago' ? 'Válido ' + anoAtual : 'Pendente ' + anoAtual;
+  const numFmt     = String(s.numero || '0').padStart(4, '0');
+  const catAbrev   = {'Atleta':'ATL','Normal':'NOR','Reformado':'REF','Fundador':'FUN','Socio beneficios':'BEN','Honorário':'HON','Júnior':'JUN'};
+  const catCod     = catAbrev[s.categoria] || (s.categoria||'SOC').slice(0,3).toUpperCase();
+  const iniciais   = (s.nome||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+  const fotoEl     = s.foto
+    ? `<img src="${s.foto}" style="width:100%;height:100%;object-fit:cover;display:block">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:26px;color:#4a6080;background:#0d1a2e">${iniciais}</div>`;
 
-  const catAbrev = {
-    'Atleta':'ATL','Normal':'NOR','Reformado':'REF','Fundador':'FUN',
-    'Socio beneficios':'BEN','Honorário':'HON','Júnior':'JUN'
-  };
-  const catCod = catAbrev[s.categoria] || s.categoria?.slice(0,3).toUpperCase() || '---';
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#060e1c;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;padding:32px;font-family:'DM Sans',sans-serif}
 
-  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;600&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{background:#0a1628;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;padding:24px;font-family:'DM Sans',sans-serif}
-    .cartao{width:340px;height:214px;border-radius:14px;position:relative;overflow:hidden;background:linear-gradient(135deg,#0f1e35 0%,#162444 50%,#0f1e35 100%);box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px rgba(212,130,10,.3);cursor:pointer}
-    .cartao-frente,.cartao-verso{width:100%;height:100%;position:absolute;top:0;left:0}
-    /* Frente */
-    .bg-pattern{position:absolute;inset:0;background:
-      radial-gradient(circle at 80% 20%,rgba(212,130,10,.12) 0%,transparent 50%),
-      radial-gradient(circle at 20% 80%,rgba(52,152,219,.08) 0%,transparent 50%);
-    }
-    .stripe{position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#d4820a,#f0a030,#d4820a)}
-    .logo-area{position:absolute;top:14px;left:16px;display:flex;align-items:center;gap:8px}
-    .logo-img{width:32px;height:32px;object-fit:contain}
-    .logo-text{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:2px;color:#d4820a;line-height:1}
-    .logo-sub{font-size:8px;color:rgba(232,240,254,.5);letter-spacing:1px;text-transform:uppercase}
-    .cat-badge{position:absolute;top:14px;right:14px;background:rgba(212,130,10,.2);border:1px solid rgba(212,130,10,.4);border-radius:4px;padding:3px 8px;font-family:'Bebas Neue',sans-serif;font-size:11px;color:#d4820a;letter-spacing:2px}
-    .foto-area{position:absolute;bottom:14px;left:16px;width:54px;height:68px;border-radius:6px;overflow:hidden;background:rgba(255,255,255,.06);border:1.5px solid rgba(212,130,10,.4);display:flex;align-items:center;justify-content:center;font-size:20px;color:rgba(232,240,254,.3)}
-    .foto-area img{width:100%;height:100%;object-fit:cover}
-    .dados{position:absolute;bottom:14px;left:82px;right:14px}
-    .nome{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#e8f0fe;letter-spacing:1px;line-height:1.1;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .num{font-family:'DM Mono',monospace;font-size:11px;color:#d4820a;letter-spacing:2px;margin-bottom:2px}
-    .categoria{font-size:10px;color:rgba(232,240,254,.55);letter-spacing:.5px;margin-bottom:6px}
-    .validade{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:2px 7px;border-radius:10px;background:rgba(0,0,0,.3);border:1px solid}
-    .chip{position:absolute;top:50%;left:16px;transform:translateY(-50%);width:28px;height:20px;border-radius:3px;background:linear-gradient(135deg,#c8a84b,#f0c060,#c8a84b);opacity:.7}
-    /* Verso */
-    .verso-content{padding:14px;height:100%;display:flex;flex-direction:column;gap:8px}
-    .verso-faixa{height:36px;background:#111;margin:0 -14px;flex-shrink:0}
-    .verso-dados{background:rgba(255,255,255,.06);border-radius:6px;padding:10px 12px;flex:1}
-    .verso-linha{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:10px}
-    .verso-label{color:rgba(143,168,200,.7)}
-    .verso-val{color:#e8f0fe;font-weight:600;font-family:'DM Mono',monospace;font-size:10px}
-    .verso-footer{font-size:8px;color:rgba(143,168,200,.4);text-align:center;padding-top:4px}
-    /* Botões */
-    .acoes{display:flex;gap:10px}
-    .btn-c{padding:10px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .2s}
-    .btn-dl{background:#d4820a;color:#000}
-    .btn-pr{background:transparent;color:#8fa8c8;border:1px solid rgba(143,168,200,.3)}
-    .nota{font-size:10px;color:rgba(143,168,200,.5);text-align:center;max-width:340px}
-  <\/style><\/head><body>
+.scene{width:380px;height:240px;perspective:1200px;cursor:pointer;position:relative}
+.scene:hover .inner{transform:rotateY(5deg) rotateX(-2deg)}
+.scene.flipped .inner{transform:rotateY(180deg)!important}
+.inner{width:100%;height:100%;position:relative;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.23,1,.32,1)}
+.face{position:absolute;width:100%;height:100%;border-radius:16px;backface-visibility:hidden;-webkit-backface-visibility:hidden}
 
-  <!-- CARTÃO FRENTE -->
-  <div class="cartao" id="cartao-frente" onclick="flipCard()">
-    <div class="cartao-frente" id="face-frente">
-      <div class="bg-pattern"></div>
+/* FRENTE */
+.frente{
+  background:linear-gradient(135deg,#0a1628 0%,#0f1e35 40%,#162444 70%,#0d1a30 100%);
+  box-shadow:0 25px 70px rgba(0,0,0,.7),0 0 0 1px rgba(212,130,10,.2),inset 0 1px 0 rgba(255,255,255,.05);
+  overflow:hidden;
+}
+.frente::before{
+  content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse at 80% 15%,rgba(212,130,10,.13) 0%,transparent 55%),
+             radial-gradient(ellipse at 15% 85%,rgba(52,152,219,.08) 0%,transparent 50%);
+}
+.dots{
+  position:absolute;inset:0;
+  background-image:radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:18px 18px;
+}
+
+/* Faixa topo */
+.stripe{position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#b8720a,#f0a030 30%,#ffe066 50%,#f0a030 70%,#b8720a)}
+.stripe::after{content:'';position:absolute;bottom:-1px;left:0;right:0;height:1px;background:rgba(255,200,100,.2)}
+
+/* Logo área */
+.logo-area{position:absolute;top:16px;left:18px;display:flex;align-items:center;gap:10px}
+.logo-circle{width:36px;height:36px;border-radius:50%;background:rgba(212,130,10,.15);border:1px solid rgba(212,130,10,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-img{width:26px;height:26px;object-fit:contain}
+.logo-text h1{font-family:'Bebas Neue',sans-serif;font-size:15px;color:#d4820a;letter-spacing:2.5px;line-height:1}
+.logo-text p{font-size:7px;color:rgba(143,168,200,.6);letter-spacing:.8px;text-transform:uppercase;margin-top:1px}
+
+/* Badge categoria */
+.cat-badge{position:absolute;top:16px;right:18px;background:rgba(212,130,10,.12);border:1px solid rgba(212,130,10,.35);border-radius:4px;padding:3px 9px;font-family:'Bebas Neue',sans-serif;font-size:12px;color:#d4820a;letter-spacing:2px}
+
+/* Chip */
+.chip{position:absolute;top:72px;left:18px;width:38px;height:28px;border-radius:5px;background:linear-gradient(135deg,#c8a020,#f5d060 40%,#e8b830 60%,#c0950a);box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.chip-lines{position:absolute;inset:0;border-radius:5px;overflow:hidden}
+.chip-h{position:absolute;width:100%;height:1px;background:rgba(100,60,0,.3)}
+.chip-v{position:absolute;height:100%;width:1px;background:rgba(100,60,0,.3)}
+.nfc{position:absolute;top:78px;left:64px;font-size:16px;color:rgba(52,152,219,.35);letter-spacing:-3px;font-family:sans-serif}
+
+/* Foto */
+.foto-wrap{position:absolute;bottom:18px;left:18px;width:52px;height:66px;border-radius:7px;overflow:hidden;border:1.5px solid rgba(212,130,10,.45);box-shadow:0 4px 16px rgba(0,0,0,.5)}
+
+/* Dados */
+.dados{position:absolute;bottom:18px;left:82px;right:18px}
+.dados-nome{font-family:'Bebas Neue',sans-serif;font-size:20px;color:#e8f0fe;letter-spacing:1.5px;line-height:1;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dados-num{font-family:'DM Mono',monospace;font-size:10px;color:#d4820a;letter-spacing:2.5px;margin-bottom:2px}
+.dados-cat{font-size:9px;color:rgba(143,168,200,.55);letter-spacing:.5px;margin-bottom:7px}
+.validade{display:inline-flex;align-items:center;gap:5px;font-size:8.5px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;padding:2.5px 9px;border-radius:12px;border:1px solid}
+
+/* Linha central */
+.divider{position:absolute;bottom:110px;left:18px;right:18px;height:1px;background:linear-gradient(90deg,transparent,rgba(212,130,10,.2),rgba(212,130,10,.35),rgba(212,130,10,.2),transparent)}
+
+/* VERSO */
+.verso{
+  background:linear-gradient(135deg,#0a1628,#0f1e35 50%,#091525);
+  box-shadow:0 25px 70px rgba(0,0,0,.7),0 0 0 1px rgba(212,130,10,.15);
+  transform:rotateY(180deg);
+  overflow:hidden;
+}
+.verso .dots{opacity:.6}
+.verso .stripe{background:linear-gradient(90deg,#b8720a,#d4820a 50%,#b8720a);opacity:.5}
+
+/* Faixa magnética */
+.mag{position:absolute;top:28px;left:0;right:0;height:44px;background:linear-gradient(0deg,#111 0%,#222 50%,#111 100%);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+.mag::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:rgba(255,255,255,.04)}
+
+/* Faixa assinatura */
+.assinatura-wrap{position:absolute;top:85px;left:16px;display:flex;gap:8px;align-items:center}
+.assinatura{width:185px;height:32px;background:#f0ede8;border-radius:3px;display:flex;align-items:center;padding:0 10px;position:relative;overflow:hidden}
+.assinatura::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 4px,rgba(180,160,140,.15) 4px,rgba(180,160,140,.15) 5px)}
+.assinatura span{font-family:'DM Sans',sans-serif;font-size:11px;color:#333;font-style:italic;position:relative;z-index:1}
+.cvv-box{width:60px;height:32px;background:#0d1a2e;border:1px solid rgba(212,130,10,.4);border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.cvv-label{font-size:7px;color:rgba(143,168,200,.6);letter-spacing:1px;text-transform:uppercase}
+.cvv-val{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;color:#d4820a}
+
+/* Dados verso */
+.verso-dados{position:absolute;top:133px;left:16px;right:16px}
+.verso-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(42,58,85,.7);font-size:10px}
+.verso-row:last-child{border-bottom:none}
+.verso-lbl{color:rgba(107,133,168,.8)}
+.verso-val{font-weight:500;color:#c8d8f0;font-family:'DM Mono',monospace;font-size:9.5px}
+
+/* Rodapé verso */
+.verso-footer{position:absolute;bottom:10px;left:16px;right:16px;text-align:center;font-size:7.5px;color:rgba(74,96,122,.7);letter-spacing:.3px}
+
+/* Controlos */
+.hint{font-size:11px;color:rgba(143,168,200,.5);letter-spacing:.3px;text-align:center}
+.acoes{display:flex;gap:10px}
+.btn{padding:10px 22px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .2s;font-family:'DM Sans',sans-serif}
+.btn-dl{background:#d4820a;color:#000;letter-spacing:.3px}
+.btn-dl:hover{background:#f0a030}
+.btn-pr{background:rgba(255,255,255,.06);color:rgba(200,220,255,.7);border:1px solid rgba(255,255,255,.1)}
+.btn-pr:hover{background:rgba(255,255,255,.1)}
+@media print{
+  body{background:#fff;padding:16px;justify-content:flex-start;gap:8px}
+  .frente,.verso{box-shadow:none;border:0.5px solid #ccc}
+  .scene{width:85.6mm;height:54mm}
+  .acoes,.hint{display:none}
+  .dados-nome{font-size:17px}
+}
+</style></head><body>
+
+<!-- FRENTE -->
+<div class="scene" id="cartao" onclick="flip()" title="Clica para ver o verso">
+  <div class="inner" id="inner">
+    <div class="face frente">
+      <div class="dots"></div>
       <div class="stripe"></div>
+
       <div class="logo-area">
-        <img class="logo-img" src="${LOGO_B64}" alt="Vizelgolfe">
-        <div>
-          <div class="logo-text">VIZELGOLFE</div>
-          <div class="logo-sub">Minigolfe de Vizela</div>
+        <div class="logo-circle">
+          <img class="logo-img" src="${LOGO_B64}" alt="Vizelgolfe">
+        </div>
+        <div class="logo-text">
+          <h1>VIZELGOLFE</h1>
+          <p>Assoc. Minigolfe de Vizela</p>
         </div>
       </div>
+
       <div class="cat-badge">${catCod}</div>
-      <div class="chip"></div>
-      <div class="foto-area">
-        ${s.foto ? `<img src="${s.foto}" alt="">` : '👤'}
+
+      <div class="chip">
+        <div class="chip-lines">
+          <div class="chip-h" style="top:33%"></div>
+          <div class="chip-h" style="top:66%"></div>
+          <div class="chip-v" style="left:30%"></div>
+          <div class="chip-v" style="left:65%"></div>
+        </div>
       </div>
+      <div class="nfc">)))</div>
+
+      <div class="divider"></div>
+
+      <div class="foto-wrap">${fotoEl}</div>
+
       <div class="dados">
-        <div class="nome">${s.nome||'—'}</div>
-        <div class="num">Nº ${String(s.numero||'—').padStart(4,'0')}</div>
-        <div class="categoria">${s.categoria||'—'} · NIF ${s.nif||'—'}</div>
-        <div class="validade" style="color:${corValidade};border-color:${corValidade}40">
-          ${qEstado === 'pago' ? '●' : '○'} ${validade}
+        <div class="dados-nome">${(s.nome||'—').toUpperCase()}</div>
+        <div class="dados-num">Nº ${numFmt}</div>
+        <div class="dados-cat">${s.categoria||'—'} · NIF ${s.nif||'—'}</div>
+        <div class="validade" style="color:${corVal};border-color:${corVal}50;background:${corVal}12">
+          <svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" fill="${corVal}"/></svg>
+          ${lblVal}
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- VERSO (oculto até flip) -->
-  <div id="cartao-verso" style="display:none;width:340px;height:214px;border-radius:14px;overflow:hidden;background:linear-gradient(135deg,#0f1e35,#162444);box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 0 1px rgba(212,130,10,.3)">
-    <div class="verso-content">
-      <div class="verso-faixa"></div>
-      <div class="verso-dados">
-        <div class="verso-linha"><span class="verso-label">Nome</span><span class="verso-val">${(s.nome||'').split(' ').slice(0,2).join(' ')}</span></div>
-        <div class="verso-linha"><span class="verso-label">Nº Sócio</span><span class="verso-val">${s.numero||'—'}</span></div>
-        <div class="verso-linha"><span class="verso-label">Categoria</span><span class="verso-val">${s.categoria||'—'}</span></div>
-        <div class="verso-linha"><span class="verso-label">NIF</span><span class="verso-val">${s.nif||'—'}</span></div>
-        <div class="verso-linha"><span class="verso-label">Estado</span><span class="verso-val" style="color:${corValidade}">${validade}</span></div>
-        <div class="verso-linha" style="border-bottom:none"><span class="verso-label">Inscrição</span><span class="verso-val">${s.inscricao||'—'}</span></div>
+    <!-- VERSO -->
+    <div class="face verso">
+      <div class="dots"></div>
+      <div class="stripe"></div>
+      <div class="mag"></div>
+
+      <div class="assinatura-wrap">
+        <div class="assinatura"><span>${s.nome||'—'}</span></div>
+        <div class="cvv-box">
+          <div class="cvv-label">Nº</div>
+          <div class="cvv-val">${s.numero||'—'}</div>
+        </div>
       </div>
-      <div class="verso-footer">Vizelgolfe — Associação de Minigolfe de Vizela · NIF 509 227 902<br>Em caso de perda, devolver à associação</div>
+
+      <div class="verso-dados">
+        <div class="verso-row">
+          <span class="verso-lbl">Categoria</span>
+          <span class="verso-val">${s.categoria||'—'}</span>
+        </div>
+        <div class="verso-row">
+          <span class="verso-lbl">NIF</span>
+          <span class="verso-val">${s.nif||'—'}</span>
+        </div>
+        <div class="verso-row">
+          <span class="verso-lbl">Inscrição</span>
+          <span class="verso-val">${s.inscricao||'—'}</span>
+        </div>
+        <div class="verso-row">
+          <span class="verso-lbl">Quota ${anoAtual}</span>
+          <span class="verso-val" style="color:${corVal}">${lblVal}</span>
+        </div>
+      </div>
+
+      <div class="verso-footer">
+        Vizelgolfe — Associação de Minigolfe de Vizela · NIF 509 227 902 · vizelgolfe.net<br>
+        Em caso de perda, devolver à associação
+      </div>
     </div>
   </div>
+</div>
 
-  <div class="acoes">
-    <button class="btn-c btn-dl" onclick="downloadCartao()">⬇️ Guardar PNG</button>
-    <button class="btn-c btn-pr" onclick="window.print()">🖨️ Imprimir</button>
-    <button class="btn-c btn-pr" onclick="window.close()">Fechar</button>
-  </div>
-  <div class="nota">Clica no cartão para ver o verso · O cartão tem dimensões de crédito padrão (85.6 × 54mm)</div>
+<div class="hint">Clica no cartão para ver o verso</div>
 
-  <script>
-  let mostraFrente = true;
-  function flipCard() {
-    mostraFrente = !mostraFrente;
-    document.getElementById('cartao-frente').style.display = mostraFrente ? 'block' : 'none';
-    document.getElementById('cartao-verso').style.display  = mostraFrente ? 'none'  : 'block';
-  }
+<div class="acoes">
+  <button class="btn btn-dl" onclick="download()">⬇ Guardar PNG</button>
+  <button class="btn btn-pr" onclick="window.print()">🖨 Imprimir</button>
+  <button class="btn btn-pr" onclick="window.close()">Fechar</button>
+</div>
 
-  async function downloadCartao() {
-    const el = mostraFrente ? document.getElementById('cartao-frente') : document.getElementById('cartao-verso');
-    // Usar html2canvas se disponível, senão fallback simples
-    try {
-      const script = document.createElement('script');
-      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-      script.onload = async () => {
-        const canvas = await html2canvas(mostraFrente ? document.getElementById('cartao-frente') : document.getElementById('cartao-verso'), {
-          scale: 3, useCORS: true, backgroundColor: null,
-          width: 340, height: 214
-        });
-        const a = document.createElement('a');
-        a.download = 'Cartao_Socio_' + (document.querySelector('.num')||{}).textContent?.replace(/[^0-9]/g,'') + '.png';
-        a.href = canvas.toDataURL('image/png');
-        a.click();
-      };
-      document.head.appendChild(script);
-    } catch(e) { alert('Usa Ctrl+P para imprimir o cartão.'); }
-  }
-  <\/script>
-  <style>@media print{
-    body{background:white;padding:0;justify-content:flex-start}
-    .acoes,.nota{display:none}
-    #cartao-frente,#cartao-verso{box-shadow:none;border:1px solid #ccc;width:85.6mm;height:54mm;border-radius:3mm}
-    #cartao-verso{display:block!important;margin-top:4mm}
-  }<\/style>
-  <\/body><\/html>`;
+<script>
+let flipped = false;
+function flip() {
+  flipped = !flipped;
+  document.getElementById('cartao').classList.toggle('flipped', flipped);
+  document.querySelector('.hint').textContent = flipped ? 'Clica para ver a frente' : 'Clica para ver o verso';
+}
+async function download() {
+  const face = flipped ? document.querySelector('.verso') : document.querySelector('.frente');
+  const sc = document.createElement('script');
+  sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+  sc.onload = async () => {
+    const canvas = await html2canvas(face, {
+      scale: 4, useCORS: true, backgroundColor: null,
+      width: 380, height: 240, logging: false
+    });
+    const a = document.createElement('a');
+    a.download = 'Cartao_Socio_${numFmt}.png';
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  };
+  document.head.appendChild(sc);
+}
+</scr` + `ipt>
+<\/body><\/html>`;
 
-  const w = window.open('','_blank','width=500,height=600');
+  const w = window.open('','_blank','width=520,height=580,left=200,top=100');
   w.document.write(html);
   w.document.close();
 };
