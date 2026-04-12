@@ -2231,8 +2231,8 @@ function renderDashboard() {
 
   // ── Saldos Caixa/Banco ──
   let saldoCaixa=0, saldoBanco=0;
-  recAno.forEach(r=>{const v=parseFloat(r.valor||0); r.meio==='caixa'?saldoCaixa+=v:saldoBanco+=v;});
-  despAno.forEach(d=>{const v=parseFloat(d.valor||0); d.meio==='caixa'?saldoCaixa-=v:saldoBanco-=v;});
+  recAno.forEach(r=>{const v=parseFloat(r.valor||0); r.meio?.toLowerCase()==='caixa'?saldoCaixa+=v:saldoBanco+=v;});
+  despAno.forEach(d=>{const v=parseFloat(d.valor||0); d.meio?.toLowerCase()==='caixa'?saldoCaixa-=v:saldoBanco-=v;});
   acAno.forEach(a=>{const v=parseFloat(a.valor||0); a.sentido==='caixa-banco'?(saldoCaixa-=v,saldoBanco+=v):(saldoBanco-=v,saldoCaixa+=v);});
   const fmt2 = v=>(v>=0?'+':'')+v.toFixed(2)+' €';
   const elC=document.getElementById('dash-saldo-caixa');
@@ -2594,6 +2594,7 @@ window.gravarPagamento = async function() {
         valor: dados.valor,
         subconta,
         conta: contaSNC,
+        categoria: subconta,
         meio: 'Caixa',
         ref: `QT-${quotaKey}`,
         socioKey,
@@ -3152,14 +3153,14 @@ window.renderBalanco = function() {
     const c = r.conta || CAT_CONTA_REC[r.categoria] || '782';
     const v = parseFloat(r.valor || 0);
     if (mov[c])    mov[c].cre += v;
-    const cc = r.meio === 'caixa' ? '1101' : '1201';
+    const cc = r.meio?.toLowerCase() === 'caixa' ? '1101' : '1201';
     if (mov[cc])   mov[cc].deb += v;
   });
   despAno.forEach(d => {
     const c = d.conta || CAT_CONTA_DESP[d.categoria] || '688';
     const v = parseFloat(d.valor || 0);
     if (mov[c])    mov[c].deb += v;
-    const cc = d.meio === 'caixa' ? '1101' : '1201';
+    const cc = d.meio?.toLowerCase() === 'caixa' ? '1101' : '1201';
     if (mov[cc])   mov[cc].cre += v;
   });
   acAno.forEach(a => {
@@ -3837,7 +3838,7 @@ window.renderBalancete = function() {
     const v = parseFloat(r.valor || 0);
     // Receita: Crédito na conta de rendimento (7xx), Débito em Caixa/Banco
     if (mov[c]) mov[c].cre += v;
-    const cc = r.meio === 'caixa' ? '1101' : '1201';
+    const cc = r.meio?.toLowerCase() === 'caixa' ? '1101' : '1201';
     if (mov[cc]) mov[cc].deb += v;
   });
 
@@ -3846,7 +3847,7 @@ window.renderBalancete = function() {
     const v = parseFloat(d.valor || 0);
     // Despesa: Débito na conta de gasto (6xx), Crédito em Caixa/Banco
     if (mov[c]) mov[c].deb += v;
-    const cc = d.meio === 'caixa' ? '1101' : '1201';
+    const cc = d.meio?.toLowerCase() === 'caixa' ? '1101' : '1201';
     if (mov[cc]) mov[cc].cre += v;
   });
 
@@ -3990,7 +3991,7 @@ window.renderBalancete = function() {
       <div style="margin-top:14px;display:flex;gap:24px;flex-wrap:wrap">
         <div style="font-size:11px;color:var(--text2)">
           <strong style="color:var(--text)">Saldos Caixa/Banco no período:</strong><br>
-          💵 Caixa: <strong>${(()=>{let v=0;recUsar.filter(r=>r.meio==='caixa').forEach(r=>v+=parseFloat(r.valor||0));despUsar.filter(d=>d.meio==='caixa').forEach(d=>v-=parseFloat(d.valor||0));return v.toFixed(2)})()}</strong> €
+          💵 Caixa: <strong>${(()=>{let v=0;recUsar.filter(r=>r.meio?.toLowerCase()==='caixa').forEach(r=>v+=parseFloat(r.valor||0));despUsar.filter(d=>d.meio?.toLowerCase()==='caixa').forEach(d=>v-=parseFloat(d.valor||0));return v.toFixed(2)})()}</strong> €
           &nbsp;|&nbsp;
           🏦 Banco: <strong>${(()=>{let v=0;recUsar.filter(r=>r.meio!=='caixa').forEach(r=>v+=parseFloat(r.valor||0));despUsar.filter(d=>d.meio!=='caixa').forEach(d=>v-=parseFloat(d.valor||0));return v.toFixed(2)})()}</strong> €
         </div>
@@ -4809,11 +4810,11 @@ window.renderAcertos = function() {
   let saldoCaixa = 0, saldoBanco = 0;
   recAno.forEach(r => {
     const v = parseFloat(r.valor || 0);
-    if (r.meio === 'caixa') saldoCaixa += v; else saldoBanco += v;
+    if (r.meio?.toLowerCase() === 'caixa') saldoCaixa += v; else saldoBanco += v;
   });
   despAno.forEach(d => {
     const v = parseFloat(d.valor || 0);
-    if (d.meio === 'caixa') saldoCaixa -= v; else saldoBanco -= v;
+    if (d.meio?.toLowerCase() === 'caixa') saldoCaixa -= v; else saldoBanco -= v;
   });
   // Acertos afetam os saldos
   acAno.forEach(([,a]) => {
