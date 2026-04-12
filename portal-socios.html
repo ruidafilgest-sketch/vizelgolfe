@@ -2533,6 +2533,7 @@ window.renderQuotas = function() {
       <td>
         <button class="btn btn-accent btn-sm" onclick="abrirModalQuota('${sk}','${qKey||''}')">💰 Pagar</button>
         ${qKey ? `<button class="btn btn-outline btn-sm" onclick="emitirRecibo('${qKey}')">🧾</button>` : ''}
+        ${qKey ? `<button class="btn btn-sm" style="background:rgba(231,76,60,.15);color:#e74c3c;border:1px solid rgba(231,76,60,.3)" onclick="anularQuota('${qKey}','${sk}')">🗑️</button>` : ''}
       </td>
     </tr>`;
   }).join('');
@@ -2604,6 +2605,33 @@ window.gravarPagamento = async function() {
     }
     toast('Pagamento registado ✅');
     closeModal('modal-quota');
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+};
+
+window.anularQuota = async function(quotaKey, socioKey) {
+  const q = quotas[quotaKey];
+  const s = socios[socioKey];
+  const msg = q?.estado === 'pago'
+    ? `Anular quota paga de ${s?.nome||'sócio'} (${q?.valor||'?'}€)?\nISTO IRÁ TAMBÉM APAGAR o lançamento contabilístico associado (ref QT-${quotaKey}).`
+    : `Apagar quota pendente de ${s?.nome||'sócio'}?`;
+  if (!confirm(msg)) return;
+  try {
+    // Apagar a quota
+    await remove(ref(db, `/portal/quotas/${quotaKey}`));
+    // Se estava paga, apagar também o lançamento em /portal/receitas com ref QT-{quotaKey}
+    if (q?.estado === 'pago') {
+      const recSnap = await get(ref(db, '/portal/receitas'));
+      const todasRec = recSnap.val() || {};
+      const recKey = Object.entries(todasRec).find(([k,r]) => r.ref === `QT-${quotaKey}`)?.[0];
+      if (recKey) {
+        await remove(ref(db, `/portal/receitas/${recKey}`));
+        toast('Quota e lançamento contabilístico anulados ✅');
+      } else {
+        toast('Quota anulada (lançamento contabilístico não encontrado — verifica Receitas) ⚠️', 'error');
+      }
+    } else {
+      toast('Quota apagada ✅');
+    }
   } catch(e) { toast('Erro: ' + e.message, 'error'); }
 };
 
