@@ -2618,17 +2618,19 @@ window.anularQuota = async function(quotaKey, socioKey) {
   try {
     // Apagar a quota
     await remove(ref(db, `/portal/quotas/${quotaKey}`));
-    // Se estava paga, apagar também o lançamento em /portal/receitas com ref QT-{quotaKey}
+    // Se estava paga, apagar também o lançamento contabilístico e o recibo
     if (q?.estado === 'pago') {
+      // Apagar lançamento em /portal/receitas (ref QT-{quotaKey})
       const recSnap = await get(ref(db, '/portal/receitas'));
       const todasRec = recSnap.val() || {};
       const recKey = Object.entries(todasRec).find(([k,r]) => r.ref === `QT-${quotaKey}`)?.[0];
-      if (recKey) {
-        await remove(ref(db, `/portal/receitas/${recKey}`));
-        toast('Quota e lançamento contabilístico anulados ✅');
-      } else {
-        toast('Quota anulada (lançamento contabilístico não encontrado — verifica Receitas) ⚠️', 'error');
-      }
+      if (recKey) await remove(ref(db, `/portal/receitas/${recKey}`));
+      // Apagar recibo em /portal/recibos (campo quotaKey)
+      const ribSnap = await get(ref(db, '/portal/recibos'));
+      const todosRib = ribSnap.val() || {};
+      const ribKey = Object.entries(todosRib).find(([k,r]) => r.quotaKey === quotaKey)?.[0];
+      if (ribKey) await remove(ref(db, `/portal/recibos/${ribKey}`));
+      toast('Quota, recibo e lançamento contabilístico anulados ✅');
     } else {
       toast('Quota apagada ✅');
     }
