@@ -363,6 +363,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <button class="s-tab" onclick="showSocioTab('recibos',this)">Recibos</button>
         <button class="s-tab" onclick="showSocioTab('torneios',this)">Torneios</button>
         <button class="s-tab" onclick="showSocioTab('perfil',this)">Perfil</button>
+        <button class="s-tab" onclick="showSocioTab('documentos',this)">📁 Documentos</button>
       </div>
     </div>
   </div>
@@ -428,6 +429,13 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     </div>
 
     <!-- ── PERFIL ── -->
+    <div class="s-section" id="s-sec-documentos">
+      <div style="padding:4px 0 12px">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:12px">Documentos disponibilizados pela associação</div>
+        <div id="socio-docs-list"><div style="text-align:center;padding:24px;color:var(--text2);font-size:13px">A carregar...</div></div>
+      </div>
+    </div>
+
     <div class="s-section" id="s-sec-perfil">
       <!-- Botão cartão de sócio -->
       <div class="s-card" style="text-align:center;padding:20px">
@@ -1815,6 +1823,7 @@ window.doLoginSocio = async function() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-socio').style.display = 'block';
     carregarTorneios(); // carregar torneios em tempo real para o sócio
+    carregarBibliotecaSocio(); // carregar documentos para o sócio
     renderAreaSocio();
   } catch(e) {
     err.textContent = 'Erro ao autenticar. Tenta novamente.';
@@ -1849,6 +1858,7 @@ window.showSocioTab = function(tab, btn) {
   document.getElementById('s-sec-' + tab)?.classList.add('active');
   if (btn) btn.classList.add('active');
   if (tab === 'torneios') renderTorneisosSocio();
+  if (tab === 'documentos') renderDocsSocio();
 };
 
 window.setSocioTornFilter = function(filtro, btn) {
@@ -4660,6 +4670,17 @@ function gerarHTMLDocumento(dados) {
 
 let documentosBiblioteca = {};
 
+function carregarBibliotecaSocio() {
+  // Versão para o sócio — usa ref/onValue do módulo principal
+  onValue(ref(db, '/portal/biblioteca'), snap => {
+    documentosBiblioteca = snap.val() || {};
+    // Se o tab documentos estiver ativo, atualizar
+    if (document.getElementById('s-sec-documentos')?.classList.contains('active')) {
+      renderDocsSocio();
+    }
+  });
+}
+
 function carregarBiblioteca() {
   const ref = window._dbRef('/portal/biblioteca');
   window._onValue(ref, snap => {
@@ -5231,6 +5252,35 @@ window.renderTorneiosAdmin = function() {
 };
 
 // ── SÓCIO: ver e inscrever-se em torneios ─────────
+// ── SÓCIO: ver documentos da biblioteca ──────────
+window.renderDocsSocio = function() {
+  const cont = document.getElementById('socio-docs-list');
+  if (!cont) return;
+
+  // Usar a variável documentosBiblioteca que já está carregada
+  const docs = Object.entries(documentosBiblioteca || {})
+    .sort((a,b) => (b[1].dataUpload||'').localeCompare(a[1].dataUpload||''));
+
+  if (!docs.length) {
+    cont.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text2);font-size:13px">📁 Sem documentos disponíveis</div>';
+    return;
+  }
+
+  cont.innerHTML = docs.map(([key, d]) => {
+    const tamanho = d.tamanho ? (d.tamanho > 1048576 ? (d.tamanho/1048576).toFixed(1)+' MB' : (d.tamanho/1024).toFixed(0)+' KB') : '';
+    const data = d.dataUpload ? new Date(d.dataUpload).toLocaleDateString('pt-PT') : '';
+    const isPDF = d.tipo === 'application/pdf' || d.nomeFicheiro?.endsWith('.pdf');
+    return `<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:24px;flex-shrink:0">${isPDF ? '📄' : '📝'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${d.nome||'—'}</div>
+        <div style="font-size:11px;color:var(--text2)">${d.categoria||''} ${tamanho?'· '+tamanho:''} ${data?'· '+data:''}</div>
+      </div>
+      <button onclick="abrirDocBiblioteca('${key}')" style="background:var(--accent);color:#000;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">⬇ Abrir</button>
+    </div>`;
+  }).join('');
+};
+
 window.renderTorneisosSocio = function() {
   const filtro = document.getElementById('socio-filter-torneios')?.value || 'todos';
   const cont   = document.getElementById('socio-torneios-list');
