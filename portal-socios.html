@@ -2352,7 +2352,7 @@ window.renderSocios = function() {
     <td><span class="badge ${s.estado==='Ativo'?'badge-pago':'badge-pendente'}">${s.estado||'—'}</span></td>
     <td style="display:flex;gap:6px;flex-wrap:wrap">
       <button class="btn btn-outline btn-sm" onclick="abrirFicha('${k}')" title="Ficha do sócio">👤</button>
-      <button class="btn btn-outline btn-sm" onclick="editarSocio('${k}')">✏️</button>
+      <button class="btn btn-outline btn-sm" onclick="abrirFicha('${k}')">✏️</button>
       <button class="btn btn-accent btn-sm" onclick="abrirModalQuota('${k}')">💰</button>
       <button class="btn btn-danger btn-sm" onclick="apagarSocio('${k}')">🗑️</button>
     </td>
