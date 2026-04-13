@@ -1322,7 +1322,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
             <div id="s-foto-preview" style="width:80px;height:100px;border-radius:6px;background:var(--bg2);border:2px dashed var(--border2);display:flex;align-items:center;justify-content:center;font-size:28px;overflow:hidden;flex-shrink:0">👤</div>
             <div style="flex:1">
-              <input type="file" id="s-foto-input" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="previewFoto(this)">
+              <input type="file" id="s-foto-input" accept="image/*" style="display:none" onchange="previewFoto(this)">
               <button type="button" class="btn btn-outline" onclick="document.getElementById('s-foto-input').click()" style="margin-bottom:6px">📷 Escolher foto</button>
               <button type="button" id="s-foto-remover" class="btn btn-danger" onclick="removerFoto()" style="display:none;margin-bottom:6px">🗑️ Remover</button>
               <div style="font-size:11px;color:var(--text2)">JPG/PNG · máx. 500KB · A foto é comprimida e guardada de forma segura.</div>
@@ -1811,6 +1811,7 @@ window.doLoginSocio = async function() {
     configuracoes = cfgSnap.val() || {};
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app-socio').style.display = 'block';
+    carregarTorneios(); // carregar torneios em tempo real para o sócio
     renderAreaSocio();
   } catch(e) {
     err.textContent = 'Erro ao autenticar. Tenta novamente.';
@@ -2363,7 +2364,7 @@ let fotoBase64Temp = null; // foto carregada mas ainda não gravada
 window.previewFoto = function(input) {
   const file = input.files[0];
   if (!file) return;
-  if (file.size > 2 * 1024 * 1024) { toast('Foto demasiado grande (máx. 2MB)', 'error'); return; }
+  if (file.size > 10 * 1024 * 1024) { toast('Foto demasiado grande (máx. 10MB)', 'error'); return; }
   const reader = new FileReader();
   reader.onload = e => {
     // Comprimir via canvas
@@ -4999,11 +5000,16 @@ window.verInscritos = function(key) {
   const estadoCor = { pendente:'var(--accent)', confirmado:'var(--green)', rejeitado:'var(--red)' };
   const estadoLabel = { pendente:'⏳ Pendente', confirmado:'✅ Confirmado', rejeitado:'❌ Rejeitado' };
 
+  // Botão inscrever sócio manualmente
+  const btnInscAdmin = `<div style="margin-bottom:14px">
+    <button class="btn btn-accent" onclick="abrirInscricaoAdmin('${key}')" style="font-size:12px;padding:8px 14px">➕ Inscrever Sócio Manualmente</button>
+  </div>`;
+
   if (!inscTorneio.length) {
     document.getElementById('modal-inscritos-content').innerHTML =
-      '<div class="empty"><div class="icon">🏆</div><p>Sem inscrições ainda</p></div>';
+      btnInscAdmin + '<div class="empty"><div class="icon">🏆</div><p>Sem inscrições ainda</p></div>';
   } else {
-    document.getElementById('modal-inscritos-content').innerHTML = `
+    document.getElementById('modal-inscritos-content').innerHTML = btnInscAdmin + `
       <div style="margin-bottom:12px;font-size:12px;color:var(--text2)">${inscTorneio.length} inscrição(ões) · ${inscTorneio.filter(([,i])=>i.estado==='confirmado').length} confirmadas</div>
       <div style="display:flex;flex-direction:column;gap:8px">
         ${inscTorneio.sort((a,b)=>(a[1].criadoEm||'').localeCompare(b[1].criadoEm||'')).map(([ik,i]) => `
@@ -5031,6 +5037,69 @@ window.verInscritos = function(key) {
       </div>`;
   }
   openModal('modal-inscritos');
+};
+
+// ── ADMIN: inscrever sócio manualmente ───────────
+let inscricaoAdminTorneioKey = null;
+
+window.abrirInscricaoAdmin = function(torneioKey) {
+  inscricaoAdminTorneioKey = torneioKey;
+  const t = torneios[torneioKey];
+  // Construir select com sócios ativos não inscritos ainda
+  const jaInscritos = new Set(Object.values(inscricoes).filter(i => i.torneioKey === torneioKey).map(i => i.socioKey));
+  const disponiveis = Object.entries(socios)
+    .filter(([k,s]) => s.estado === 'Ativo' && !jaInscritos.has(k))
+    .sort((a,b) => (a[1].nome||'').localeCompare(b[1].nome||''));
+
+  if (!disponiveis.length) { toast('Todos os sócios ativos já estão inscritos', 'error'); return; }
+
+  const opts = disponiveis.map(([k,s]) => `<option value="${k}">${s.nome} (Nº${s.numero||'—'} · ${s.categoria||'—'})</option>`).join('');
+
+  document.getElementById('modal-inscritos-content').innerHTML =
+    document.getElementById('modal-inscritos-content').innerHTML +
+    `<div id="form-insc-admin" style="background:var(--bg2);border-radius:10px;padding:16px;margin-top:12px;border:1px solid var(--accent)">
+      <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--accent)">➕ Inscrição Manual — ${t.nome}</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Sócio</label>
+          <select id="admin-insc-socio" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:13px">${opts}</select>
+        </div>
+        <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Estado</label>
+          <select id="admin-insc-estado" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:13px">
+            <option value="confirmado">✅ Confirmado (inscrição direta)</option>
+            <option value="pendente">⏳ Pendente (aguarda confirmação)</option>
+          </select>
+        </div>
+        <div><label style="font-size:11px;color:var(--text2);display:block;margin-bottom:4px">Observações</label>
+          <input id="admin-insc-obs" type="text" placeholder="Opcional" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border2);background:var(--input);color:var(--text);font-size:13px;box-sizing:border-box">
+        </div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn btn-green" onclick="submeterInscricaoAdmin()" style="flex:1">✅ Inscrever</button>
+          <button class="btn btn-outline" onclick="verInscritos('${torneioKey}')" style="flex:1">Cancelar</button>
+        </div>
+      </div>
+    </div>`;
+};
+
+window.submeterInscricaoAdmin = async function() {
+  const torneioKey = inscricaoAdminTorneioKey;
+  const socioKey   = document.getElementById('admin-insc-socio').value;
+  const estado     = document.getElementById('admin-insc-estado').value;
+  const obs        = document.getElementById('admin-insc-obs').value.trim();
+  const s = socios[socioKey];
+  const t = torneios[torneioKey];
+  if (!socioKey || !torneioKey) return;
+  try {
+    await push(ref(db, '/portal/inscricoes'), {
+      torneioKey, torneioNome: t?.nome || '',
+      socioKey, socioNome: s?.nome || '', socioNum: s?.numero || '',
+      categoria: s?.categoria || '',
+      obs: obs || 'Inscrição efetuada pelo administrador',
+      estado, inscricaoManual: true,
+      criadoEm: new Date().toISOString()
+    });
+    toast(`${s?.nome} inscrito ✅`);
+    verInscritos(torneioKey);
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
 };
 
 window.alterarEstadoInscricao = async function(key, estado) {
