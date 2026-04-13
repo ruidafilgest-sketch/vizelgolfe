@@ -4691,7 +4691,7 @@ window.renderBiblioteca = function() {
       <td>${d.dataUpload ? new Date(d.dataUpload).toLocaleDateString('pt-PT') : '—'}</td>
       <td>${tamanho}</td>
       <td style="display:flex;gap:6px">
-        <a href="${d.url||'#'}" target="_blank" class="btn btn-sm btn-outline" ${!d.url?'style="opacity:.4;pointer-events:none"':''}>⬇ Abrir</a>
+        <button class="btn btn-sm btn-outline" onclick="abrirDocBiblioteca('${d.key}')" ${!(d.url||d.base64)?'style="opacity:.4"':''}>⬇ Abrir</button>
         <button class="btn btn-sm btn-outline" style="color:#e53e3e" onclick="apagarDocBiblioteca('${d.key}')">🗑</button>
       </td>
     </tr>`;
@@ -4707,47 +4707,78 @@ window.abrirUploadBiblioteca = function() {
 
 window.executarUploadBiblioteca = async function() {
   const nome = document.getElementById('bib-nome').value.trim();
-  const cat = document.getElementById('bib-cat').value;
+  const cat  = document.getElementById('bib-cat').value;
   const ficheiro = document.getElementById('bib-ficheiro').files[0];
 
-  if (!nome) { toast('Indica um nome para o documento', 'error'); return; }
+  if (!nome)     { toast('Indica um nome para o documento', 'error'); return; }
   if (!ficheiro) { toast('Seleciona um ficheiro', 'error'); return; }
 
-  // Firebase Storage upload
+  const maxMB = 4;
+  if (ficheiro.size > maxMB * 1024 * 1024) {
+    toast(`Ficheiro demasiado grande (máx. ${maxMB}MB). Comprime o PDF antes de carregar.`, 'error');
+    return;
+  }
+
+  document.getElementById('bib-upload-progress').style.display = 'block';
+  document.getElementById('bib-progress-txt').textContent = 'A converter ficheiro...';
+  document.getElementById('bib-progress-bar').style.width = '10%';
+
   try {
-    const { getStorage, ref: storageRef, uploadBytesResumable, getDownloadURL } =
-      await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js");
+    // Converter para base64 e guardar no Realtime Database
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload  = e => resolve(e.target.result); // data:application/pdf;base64,...
+      reader.onerror = reject;
+      reader.readAsDataURL(ficheiro);
+    });
 
-    const storage = getStorage();
-    const path = `portal/biblioteca/${Date.now()}_${ficheiro.name}`;
-    const sRef = storageRef(storage, path);
+    document.getElementById('bib-progress-bar').style.width = '60%';
+    document.getElementById('bib-progress-txt').textContent = 'A guardar no Firebase...';
 
-    document.getElementById('bib-upload-progress').style.display = 'block';
-    const uploadTask = uploadBytesResumable(sRef, ficheiro);
+    const r = await push(ref(db, '/portal/biblioteca'), {
+      nome, categoria: cat,
+      base64,           // ficheiro completo em base64
+      tamanho: ficheiro.size,
+      tipo: ficheiro.type,
+      nomeFicheiro: ficheiro.name,
+      dataUpload: new Date().toISOString()
+    });
 
-    uploadTask.on('state_changed',
-      snap => {
-        const pct = Math.round(snap.bytesTransferred / snap.totalBytes * 100);
-        document.getElementById('bib-progress-bar').style.width = pct + '%';
-        document.getElementById('bib-progress-txt').textContent = `A fazer upload... ${pct}%`;
-      },
-      err => { toast('Erro no upload: ' + err.message, 'error'); },
-      async () => {
-        const url = await getDownloadURL(uploadTask.snapshot.ref);
-        const ref = window._push(window._dbRef('/portal/biblioteca'));
-        await window._set(ref, {
-          nome, categoria: cat,
-          url, tamanho: ficheiro.size,
-          tipo: ficheiro.type,
-          dataUpload: new Date().toISOString()
-        });
-        toast('Documento carregado com sucesso!');
-        closeModal('modal-upload-bib');
-      }
-    );
+    document.getElementById('bib-progress-bar').style.width = '100%';
+    document.getElementById('bib-progress-txt').textContent = 'Concluído!';
+    setTimeout(() => {
+      toast('Documento carregado com sucesso! ✅');
+      closeModal('modal-upload-bib');
+    }, 500);
+
   } catch(e) {
     toast('Erro: ' + e.message, 'error');
+    document.getElementById('bib-upload-progress').style.display = 'none';
   }
+};
+
+window.abrirDocBiblioteca = function(key) {
+  const doc = documentosBiblioteca[key];
+  if (!doc) return;
+  // Se tem base64 (novo sistema)
+  if (doc.base64) {
+    const w = window.open('', '_blank');
+    if (doc.tipo === 'application/pdf' || doc.nomeFicheiro?.endsWith('.pdf')) {
+      w.document.write(`<!DOCTYPE html><html><head><title>${doc.nome}</title></head><body style="margin:0">
+        <embed src="${doc.base64}" type="application/pdf" width="100%" height="100%" style="position:fixed;top:0;left:0;width:100%;height:100%">
+        </body></html>`);
+    } else {
+      // Para Word/outros — download direto
+      const a = document.createElement('a');
+      a.href = doc.base64;
+      a.download = doc.nomeFicheiro || doc.nome;
+      a.click();
+      w.close();
+    }
+    return;
+  }
+  // Fallback para url antiga (Storage)
+  if (doc.url) window.open(doc.url, '_blank');
 };
 
 window.apagarDocBiblioteca = async function(key) {
