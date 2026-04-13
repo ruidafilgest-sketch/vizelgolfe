@@ -606,6 +606,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           <option>Inativo</option>
         </select>
         <button class="btn btn-outline" onclick="abrirRelatorioDevedores()">📊 Devedores</button>
+        <button class="btn btn-outline" onclick="imprimirListagemSocios()">🖨️ Listagem</button>
+        <button class="btn btn-outline" onclick="imprimirFichasTodas()">📋 Todas as Fichas</button>
         <button class="btn btn-accent" onclick="openModalSocio()">+ Novo Sócio</button>
       </div>
 
@@ -5723,6 +5725,220 @@ window.abrirFicha = function(key) {
 
   document.getElementById('modal-ficha-content').innerHTML = html;
   openModal('modal-ficha');
+};
+
+// ── LISTAGEM GERAL DE SÓCIOS ─────────────────────
+window.imprimirListagemSocios = function() {
+  const cfg = configuracoes || {};
+  const nomeAssoc = cfg.nome || 'Vizelgolfe — Associação de Minigolfe de Vizela';
+  const nifAssoc  = cfg.nif  || '509 227 902';
+  const hoje = new Date().toLocaleDateString('pt-PT');
+  const anoAtual = new Date().getFullYear().toString();
+
+  // Aplicar filtros actuais da página
+  const q   = document.getElementById('search-socios')?.value.toLowerCase() || '';
+  const cat = document.getElementById('filter-cat')?.value || '';
+  const est = document.getElementById('filter-estado')?.value || '';
+
+  let lista = Object.entries(socios).filter(([k,s]) => {
+    if (q && !s.nome?.toLowerCase().includes(q) && !String(s.numero).includes(q) && !s.email?.toLowerCase().includes(q)) return false;
+    if (cat && s.categoria !== cat) return false;
+    if (est && s.estado !== est) return false;
+    return true;
+  }).sort((a,b) => (parseInt(a[1].numero)||0) - (parseInt(b[1].numero)||0));
+
+  const ativos   = lista.filter(([,s]) => s.estado === 'Ativo').length;
+  const inativos = lista.filter(([,s]) => s.estado !== 'Ativo').length;
+
+  const linhas = lista.map(([k,s], i) => {
+    const quotaAtual = Object.values(quotas).find(q => q.socioKey === k && String(q.ano) === anoAtual);
+    const qEst = quotaAtual?.estado || '—';
+    const corQ = qEst==='pago'?'#27ae60':qEst==='pendente'?'#e74c3c':'#666';
+    const corLinha = i%2===0?'#fff':'#f9fbfd';
+    return `<tr style="background:${corLinha}">
+      <td style="padding:7px 10px;font-family:monospace;font-weight:700;color:#1a3a6b;text-align:center">${s.numero||'—'}</td>
+      <td style="padding:7px 10px;font-weight:600">${s.nome||'—'}</td>
+      <td style="padding:7px 10px;color:#555">${s.categoria||'—'}</td>
+      <td style="padding:7px 10px;color:#555">${s.nascimento||'—'}</td>
+      <td style="padding:7px 10px;color:#555">${s.inscricao||'—'}</td>
+      <td style="padding:7px 10px;font-weight:700;color:${s.estado==='Ativo'?'#27ae60':'#e74c3c'}">${s.estado||'—'}</td>
+      <td style="padding:7px 10px;font-weight:700;color:${corQ};text-align:center">${qEst==='pago'?'✅ Paga':qEst==='pendente'?'❌ Pend.':qEst}</td>
+      <td style="padding:7px 10px;color:#555;font-size:10px">${s.email||''}</td>
+      <td style="padding:7px 10px;color:#555">${s.telefone||''}</td>
+      <td style="padding:7px 10px;text-align:center">
+        <div style="width:16px;height:16px;border:1px solid #999;border-radius:3px;display:inline-block"></div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',Arial,sans-serif;color:#0f1e35;font-size:11px;line-height:1.4}
+  @media print{@page{margin:10mm;size:A4 landscape}}
+  .cab{background:#0f1e35;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px}
+  .cab img{width:40px;height:40px;object-fit:contain}
+  .cab h1{font-size:14px;color:#d4820a;letter-spacing:2px;text-transform:uppercase;margin-bottom:2px}
+  .cab p{font-size:10px;color:rgba(255,255,255,.6)}
+  .subtit{background:#1a3a6b;color:#fff;padding:8px 20px;display:flex;justify-content:space-between;align-items:center;font-size:11px}
+  .stats-bar{background:#f4f7fb;border-bottom:2px solid #1a3a6b;padding:8px 20px;display:flex;gap:24px;font-size:11px}
+  .stat-item{display:flex;gap:6px;align-items:center}
+  .stat-item strong{color:#1a3a6b}
+  table{width:100%;border-collapse:collapse}
+  th{background:#1a3a6b;color:#fff;padding:8px 10px;font-size:10px;text-transform:uppercase;letter-spacing:.8px;text-align:left;white-space:nowrap}
+  tr:hover{background:#eaf4fd}
+  .rod{background:#f4f7fb;border-top:1px solid #dde;padding:8px 20px;font-size:10px;color:#999;text-align:center;margin-top:4px}
+  @media print{button{display:none!important}}
+</style></head><body>
+  <div class="cab">
+    <img src="${LOGO_B64}" alt="">
+    <div>
+      <h1>${nomeAssoc.split('—')[0].trim()}</h1>
+      <p>NIF ${nifAssoc}</p>
+    </div>
+    <div style="margin-left:auto;text-align:right">
+      <div style="font-size:13px;font-weight:700;color:#d4820a">LISTAGEM DE SÓCIOS</div>
+      <div style="font-size:10px;opacity:.7">Gerada em ${hoje}</div>
+    </div>
+  </div>
+  <div class="subtit">
+    <span>${cat ? '📂 Categoria: '+cat : '📂 Todas as categorias'} ${est ? '· Estado: '+est : ''}</span>
+    <span>${lista.length} sócio${lista.length!==1?'s':''}</span>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-item">✅ Ativos: <strong>${ativos}</strong></div>
+    <div class="stat-item">❌ Inativos: <strong>${inativos}</strong></div>
+    <div class="stat-item">📊 Total: <strong>${lista.length}</strong></div>
+    <div class="stat-item" style="margin-left:auto;color:#999">Ano de referência de quotas: ${anoAtual}</div>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="text-align:center">Nº</th>
+      <th>Nome</th>
+      <th>Categoria</th>
+      <th>Nascimento</th>
+      <th>Inscrição</th>
+      <th>Estado</th>
+      <th style="text-align:center">Quota ${anoAtual}</th>
+      <th>Email</th>
+      <th>Telefone</th>
+      <th style="text-align:center">✓ Presença</th>
+    </tr></thead>
+    <tbody>${linhas}</tbody>
+  </table>
+  <div class="rod">${nomeAssoc} · ${lista.length} sócios · Listagem gerada em ${hoje} · Uso interno</div>
+</body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(), 900);
+};
+
+// ── TODAS AS FICHAS (uma por página) ─────────────
+window.imprimirFichasTodas = function() {
+  const cfg = configuracoes || {};
+  const nomeAssoc = cfg.nome || 'Vizelgolfe — Associação de Minigolfe de Vizela';
+  const nifAssoc  = cfg.nif  || '509 227 902';
+  const hoje = new Date().toLocaleDateString('pt-PT');
+  const anoAtual = new Date().getFullYear().toString();
+
+  // Aplicar filtros actuais
+  const q   = document.getElementById('search-socios')?.value.toLowerCase() || '';
+  const cat = document.getElementById('filter-cat')?.value || '';
+  const est = document.getElementById('filter-estado')?.value || '';
+
+  let lista = Object.entries(socios).filter(([k,s]) => {
+    if (q && !s.nome?.toLowerCase().includes(q) && !String(s.numero).includes(q)) return false;
+    if (cat && s.categoria !== cat) return false;
+    if (est && s.estado !== est) return false;
+    return true;
+  }).sort((a,b) => (parseInt(a[1].numero)||0) - (parseInt(b[1].numero)||0));
+
+  if (!lista.length) { toast('Nenhum sócio para imprimir', 'error'); return; }
+  if (lista.length > 100 && !confirm(`Vais imprimir ${lista.length} fichas. Confirmas?`)) return;
+
+  const fichas = lista.map(([k,s]) => {
+    const minhasQ   = Object.entries(quotas).filter(([,q]) => q.socioKey === k);
+    const meusRec   = Object.entries(recibos).filter(([,r]) => r.socioKey === k);
+    const quotaAtual = minhasQ.find(([,q]) => String(q.ano) === anoAtual);
+    const qEstado   = quotaAtual?.[1]?.estado || 'pendente';
+    const totalPago = minhasQ.filter(([,q])=>q.estado==='pago').reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
+    const divida    = minhasQ.filter(([,q])=>q.estado!=='pago').reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
+    const corQ = qEstado==='pago'?'#27ae60':qEstado==='parcial'?'#e67e22':'#e74c3c';
+    const lblQ = qEstado==='pago'?'✅ Paga':qEstado==='parcial'?'⚠️ Parcial':'❌ Pendente';
+    const fotoHtml = s.foto ? `<img src="${s.foto}" style="width:70px;height:88px;object-fit:cover;border-radius:6px;border:2px solid #1a3a6b;float:right;margin-left:12px">` : `<div style="width:70px;height:88px;border-radius:6px;border:2px dashed #ccd;background:#f4f7fb;display:flex;align-items:center;justify-content:center;font-size:24px;float:right;margin-left:12px">👤</div>`;
+
+    const quotasHTML = minhasQ.length ? minhasQ.sort((a,b)=>b[1].ano-a[1].ano).slice(0,6).map(([,q])=>{
+      const cor = q.estado==='pago'?'#27ae60':q.estado==='parcial'?'#e67e22':'#e74c3c';
+      return `<tr><td style="padding:4px 8px">${q.ano}</td><td style="padding:4px 8px">${q.descricao||'Quota anual'}</td>
+        <td style="padding:4px 8px;text-align:right;font-weight:700">${parseFloat(q.valor||0).toFixed(2)} €</td>
+        <td style="padding:4px 8px;text-align:center;color:${cor};font-weight:700;font-size:10px">${q.estado}</td></tr>`;
+    }).join('') : '<tr><td colspan="4" style="padding:6px 8px;color:#999;font-style:italic">Sem quotas registadas</td></tr>';
+
+    return `<div style="page-break-after:always;padding:16px 20px;max-width:720px;margin:0 auto">
+      <div style="background:#0f1e35;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;border-radius:6px 6px 0 0">
+        <img src="${LOGO_B64}" style="width:36px;height:36px;object-fit:contain">
+        <div style="flex:1">
+          <div style="font-size:12px;color:#d4820a;letter-spacing:2px;text-transform:uppercase;font-weight:700">${nomeAssoc.split('—')[0].trim()}</div>
+          <div style="font-size:10px;opacity:.6">NIF ${nifAssoc} · Ficha de Sócio</div>
+        </div>
+        <div style="text-align:right;font-size:10px;opacity:.6">${hoje}</div>
+      </div>
+      <div style="border:1px solid #1a3a6b;border-top:none;border-radius:0 0 6px 6px;padding:14px 16px">
+        ${fotoHtml}
+        <div style="font-size:18px;font-weight:700;color:#0f1e35;margin-bottom:2px">${s.nome||'—'}</div>
+        <div style="font-size:11px;color:#666;margin-bottom:10px">Nº ${s.numero||'—'} · ${s.categoria||'—'} · Inscrito em ${s.inscricao||'—'}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;clear:none">
+          <span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:${s.estado==='Ativo'?'#eafaf1':'#fdedec'};color:${s.estado==='Ativo'?'#27ae60':'#e74c3c'};border:1px solid ${s.estado==='Ativo'?'#a9dfbf':'#f5b7b1'}">${s.estado||'—'}</span>
+          <span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:#f4f7fb;color:${corQ};border:1px solid #dde">${lblQ}</span>
+          ${divida > 0 ? `<span style="padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;background:#fdedec;color:#e74c3c;border:1px solid #f5b7b1">Dívida: ${divida.toFixed(2)} €</span>` : ''}
+        </div>
+        <div style="clear:both"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #e8eef6;border-radius:6px;overflow:hidden;margin-bottom:12px;font-size:11px">
+          ${[['Data de Nascimento',s.nascimento],['NIF',s.nif],['Email',s.email],['Telefone',s.telefone],['Morada',s.morada],['Observações',s.obs]].filter(([,v])=>v).map(([l,v],i)=>`
+            <div style="padding:6px 10px;background:${i%2===0?'#fff':'#f9fbfd'};border-bottom:1px solid #e8eef6">
+              <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:.5px">${l}</div>
+              <div style="font-weight:600;color:#0f1e35">${v}</div>
+            </div>`).join('')}
+        </div>
+        <div style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#1a3a6b;margin-bottom:6px">Histórico de Quotas</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px">
+          <thead><tr style="background:#1a3a6b;color:#fff">
+            <th style="padding:5px 8px;text-align:left;font-size:10px">Ano</th>
+            <th style="padding:5px 8px;text-align:left;font-size:10px">Descrição</th>
+            <th style="padding:5px 8px;text-align:right;font-size:10px">Valor</th>
+            <th style="padding:5px 8px;text-align:center;font-size:10px">Estado</th>
+          </tr></thead>
+          <tbody>${quotasHTML}</tbody>
+          <tfoot><tr style="background:#f4f7fb">
+            <td colspan="2" style="padding:5px 8px;font-weight:700;font-size:11px">Total pago</td>
+            <td style="padding:5px 8px;text-align:right;font-weight:700;color:#27ae60">${totalPago.toFixed(2)} €</td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+        <div style="display:flex;gap:16px;font-size:11px;color:#666;border-top:1px solid #e8eef6;padding-top:10px">
+          <span>📋 ${minhasQ.length} quota${minhasQ.length!==1?'s':''} registada${minhasQ.length!==1?'s':''}</span>
+          <span>🧾 ${meusRec.length} recibo${meusRec.length!==1?'s':''}</span>
+          <span style="margin-left:auto;color:#999;font-size:10px">Ficha gerada em ${hoje}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="pt"><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',Arial,sans-serif;background:#f0f4f8}
+  @media print{body{background:#fff}@page{margin:8mm;size:A4 portrait}button{display:none!important}}
+</style></head><body>${fichas}</body></html>`;
+
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(), 1200);
 };
 
 window.imprimirFicha = function() {
