@@ -1704,6 +1704,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <button class="btn btn-danger" id="ficha-btn-aviso" onclick="">📄 Aviso</button>
       <button class="btn btn-outline" id="ficha-btn-email-aviso" onclick="">📧 Email Aviso</button>
       <button class="btn btn-outline" id="ficha-btn-cartao" onclick="">🪪 Cartão</button>
+      <button class="btn btn-outline" id="ficha-btn-email-cartao" onclick="">📧 Enviar Cartão</button>
       <button class="btn btn-accent" onclick="imprimirFicha()">🖨️ Imprimir</button>
     </div>
   </div>
@@ -5110,6 +5111,14 @@ window.alterarEstadoInscricao = async function(key, estado) {
   try {
     await update(ref(db, `/portal/inscricoes/${key}`), { estado, atualizadoEm: new Date().toISOString() });
     toast(estado === 'confirmado' ? 'Inscrição confirmada ✅' : estado === 'rejeitado' ? 'Inscrição rejeitada' : 'Estado reposto');
+    // Notificar sócio por email se confirmado ou rejeitado
+    if (estado === 'confirmado' || estado === 'rejeitado') {
+      const insc = inscricoes[key];
+      if (insc) {
+        const s = socios[insc.socioKey];
+        if (s?.email) await enviarNotificacaoInscricao(insc, s, estado);
+      }
+    }
     // Atualizar modal sem fechar
     const insc = inscricoes[key];
     if (insc) verInscritos(insc.torneioKey);
@@ -5583,6 +5592,7 @@ window.abrirFicha = function(key) {
   document.getElementById('ficha-btn-quota').onclick  = () => { closeModal('modal-ficha'); abrirModalQuota(key); };
   document.getElementById('ficha-btn-aviso').onclick  = () => gerarAvisoCobranca(key);
   document.getElementById('ficha-btn-email-aviso').onclick = () => enviarAvisoEmail(key);
+  document.getElementById('ficha-btn-email-cartao').onclick = () => enviarCartaoPorEmail(key);
   document.getElementById('ficha-btn-cartao').onclick = () => gerarCartaoSocio(key);
 
   // Calcular dados
@@ -6810,6 +6820,190 @@ window.enviarReciboEmail = async function() {
 };
 
 // ── Enviar aviso de cobrança por email ───────────
+// ── Enviar cartão de sócio por email ─────────────
+window.enviarCartaoPorEmail = async function(key) {
+  const s = socios[key];
+  if (!s?.email) { toast('Este sócio não tem email registado.', 'error'); return; }
+
+  const cfg       = configuracoes || {};
+  const nomeAssoc = cfg.nome || 'Vizelgolfe — Associação de Minigolfe de Vizela';
+  const nifAssoc  = cfg.nif  || '509 227 902';
+  const anoAtual  = new Date().getFullYear().toString();
+  const minhasQ   = Object.entries(quotas).filter(([,q]) => q.socioKey === key);
+  const quotaAtual= minhasQ.find(([,q]) => String(q.ano) === anoAtual);
+  const qEstado   = quotaAtual?.[1]?.estado || 'pendente';
+  const corVal    = qEstado === 'pago' ? '#27ae60' : '#e74c3c';
+  const lblVal    = qEstado === 'pago' ? '✅ Válido ' + anoAtual : '❌ Quota Pendente ' + anoAtual;
+  const numFmt    = String(s.numero || '0').padStart(4, '0');
+  const catAbrev  = {'Atleta':'ATL','Normal':'NOR','Reformado':'REF','Fundador':'FUN','Socio beneficios':'BEN','Honorário':'HON','Júnior':'JUN'};
+  const catCod    = catAbrev[s.categoria] || (s.categoria||'SOC').slice(0,3).toUpperCase();
+  const palavras  = (s.nome||'?').split(' ').filter(Boolean);
+  const iniciais  = ((palavras[0]||'?')[0] + (palavras.length > 1 ? palavras[palavras.length-1][0] : '')).toUpperCase();
+  const fotoEl    = s.foto
+    ? `<img src="${s.foto}" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:6px">`
+    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#4a6080;background:#0d1a2e;border-radius:6px">${iniciais}</div>`;
+  const hoje = new Date().toLocaleDateString('pt-PT');
+
+  const emailHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{margin:0;padding:0;background:#f0f4f8;font-family:'Segoe UI',Arial,sans-serif}
+    .wrap{max-width:520px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+    .top{background:#0f1e35;padding:20px 24px;display:flex;align-items:center;gap:14px}
+    .top img{width:42px;height:42px;object-fit:contain}
+    .top h1{font-size:15px;color:#d4820a;letter-spacing:2px;text-transform:uppercase;margin:0 0 2px}
+    .top p{font-size:10px;color:rgba(232,240,254,.55);margin:0}
+    .body{padding:24px}
+    .intro{font-size:13px;color:#1a2a3a;line-height:1.7;margin-bottom:20px}
+    /* Cartão */
+    .card-wrap{background:linear-gradient(135deg,#0a1628 0%,#0f1e35 50%,#162444 100%);border-radius:14px;padding:20px 18px;position:relative;overflow:hidden;margin-bottom:20px;min-height:160px}
+    .card-stripe{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#b8720a,#f0a030 40%,#ffe066 50%,#f0a030 60%,#b8720a)}
+    .card-dots{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);background-size:16px 16px}
+    .card-logo{display:flex;align-items:center;gap:8px;margin-bottom:16px;position:relative}
+    .card-logo img{width:30px;height:30px;object-fit:contain}
+    .card-logo h2{font-size:13px;color:#d4820a;letter-spacing:2px;text-transform:uppercase;margin:0}
+    .card-badge{position:absolute;right:0;top:0;background:rgba(212,130,10,.15);border:1px solid rgba(212,130,10,.4);border-radius:4px;padding:2px 8px;font-size:10px;color:#d4820a;letter-spacing:1.5px}
+    .card-body{display:flex;gap:14px;align-items:flex-end;position:relative}
+    .card-foto{width:50px;height:64px;border-radius:6px;overflow:hidden;border:1.5px solid rgba(212,130,10,.4);flex-shrink:0}
+    .card-dados{flex:1}
+    .card-nome{font-size:16px;font-weight:800;color:#e8f0fe;letter-spacing:1px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .card-num{font-family:monospace;font-size:10px;color:#d4820a;letter-spacing:2px;margin-bottom:2px}
+    .card-cat{font-size:9px;color:rgba(143,168,200,.5);margin-bottom:8px}
+    .card-validade{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;padding:3px 10px;border-radius:10px;border:1px solid}
+    .info-box{background:#f4f7fb;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px;font-size:12px;color:#1a2a3a;margin-bottom:16px}
+    .info-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #e8eef6}
+    .info-row:last-child{border-bottom:none}
+    .info-lbl{color:#666}
+    .info-val{font-weight:600}
+    .bottom{background:#f4f7fb;padding:12px 24px;font-size:10px;color:#999;text-align:center;border-top:1px solid #e0e8f0}
+  </style></head><body>
+  <div class="wrap">
+    <div class="top">
+      <img src="${LOGO_B64}" alt="${nomeAssoc}">
+      <div><h1>${nomeAssoc.split('—')[0].trim()}</h1><p>Portal de Sócios</p></div>
+    </div>
+    <div class="body">
+      <p class="intro">Caro(a) <strong>${s.nome}</strong>,<br>
+      Enviamos em anexo o teu cartão de sócio digital da <strong>${nomeAssoc}</strong>.<br>
+      Guarda-o no teu telemóvel para apresentares sempre que necessário.</p>
+
+      <!-- Cartão visual -->
+      <div class="card-wrap">
+        <div class="card-stripe"></div>
+        <div class="card-dots"></div>
+        <div class="card-logo">
+          <img src="${LOGO_B64}" alt="">
+          <h2>VIZELGOLFE</h2>
+          <span class="card-badge">${catCod}</span>
+        </div>
+        <div class="card-body">
+          <div class="card-foto">${fotoEl}</div>
+          <div class="card-dados">
+            <div class="card-nome">${(s.nome||'—').toUpperCase()}</div>
+            <div class="card-num">Nº ${numFmt}</div>
+            <div class="card-cat">${s.categoria||'—'} · NIF ${s.nif||'—'}</div>
+            <div class="card-validade" style="color:${corVal};border-color:${corVal}40;background:${corVal}18">
+              ${lblVal}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dados resumo -->
+      <div class="info-box">
+        <div class="info-row"><span class="info-lbl">Nº Sócio</span><span class="info-val">${s.numero||'—'}</span></div>
+        <div class="info-row"><span class="info-lbl">Categoria</span><span class="info-val">${s.categoria||'—'}</span></div>
+        <div class="info-row"><span class="info-lbl">Data de Inscrição</span><span class="info-val">${s.inscricao||'—'}</span></div>
+        <div class="info-row"><span class="info-lbl">Quota ${anoAtual}</span><span class="info-val" style="color:${corVal}">${lblVal}</span></div>
+      </div>
+
+      <p style="font-size:12px;color:#666;line-height:1.6">
+        Em caso de dúvidas, contacta a secretaria da associação.<br>
+        Com os melhores cumprimentos,<br><strong>A Direção — ${nomeAssoc}</strong>
+      </p>
+    </div>
+    <div class="bottom">${nomeAssoc} · NIF ${nifAssoc} · Emitido em ${hoje}</div>
+  </div>
+  </body></html>`;
+
+  toast('A enviar cartão por email...', 'success');
+  const ok = await resendEnviar(s.email, s.nome, `O teu Cartão de Sócio — ${nomeAssoc}`, emailHTML);
+  if (ok) toast(`Cartão enviado para ${s.email} ✅`);
+};
+
+// ── Notificação de inscrição em torneio ──────────
+async function enviarNotificacaoInscricao(insc, s, estado) {
+  if (!s?.email) return;
+  const cfg       = configuracoes || {};
+  const nomeAssoc = cfg.nome || 'Vizelgolfe — Associação de Minigolfe de Vizela';
+  const nifAssoc  = cfg.nif  || '509 227 902';
+  const t         = torneios[insc.torneioKey] || {};
+  const hoje      = new Date().toLocaleDateString('pt-PT');
+  const confirmado = estado === 'confirmado';
+  const corEst    = confirmado ? '#27ae60' : '#e74c3c';
+  const icone     = confirmado ? '✅' : '❌';
+  const titulo    = confirmado ? 'Inscrição Confirmada!' : 'Inscrição não Aceite';
+
+  const emailHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{margin:0;padding:0;background:#f0f4f8;font-family:'Segoe UI',Arial,sans-serif}
+    .wrap{max-width:520px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+    .top{background:#0f1e35;padding:20px 24px;display:flex;align-items:center;gap:14px}
+    .top img{width:42px;height:42px;object-fit:contain}
+    .top h1{font-size:15px;color:#d4820a;letter-spacing:2px;text-transform:uppercase;margin:0 0 2px}
+    .top p{font-size:10px;color:rgba(232,240,254,.55);margin:0}
+    .hero{background:${corEst}18;border-left:4px solid ${corEst};margin:20px 24px 0;padding:14px 16px;border-radius:0 8px 8px 0}
+    .hero-titulo{font-size:16px;font-weight:700;color:${corEst};margin-bottom:4px}
+    .hero-sub{font-size:12px;color:#555}
+    .body{padding:16px 24px 24px}
+    .intro{font-size:13px;color:#1a2a3a;line-height:1.7;margin-bottom:16px}
+    .torneio-box{background:#f4f7fb;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px}
+    .torneio-nome{font-size:15px;font-weight:700;color:#0f1e35;margin-bottom:8px}
+    .torneio-row{display:flex;gap:8px;align-items:center;font-size:12px;color:#555;margin-bottom:4px}
+    .bottom{background:#f4f7fb;padding:12px 24px;font-size:10px;color:#999;text-align:center;border-top:1px solid #e0e8f0}
+  </style></head><body>
+  <div class="wrap">
+    <div class="top">
+      <img src="${LOGO_B64}" alt="${nomeAssoc}">
+      <div><h1>${nomeAssoc.split('—')[0].trim()}</h1><p>Portal de Sócios · Torneios</p></div>
+    </div>
+    <div class="hero">
+      <div class="hero-titulo">${icone} ${titulo}</div>
+      <div class="hero-sub">A tua inscrição foi ${confirmado ? 'aceite pela organização' : 'analisada pela organização'}</div>
+    </div>
+    <div class="body">
+      <p class="intro">Caro(a) <strong>${s.nome}</strong> (Sócio Nº ${s.numero||'—'}),</p>
+      ${confirmado
+        ? `<p class="intro">Temos o prazer de informar que a tua inscrição no torneio abaixo foi <strong style="color:${corEst}">confirmada</strong>. Fica atento às comunicações da associação para mais detalhes sobre o evento.</p>`
+        : `<p class="intro">Informamos que a tua inscrição no torneio abaixo <strong style="color:${corEst}">não foi aceite</strong>. Para mais informações, contacta a secretaria da associação.</p>`
+      }
+      <div class="torneio-box">
+        <div class="torneio-nome">🏆 ${t.nome||insc.torneioNome||'—'}</div>
+        ${t.data  ? `<div class="torneio-row">📅 <strong>Data:</strong> ${t.data}</div>` : ''}
+        ${t.local ? `<div class="torneio-row">📍 <strong>Local:</strong> ${t.local}</div>` : ''}
+        ${t.tipo  ? `<div class="torneio-row">📋 <strong>Tipo:</strong> ${t.tipo}</div>` : ''}
+        ${insc.categoria ? `<div class="torneio-row">🏅 <strong>Categoria inscrita:</strong> ${insc.categoria}</div>` : ''}
+        <div class="torneio-row" style="margin-top:8px;padding-top:8px;border-top:1px solid #e0e8f0">
+          <strong style="color:${corEst}">${icone} Estado: ${confirmado ? 'CONFIRMADO' : 'NÃO ACEITE'}</strong>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#666;line-height:1.6">
+        Com os melhores cumprimentos,<br>
+        <strong>A Direção — ${nomeAssoc}</strong>
+      </p>
+    </div>
+    <div class="bottom">${nomeAssoc} · NIF ${nifAssoc} · Notificação enviada em ${hoje}</div>
+  </div>
+  </body></html>`;
+
+  const assunto = confirmado
+    ? `✅ Inscrição confirmada — ${t.nome||insc.torneioNome}`
+    : `❌ Inscrição não aceite — ${t.nome||insc.torneioNome}`;
+
+  await resendEnviar(s.email, s.nome, assunto, emailHTML);
+}
+
 window.enviarAvisoEmail = async function(key) {
   const s = socios[key];
   if (!s) return;
