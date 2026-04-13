@@ -6833,16 +6833,12 @@ window.enviarCartaoPorEmail = async function(key) {
   const quotaAtual= minhasQ.find(([,q]) => String(q.ano) === anoAtual);
   const qEstado   = quotaAtual?.[1]?.estado || 'pendente';
   const corVal    = qEstado === 'pago' ? '#27ae60' : '#e74c3c';
-  const lblVal    = qEstado === 'pago' ? '✅ Válido ' + anoAtual : '❌ Quota Pendente ' + anoAtual;
+  const lblVal    = qEstado === 'pago' ? '✅ Válido ' + anoAtual : '❌ Quota Pendente';
   const numFmt    = String(s.numero || '0').padStart(4, '0');
-  const catAbrev  = {'Atleta':'ATL','Normal':'NOR','Reformado':'REF','Fundador':'FUN','Socio beneficios':'BEN','Honorário':'HON','Júnior':'JUN'};
-  const catCod    = catAbrev[s.categoria] || (s.categoria||'SOC').slice(0,3).toUpperCase();
-  const palavras  = (s.nome||'?').split(' ').filter(Boolean);
-  const iniciais  = ((palavras[0]||'?')[0] + (palavras.length > 1 ? palavras[palavras.length-1][0] : '')).toUpperCase();
-  const fotoEl    = s.foto
-    ? `<img src="${s.foto}" style="width:100%;height:100%;object-fit:cover;display:block;border-radius:6px">`
-    : `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#4a6080;background:#0d1a2e;border-radius:6px">${iniciais}</div>`;
-  const hoje = new Date().toLocaleDateString('pt-PT');
+  const hoje      = new Date().toLocaleDateString('pt-PT');
+
+  // Link direto para o cartão online
+  const linkCartao = `https://vizelgolfe.net/cartao.html?s=${key}`;
 
   const emailHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -6855,71 +6851,45 @@ window.enviarCartaoPorEmail = async function(key) {
     .top p{font-size:10px;color:rgba(232,240,254,.55);margin:0}
     .body{padding:24px}
     .intro{font-size:13px;color:#1a2a3a;line-height:1.7;margin-bottom:20px}
-    /* Cartão */
-    .card-wrap{background:linear-gradient(135deg,#0a1628 0%,#0f1e35 50%,#162444 100%);border-radius:14px;padding:20px 18px;position:relative;overflow:hidden;margin-bottom:20px;min-height:160px}
+    .card-preview{background:linear-gradient(135deg,#0a1628,#0f1e35 50%,#162444);border-radius:12px;padding:18px;margin-bottom:20px;position:relative;overflow:hidden}
     .card-stripe{position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#b8720a,#f0a030 40%,#ffe066 50%,#f0a030 60%,#b8720a)}
-    .card-dots{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.04) 1px,transparent 1px);background-size:16px 16px}
-    .card-logo{display:flex;align-items:center;gap:8px;margin-bottom:16px;position:relative}
-    .card-logo img{width:30px;height:30px;object-fit:contain}
-    .card-logo h2{font-size:13px;color:#d4820a;letter-spacing:2px;text-transform:uppercase;margin:0}
-    .card-badge{position:absolute;right:0;top:0;background:rgba(212,130,10,.15);border:1px solid rgba(212,130,10,.4);border-radius:4px;padding:2px 8px;font-size:10px;color:#d4820a;letter-spacing:1.5px}
-    .card-body{display:flex;gap:14px;align-items:flex-end;position:relative}
-    .card-foto{width:50px;height:64px;border-radius:6px;overflow:hidden;border:1.5px solid rgba(212,130,10,.4);flex-shrink:0}
-    .card-dados{flex:1}
-    .card-nome{font-size:16px;font-weight:800;color:#e8f0fe;letter-spacing:1px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .card-num{font-family:monospace;font-size:10px;color:#d4820a;letter-spacing:2px;margin-bottom:2px}
-    .card-cat{font-size:9px;color:rgba(143,168,200,.5);margin-bottom:8px}
-    .card-validade{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:700;padding:3px 10px;border-radius:10px;border:1px solid}
-    .info-box{background:#f4f7fb;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px;font-size:12px;color:#1a2a3a;margin-bottom:16px}
-    .info-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #e8eef6}
-    .info-row:last-child{border-bottom:none}
-    .info-lbl{color:#666}
-    .info-val{font-weight:600}
+    .card-nome{font-size:17px;font-weight:800;color:#e8f0fe;letter-spacing:1px;margin:12px 0 4px}
+    .card-num{font-family:monospace;font-size:11px;color:#d4820a;letter-spacing:2px;margin-bottom:3px}
+    .card-cat{font-size:10px;color:rgba(143,168,200,.6);margin-bottom:10px}
+    .card-status{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;padding:4px 12px;border-radius:10px;border:1px solid}
+    .btn-ver{display:block;background:#d4820a;color:#000;text-decoration:none;text-align:center;padding:14px 24px;border-radius:10px;font-size:14px;font-weight:700;letter-spacing:.5px;margin-bottom:16px}
+    .btn-ver:hover{background:#f0a030}
+    .info-box{background:#f4f7fb;border:1px solid #e0e8f0;border-radius:10px;padding:14px 16px;font-size:12px;color:#555;line-height:1.6;margin-bottom:16px}
     .bottom{background:#f4f7fb;padding:12px 24px;font-size:10px;color:#999;text-align:center;border-top:1px solid #e0e8f0}
   </style></head><body>
   <div class="wrap">
     <div class="top">
       <img src="${LOGO_B64}" alt="${nomeAssoc}">
-      <div><h1>${nomeAssoc.split('—')[0].trim()}</h1><p>Portal de Sócios</p></div>
+      <div><h1>${nomeAssoc.split('—')[0].trim()}</h1><p>Portal de Sócios · Cartão Digital</p></div>
     </div>
     <div class="body">
       <p class="intro">Caro(a) <strong>${s.nome}</strong>,<br>
-      Enviamos em anexo o teu cartão de sócio digital da <strong>${nomeAssoc}</strong>.<br>
-      Guarda-o no teu telemóvel para apresentares sempre que necessário.</p>
+      O teu cartão de sócio digital da <strong>${nomeAssoc}</strong> está disponível.</p>
 
-      <!-- Cartão visual -->
-      <div class="card-wrap">
+      <div class="card-preview">
         <div class="card-stripe"></div>
-        <div class="card-dots"></div>
-        <div class="card-logo">
-          <img src="${LOGO_B64}" alt="">
-          <h2>VIZELGOLFE</h2>
-          <span class="card-badge">${catCod}</span>
-        </div>
-        <div class="card-body">
-          <div class="card-foto">${fotoEl}</div>
-          <div class="card-dados">
-            <div class="card-nome">${(s.nome||'—').toUpperCase()}</div>
-            <div class="card-num">Nº ${numFmt}</div>
-            <div class="card-cat">${s.categoria||'—'} · NIF ${s.nif||'—'}</div>
-            <div class="card-validade" style="color:${corVal};border-color:${corVal}40;background:${corVal}18">
-              ${lblVal}
-            </div>
-          </div>
-        </div>
+        <div style="font-size:10px;color:rgba(212,130,10,.7);letter-spacing:1.5px;text-transform:uppercase">Vizelgolfe · Associação de Minigolfe de Vizela</div>
+        <div class="card-nome">${(s.nome||'—').toUpperCase()}</div>
+        <div class="card-num">Nº ${numFmt}</div>
+        <div class="card-cat">${s.categoria||'—'}</div>
+        <div class="card-status" style="color:${corVal};border-color:${corVal}40;background:${corVal}15">${lblVal}</div>
       </div>
 
-      <!-- Dados resumo -->
+      <a href="${linkCartao}" class="btn-ver">🪪 Ver o meu Cartão de Sócio</a>
+
       <div class="info-box">
-        <div class="info-row"><span class="info-lbl">Nº Sócio</span><span class="info-val">${s.numero||'—'}</span></div>
-        <div class="info-row"><span class="info-lbl">Categoria</span><span class="info-val">${s.categoria||'—'}</span></div>
-        <div class="info-row"><span class="info-lbl">Data de Inscrição</span><span class="info-val">${s.inscricao||'—'}</span></div>
-        <div class="info-row"><span class="info-lbl">Quota ${anoAtual}</span><span class="info-val" style="color:${corVal}">${lblVal}</span></div>
+        💡 <strong>Como usar o teu cartão:</strong><br>
+        Clica no botão acima para abrir o teu cartão digital. Podes guardá-lo nos favoritos do telemóvel ou imprimi-lo para teres sempre à mão. Apresenta-o sempre que necessário nas instalações do clube.
       </div>
 
       <p style="font-size:12px;color:#666;line-height:1.6">
-        Em caso de dúvidas, contacta a secretaria da associação.<br>
-        Com os melhores cumprimentos,<br><strong>A Direção — ${nomeAssoc}</strong>
+        Com os melhores cumprimentos,<br>
+        <strong>A Direção — ${nomeAssoc}</strong>
       </p>
     </div>
     <div class="bottom">${nomeAssoc} · NIF ${nifAssoc} · Emitido em ${hoje}</div>
@@ -6927,9 +6897,10 @@ window.enviarCartaoPorEmail = async function(key) {
   </body></html>`;
 
   toast('A enviar cartão por email...', 'success');
-  const ok = await resendEnviar(s.email, s.nome, `O teu Cartão de Sócio — ${nomeAssoc}`, emailHTML);
+  const ok = await resendEnviar(s.email, s.nome, `O teu Cartão de Sócio Digital — ${nomeAssoc}`, emailHTML);
   if (ok) toast(`Cartão enviado para ${s.email} ✅`);
 };
+
 
 // ── Notificação de inscrição em torneio ──────────
 async function enviarNotificacaoInscricao(insc, s, estado) {
