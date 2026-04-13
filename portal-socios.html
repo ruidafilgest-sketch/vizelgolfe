@@ -5578,6 +5578,7 @@ window.abrirFicha = function(key) {
   document.getElementById('ficha-btn-editar').onclick = () => { closeModal('modal-ficha'); editarSocio(key); };
   document.getElementById('ficha-btn-quota').onclick  = () => { closeModal('modal-ficha'); abrirModalQuota(key); };
   document.getElementById('ficha-btn-aviso').onclick  = () => gerarAvisoCobranca(key);
+  document.getElementById('ficha-btn-email-aviso').onclick = () => enviarAvisoEmail(key);
   document.getElementById('ficha-btn-cartao').onclick = () => gerarCartaoSocio(key);
 
   // Calcular dados
