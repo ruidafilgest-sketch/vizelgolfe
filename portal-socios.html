@@ -1626,8 +1626,11 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <div class="form-group"><label>Local</label>
           <input id="t-local" type="text" placeholder="Ex: Vizela — Pista Municipal" />
         </div>
-        <div class="form-group"><label>Data do Torneio</label>
+        <div class="form-group"><label>Data de Início</label>
           <input id="t-data" type="date" />
+        </div>
+        <div class="form-group"><label>Data de Término</label>
+          <input id="t-datafim" type="date" />
         </div>
         <div class="form-group"><label>Prazo de Inscrição</label>
           <input id="t-prazo" type="date" />
@@ -4991,8 +4994,9 @@ window.openModalTorneio = function() {
   document.getElementById('t-nome').value  = '';
   document.getElementById('t-tipo').value  = '';
   document.getElementById('t-local').value = '';
-  document.getElementById('t-data').value  = '';
-  document.getElementById('t-prazo').value = '';
+  document.getElementById('t-data').value    = '';
+  document.getElementById('t-datafim').value = '';
+  document.getElementById('t-prazo').value   = '';
   document.getElementById('t-vagas').value = '0';
   document.getElementById('t-estado').value = 'aberto';
   document.getElementById('t-desc').value  = '';
@@ -5006,8 +5010,9 @@ window.editarTorneio = function(key) {
   document.getElementById('t-nome').value   = t.nome   || '';
   document.getElementById('t-tipo').value   = t.tipo   || '';
   document.getElementById('t-local').value  = t.local  || '';
-  document.getElementById('t-data').value   = t.data   || '';
-  document.getElementById('t-prazo').value  = t.prazo  || '';
+  document.getElementById('t-data').value    = t.data    || '';
+  document.getElementById('t-datafim').value = t.datafim || '';
+  document.getElementById('t-prazo').value   = t.prazo   || '';
   document.getElementById('t-vagas').value  = t.vagas  || '0';
   document.getElementById('t-estado').value = t.estado || 'aberto';
   document.getElementById('t-desc').value   = t.descricao || '';
@@ -5022,6 +5027,7 @@ window.gravarTorneio = async function() {
     tipo:      document.getElementById('t-tipo').value.trim(),
     local:     document.getElementById('t-local').value.trim(),
     data:      document.getElementById('t-data').value,
+    datafim:   document.getElementById('t-datafim').value,
     prazo:     document.getElementById('t-prazo').value,
     vagas:     parseInt(document.getElementById('t-vagas').value) || 0,
     estado:    document.getElementById('t-estado').value,
@@ -5227,7 +5233,7 @@ window.renderTorneiosAdmin = function() {
             </div>
             <div style="font-size:12px;color:var(--text2);display:flex;gap:16px;flex-wrap:wrap">
               ${t.tipo  ? `<span>📋 ${t.tipo}</span>` : ''}
-              ${t.data  ? `<span>📅 ${t.data}</span>` : ''}
+              ${t.data  ? `<span>📅 ${t.data}${t.datafim && t.datafim !== t.data ? ' → ' + t.datafim : ''}</span>` : ''}
               ${t.local ? `<span>📍 ${t.local}</span>` : ''}
               ${t.prazo ? `<span style="${prazoPass?'color:var(--red)':''}">⏰ Prazo: ${t.prazo}${prazoPass?' (expirado)':''}</span>` : ''}
               ${t.vagas ? `<span>👥 Vagas: ${t.vagas}</span>` : '<span>👥 Vagas ilimitadas</span>'}
@@ -5317,7 +5323,7 @@ window.renderTorneisosSocio = function() {
             <div style="font-family:'Bebas Neue';font-size:18px;color:var(--accent);letter-spacing:1px;margin-bottom:4px">${t.nome}</div>
             <div style="font-size:12px;color:var(--text2);display:flex;gap:12px;flex-wrap:wrap;margin-bottom:6px">
               ${t.tipo  ? `<span>📋 ${t.tipo}</span>` : ''}
-              ${t.data  ? `<span>📅 ${t.data}</span>` : ''}
+              ${t.data  ? `<span>📅 ${t.data}${t.datafim && t.datafim !== t.data ? ' → ' + t.datafim : ''}</span>` : ''}
               ${t.local ? `<span>📍 ${t.local}</span>` : ''}
               ${t.prazo ? `<span style="${prazoPass?'color:var(--red)':''}">⏰ Prazo: ${t.prazo}</span>` : ''}
             </div>
