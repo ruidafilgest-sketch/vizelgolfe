@@ -4784,25 +4784,51 @@ window.executarUploadBiblioteca = async function() {
 window.abrirDocBiblioteca = function(key) {
   const doc = documentosBiblioteca[key];
   if (!doc) return;
-  // Se tem base64 (novo sistema)
-  if (doc.base64) {
-    const w = window.open('', '_blank');
-    if (doc.tipo === 'application/pdf' || doc.nomeFicheiro?.endsWith('.pdf')) {
-      w.document.write(`<!DOCTYPE html><html><head><title>${doc.nome}</title></head><body style="margin:0">
-        <embed src="${doc.base64}" type="application/pdf" width="100%" height="100%" style="position:fixed;top:0;left:0;width:100%;height:100%">
-        </body></html>`);
-    } else {
-      // Para Word/outros — download direto
-      const a = document.createElement('a');
-      a.href = doc.base64;
-      a.download = doc.nomeFicheiro || doc.nome;
-      a.click();
-      w.close();
-    }
+
+  // Fallback para url antiga (Storage)
+  if (!doc.base64) {
+    if (doc.url) window.open(doc.url, '_blank');
     return;
   }
-  // Fallback para url antiga (Storage)
-  if (doc.url) window.open(doc.url, '_blank');
+
+  // Converter base64 para Blob URL — funciona com ficheiros grandes
+  try {
+    const isPDF = doc.tipo === 'application/pdf' || (doc.nomeFicheiro||'').toLowerCase().endsWith('.pdf');
+    const mimeType = isPDF ? 'application/pdf' : (doc.tipo || 'application/octet-stream');
+
+    // Extrair a parte base64 pura (remover "data:...;base64,")
+    const base64Data = doc.base64.includes(',') ? doc.base64.split(',')[1] : doc.base64;
+
+    // Converter para bytes
+    const byteChars = atob(base64Data);
+    const byteArrays = [];
+    for (let i = 0; i < byteChars.length; i += 512) {
+      const slice = byteChars.slice(i, i + 512);
+      const bytes = new Uint8Array(slice.length);
+      for (let j = 0; j < slice.length; j++) bytes[j] = slice.charCodeAt(j);
+      byteArrays.push(bytes);
+    }
+    const blob = new Blob(byteArrays, { type: mimeType });
+    const blobUrl = URL.createObjectURL(blob);
+
+    if (isPDF) {
+      // Abrir PDF numa nova aba via Blob URL
+      const w = window.open(blobUrl, '_blank');
+      // Limpar o Blob URL após 60 segundos
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+    } else {
+      // Download direto para Word/outros
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = doc.nomeFicheiro || doc.nome || 'documento';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+    }
+  } catch(e) {
+    toast('Erro ao abrir documento: ' + e.message, 'error');
+  }
 };
 
 window.apagarDocBiblioteca = async function(key) {
