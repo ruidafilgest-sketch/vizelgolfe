@@ -383,8 +383,48 @@ window.togglePerm = function(div, id) {
   div.classList.toggle('checked', cb.checked);
 };
 
+// IP com timeout 2s — nunca bloqueia
+async function getIp() {
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 2000);
+    const r = await fetch('https://api.ipify.org?format=json', { signal: ctrl.signal });
+    clearTimeout(tid);
+    return (await r.json()).ip || '';
+  } catch(_) { return ''; }
+}
+
 // ─── Submeter ──────────────────────────────────
 window.submeter = async function() {
+  // Se já estava identificado (a editar), usar dados guardados directamente
+  if (consentimentoExistente && socioKey && socioData) {
+    const btn = document.getElementById('btn-submit');
+    btn.disabled = true;
+    btn.textContent = '⏳ A guardar...';
+    try {
+      let ip = await getIp();
+      const consentimento = {
+        fotos:          document.getElementById('perm-fotos').checked,
+        videos:         document.getElementById('perm-videos').checked,
+        classificacoes: document.getElementById('perm-classificacoes').checked,
+        relatorios:     document.getElementById('perm-relatorios').checked,
+        contacto:       document.getElementById('perm-contacto').checked,
+        timestamp:      Date.now(),
+        ip,
+        nome:   socioData.nome || socioData.Nome || '',
+        numero: socioData.numero || socioData.Número || socioKey
+      };
+      await set(ref(db, `portal/consentimentos/${socioKey}`), consentimento);
+      btn.textContent = '⏳ A gerar documento...';
+      try { await gerarPdfRgpd(socioData, consentimento, socioKey, db); } catch(ePdf){ console.warn(ePdf); }
+      mostrarSucesso(socioData, consentimento);
+    } catch(e) {
+      document.getElementById('txt-erro').textContent = 'Erro: ' + e.message;
+      mostrar('step-erro');
+    }
+    return;
+  }
+
   const numStr  = document.getElementById('inp-numero').value.trim();
   const nascStr = document.getElementById('inp-nascimento').value.trim();
 
@@ -445,13 +485,8 @@ window.submeter = async function() {
     socioKey  = foundKey;
     socioData = foundSocio;
 
-    // Recolher IP (best-effort via serviço público)
-    let ip = '';
-    try {
-      const r = await fetch('https://api.ipify.org?format=json');
-      const j = await r.json();
-      ip = j.ip || '';
-    } catch(_) {}
+    // Recolher IP (best-effort, timeout 2s)
+    const ip = await getIp();
 
     const consentimento = {
       fotos:          document.getElementById('perm-fotos').checked,
@@ -491,7 +526,10 @@ function mostrarSucesso(s, c) {
   mostrar('step-sucesso');
 }
 
+let consentimentoExistente = null;
+
 function mostrarJaRegistado(c) {
+  consentimentoExistente = c;
   const dt = c.timestamp ? new Date(c.timestamp).toLocaleString('pt-PT') : '—';
   document.getElementById('txt-ja-reg').textContent = `Já submeteste as tuas preferências em ${dt}. Podes atualizá-las abaixo.`;
   document.getElementById('resumo-ja-reg').innerHTML = resumoHTML(c);
@@ -510,8 +548,27 @@ function resumoHTML(c) {
 }
 
 window.mostrarFormulario = function() {
-  // Pré-preencher o formulário com as escolhas actuais para editar
   if (socioParam) document.getElementById('inp-numero').value = socioParam;
+  // Pré-preencher checkboxes com escolhas anteriores
+  if (consentimentoExistente) {
+    ['fotos','videos','classificacoes','relatorios','contacto'].forEach(id => {
+      const cb  = document.getElementById('perm-' + id);
+      const div = cb?.closest('.perm-item');
+      if (cb) {
+        cb.checked = !!consentimentoExistente[id];
+        if (div) div.classList.toggle('checked', cb.checked);
+      }
+    });
+    // Se já identificado, esconder campos de identificação
+    if (socioParam) {
+      document.getElementById('inp-numero').closest('label')?.nextElementSibling && (document.getElementById('inp-numero').style.display = 'none');
+      document.getElementById('inp-nascimento').style.display = 'none';
+      // Esconder labels também
+      document.querySelectorAll('.field-label').forEach(l => l.style.display = 'none');
+      document.getElementById('err-numero').style.display = 'none';
+      document.getElementById('err-nasc').style.display = 'none';
+    }
+  }
   mostrar('step-form');
 };
 
