@@ -325,10 +325,13 @@
 
 </div><!-- /card -->
 
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <!-- Firebase -->
 <script type="module">
 import { initializeApp }        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getDatabase, ref, get, set, push } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",
@@ -465,6 +468,14 @@ window.submeter = async function() {
     btn.textContent = '⏳ A guardar...';
     await set(ref(db, `portal/consentimentos/${foundKey}`), consentimento);
 
+    // Gerar PDF e guardar na Biblioteca
+    btn.textContent = '⏳ A gerar documento...';
+    try {
+      await gerarPdfRgpd(foundSocio, consentimento, foundKey, db);
+    } catch(ePdf) {
+      console.warn('PDF não gerado:', ePdf);
+    }
+
     mostrarSucesso(foundSocio, consentimento);
 
   } catch(e) {
@@ -504,6 +515,174 @@ window.mostrarFormulario = function() {
   mostrar('step-form');
 };
 
+// ─── Geração de PDF RGPD ───────────────────────────────
+async function gerarPdfRgpd(s, c, key, db) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const nome   = s.nome || s.Nome || '—';
+  const numero = c.numero || key;
+  const dt     = new Date(c.timestamp).toLocaleString('pt-PT');
+  const ip     = c.ip || '—';
+  const ico    = v => v ? '✔  Autoriza' : '✘  Não autoriza';
+
+  const W = 210;
+  let y = 0;
+
+  // ── Cabeçalho ──────────────────────────────────────
+  doc.setFillColor(15, 17, 23);
+  doc.rect(0, 0, W, 38, 'F');
+
+  doc.setTextColor(240, 192, 64);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text('⛳ VIZELGOLFE', 20, 16);
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(180, 180, 180);
+  doc.text('Associação de Minigolfe de Vizela  ·  NIF 509 227 902', 20, 23);
+  doc.text('vizelgolfe.net  ·  secretaria@vizelgolfe.net', 20, 29);
+
+  doc.setTextColor(240, 192, 64);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('DECLARAÇÃO DE CONSENTIMENTO RGPD', W - 20, 20, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(180, 180, 180);
+  doc.text('Reg. UE 2016/679', W - 20, 27, { align: 'right' });
+
+  y = 48;
+
+  // ── Dados do sócio ─────────────────────────────────
+  doc.setFillColor(26, 29, 39);
+  doc.roundedRect(14, y - 6, W - 28, 30, 3, 3, 'F');
+
+  doc.setTextColor(240, 192, 64);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('IDENTIFICAÇÃO DO SÓCIO / ATLETA', 20, y + 1);
+
+  doc.setTextColor(220, 220, 220);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.text(`Nome:`, 20, y + 9);
+  doc.setFont('helvetica', 'bold');
+  doc.text(nome, 45, y + 9);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Nº Sócio:`, 20, y + 16);
+  doc.setFont('helvetica', 'bold');
+  doc.text(String(numero), 45, y + 16);
+
+  y += 36;
+
+  // ── Intro legal ────────────────────────────────────
+  doc.setTextColor(100, 100, 100);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  const intro = 'Nos termos do Regulamento Geral sobre a Proteção de Dados (RGPD — Regulamento UE 2016/679), o abaixo identificado declara expressamente as seguintes preferências relativamente ao tratamento e divulgação dos seus dados pessoais e imagem pela Vizelgolfe — Associação de Minigolfe de Vizela:';
+  const introLines = doc.splitTextToSize(intro, W - 40);
+  doc.text(introLines, 20, y);
+  y += introLines.length * 4.5 + 6;
+
+  // ── Tabela de consentimentos ───────────────────────
+  doc.setFillColor(240, 192, 64);
+  doc.rect(14, y - 4, W - 28, 8, 'F');
+  doc.setTextColor(15, 17, 23);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('MATÉRIA', 20, y + 1);
+  doc.text('DECISÃO', W - 20, y + 1, { align: 'right' });
+  y += 10;
+
+  const perms = [
+    ['📸  Publicação de Fotografias', c.fotos],
+    ['🎥  Publicação de Vídeos', c.videos],
+    ['🏆  Classificações e Resultados Públicos', c.classificacoes],
+    ['📊  Relatórios de Performance Internos', c.relatorios],
+    ['📧  Contacto pelo Clube (email / WhatsApp)', c.contacto],
+  ];
+
+  perms.forEach(([label, val], i) => {
+    const bg = i % 2 === 0 ? [26, 29, 39] : [22, 25, 34];
+    doc.setFillColor(...bg);
+    doc.rect(14, y - 4, W - 28, 9, 'F');
+
+    doc.setTextColor(200, 200, 200);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text(label, 20, y + 1);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(val ? 76 : 224, val ? 175 : 85, val ? 80 : 85);
+    doc.text(ico(val), W - 20, y + 1, { align: 'right' });
+    y += 9;
+  });
+
+  y += 10;
+
+  // ── Rodapé informativo ─────────────────────────────
+  doc.setFillColor(26, 29, 39);
+  doc.roundedRect(14, y - 4, W - 28, 28, 3, 3, 'F');
+
+  doc.setTextColor(240, 192, 64);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('INFORMAÇÃO DE REGISTO', 20, y + 3);
+
+  doc.setTextColor(160, 160, 160);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.text(`Data e hora de submissão:`, 20, y + 10);
+  doc.setTextColor(220, 220, 220);
+  doc.text(dt, 75, y + 10);
+
+  doc.setTextColor(160, 160, 160);
+  doc.text(`Endereço IP:`, 20, y + 17);
+  doc.setTextColor(220, 220, 220);
+  doc.text(ip, 75, y + 17);
+
+  y += 36;
+
+  // ── Nota legal ─────────────────────────────────────
+  doc.setTextColor(120, 120, 120);
+  doc.setFontSize(7.5);
+  const nota = 'O presente registo constitui prova válida de consentimento nos termos do artigo 7.º do RGPD. O titular dos dados pode revogar o consentimento a qualquer momento contactando a secretaria da Vizelgolfe. Responsável pelo tratamento: Vizelgolfe — Associação de Minigolfe de Vizela, NIF 509 227 902.';
+  doc.text(doc.splitTextToSize(nota, W - 40), 20, y);
+
+  y += 20;
+
+  // ── Linha de assinatura ────────────────────────────
+  doc.setDrawColor(60, 60, 70);
+  doc.setLineWidth(0.3);
+  doc.line(20, y, 90, y);
+  doc.line(120, y, W - 20, y);
+
+  doc.setTextColor(120, 120, 120);
+  doc.setFontSize(8);
+  doc.text('Assinatura do titular (se em papel)', 20, y + 5);
+  doc.text('Pelo clube (se em papel)', 120, y + 5);
+
+  // ── Rodapé página ──────────────────────────────────
+  doc.setTextColor(80, 80, 80);
+  doc.setFontSize(7);
+  doc.text('Vizelgolfe — Associação de Minigolfe de Vizela  ·  Documento gerado automaticamente  ·  vizelgolfe.net', W / 2, 287, { align: 'center' });
+
+  // ── Converter para base64 e guardar na Biblioteca ──
+  const pdfBase64 = doc.output('datauristring').split(',')[1];
+  const nomeFicheiro = `RGPD_${nome.replace(/\s+/g,'_')}_${numero}.pdf`;
+
+  await set(ref(db, `/portal/rgpd-pdfs/${key}`), {
+    nome: `Consentimento RGPD — ${nome} (Sócio ${numero})`,
+    base64: pdfBase64,
+    tamanho: Math.round(pdfBase64.length * 0.75),
+    nomeFicheiro,
+    dataUpload: new Date().toISOString()
+  });
+}
+
 window.voltarForm = function() {
   document.getElementById('btn-submit').disabled = false;
   document.getElementById('btn-submit').textContent = '✅ Confirmar Consentimento';
@@ -513,4 +692,3 @@ window.voltarForm = function() {
 </script>
 </body>
 </html>
-
