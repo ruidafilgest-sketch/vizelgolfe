@@ -7345,6 +7345,7 @@ window.rgpdFiltrar = function() {
       <td style="font-size:11px;color:var(--text2)">${dt}</td>
       <td style="display:flex;gap:4px">
         <button class="btn btn-outline" style="font-size:11px;padding:4px 8px" onclick="rgpdVerDetalhe('${key}')">👁</button>
+        <button class="btn btn-outline" style="font-size:11px;padding:4px 8px" onclick="rgpdVerPdf('${key}')">📄</button>
         <button class="btn btn-outline" style="font-size:11px;padding:4px 8px;color:var(--danger)" onclick="rgpdApagar('${key}')">🗑</button>
       </td>
     </tr>`;
@@ -7366,6 +7367,25 @@ window.rgpdVerDetalhe = function(key) {
     `📧 Contacto clube: ${ico(c.contacto)}\n\n` +
     `📅 Data: ${dt}\n` +
     `🌐 IP: ${c.ip || '—'}`);
+};
+
+window.rgpdVerPdf = async function(key) {
+  const s = rgpdSocios[key];
+  const nome = s?.nome || s?.Nome || key;
+  try {
+    const snap = await get(ref(db, `/portal/rgpd-pdfs/${key}`));
+    if (!snap.exists() || !snap.val().base64) {
+      toast('PDF ainda não gerado — o sócio ainda não submeteu o formulário', 'error');
+      return;
+    }
+    const entrada = snap.val();
+    const link = document.createElement('a');
+    link.href = 'data:application/pdf;base64,' + entrada.base64;
+    link.download = entrada.nomeFicheiro || `RGPD_${nome}.pdf`;
+    link.click();
+  } catch(e) {
+    toast('Erro ao carregar PDF: ' + e.message, 'error');
+  }
 };
 
 window.rgpdApagar = async function(key) {
