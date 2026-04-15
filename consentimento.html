@@ -363,18 +363,38 @@ if (socioParam) {
 let socioKey = null;
 let socioData = null;
 
-if (socioParam) {
-  get(ref(db, `portal/consentimentos/${socioParam}`)).then(snap => {
-    if (snap.exists()) {
-      socioKey = socioParam;
-      mostrarJaRegistado(snap.val());
+async function inicializar() {
+  if (!socioParam) { mostrar('step-form'); return; }
+
+  try {
+    // Procurar sócio por número para obter a chave Firebase correta
+    const snapSocios = await get(ref(db, 'portal/socios'));
+    if (snapSocios.exists()) {
+      for (const [k, s] of Object.entries(snapSocios.val())) {
+        const num = String(s.numero || s.Número || s['Número'] || k).trim();
+        if (num === socioParam || k === socioParam) {
+          socioKey  = k;
+          socioData = s;
+          break;
+        }
+      }
+    }
+
+    if (!socioKey) { mostrar('step-form'); return; }
+
+    // Verificar se já tem consentimento
+    const snapC = await get(ref(db, `portal/consentimentos/${socioKey}`));
+    if (snapC.exists()) {
+      mostrarJaRegistado(snapC.val());
     } else {
       mostrar('step-form');
     }
-  }).catch(() => mostrar('step-form'));
-} else {
-  mostrar('step-form');
+  } catch(e) {
+    mostrar('step-form');
+  }
 }
+
+inicializar();
 
 // ─── Toggle permissão ──────────────────────────
 window.togglePerm = function(div, id) {
