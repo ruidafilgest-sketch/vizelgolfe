@@ -491,6 +491,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <button class="nav-tab" onclick="showPage('biblioteca')">📁 Biblioteca</button>
       <button class="nav-tab" onclick="showPage('importar')">📥 Importar</button>
       <button class="nav-tab" onclick="showPage('configuracoes')">⚙️ Config</button>
+      <button class="nav-tab" onclick="showPage('rgpd')">🔒 RGPD</button>
     </div>
   </nav>
 
@@ -1225,6 +1226,72 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <!-- Log de exportações recentes (só visual) -->
       <div style="margin-top:16px;font-size:12px;color:var(--text2);text-align:center" id="exp-last-msg"></div>
     </div><!-- /page-exportar-dados -->
+
+    <!-- RGPD -->
+    <div id="page-rgpd" class="page">
+      <div style="max-width:1100px;margin:0 auto;padding:24px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
+          <div>
+            <h2 style="margin:0;font-size:20px">🔒 Gestão de Consentimentos RGPD</h2>
+            <p style="margin:4px 0 0;color:var(--text2);font-size:13px">Registo de autorizações dos sócios / atletas</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-outline" onclick="rgpdCopiarLink()">🔗 Copiar Link Público</button>
+            <button class="btn btn-outline" onclick="rgpdExportar()">📥 Exportar CSV</button>
+            <button class="btn btn-accent" onclick="rgpdCarregar()">🔄 Atualizar</button>
+          </div>
+        </div>
+
+        <!-- KPIs -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px" id="rgpd-kpis">
+          <div class="kpi-card"><div class="kpi-val" id="rgpd-k-total">—</div><div class="kpi-label">Sócios com registo</div></div>
+          <div class="kpi-card"><div class="kpi-val" id="rgpd-k-total-fotos" style="color:var(--success)">—</div><div class="kpi-label">✅ Autorizam fotos</div></div>
+          <div class="kpi-card"><div class="kpi-val" id="rgpd-k-total-videos" style="color:var(--success)">—</div><div class="kpi-label">✅ Autorizam vídeos</div></div>
+          <div class="kpi-card"><div class="kpi-val" id="rgpd-k-total-class" style="color:var(--success)">—</div><div class="kpi-label">✅ Autorizam classificações</div></div>
+          <div class="kpi-card"><div class="kpi-val" id="rgpd-k-sem-registo" style="color:var(--danger)">—</div><div class="kpi-label">⚠️ Sem resposta</div></div>
+        </div>
+
+        <!-- Filtros -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+          <input id="rgpd-search" type="text" placeholder="🔍 Pesquisar sócio..." oninput="rgpdFiltrar()" style="padding:8px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--card);color:var(--text);font-size:13px;min-width:200px">
+          <select id="rgpd-filtro-estado" onchange="rgpdFiltrar()" style="padding:8px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--card);color:var(--text);font-size:13px">
+            <option value="todos">Todos os estados</option>
+            <option value="com-registo">Com registo</option>
+            <option value="sem-registo">Sem registo</option>
+          </select>
+          <select id="rgpd-filtro-perm" onchange="rgpdFiltrar()" style="padding:8px 12px;border:1px solid var(--border2);border-radius:8px;background:var(--card);color:var(--text);font-size:13px">
+            <option value="todos">Todas as permissões</option>
+            <option value="fotos-nao">❌ Recusou fotos</option>
+            <option value="videos-nao">❌ Recusou vídeos</option>
+            <option value="class-nao">❌ Recusou classificações</option>
+          </select>
+        </div>
+
+        <!-- Tabela -->
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nº</th>
+                <th>Nome</th>
+                <th>📸 Fotos</th>
+                <th>🎥 Vídeos</th>
+                <th>🏆 Classificações</th>
+                <th>📊 Relatórios</th>
+                <th>📧 Contacto</th>
+                <th>Data Registo</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="rgpd-tbody">
+              <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text2)">A carregar...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p style="margin-top:12px;font-size:11px;color:var(--text2)">* Os registos incluem timestamp e IP de submissão e constituem prova válida de consentimento nos termos do RGPD (Reg. UE 2016/679).</p>
+      </div>
+    </div><!-- /page-rgpd -->
 
   </main>
 </div>
@@ -2061,15 +2128,6 @@ function carregarDados() {
 }
 
 // ─── NAVEGAÇÃO ─────────────────────────────────────
-window.showPage = function(page) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('page-' + page).classList.add('active');
-  event.target.classList.add('active');
-  if (page === 'torneios') renderTorneiosAdmin();
-  if (page === 'exportar-dados') renderExportPage();
-};
-
 // ─── DASHBOARD ─────────────────────────────────────
 // ── Utilitário de canvas ────────────────────────────
 function drawBarChart(canvasId, labels, datasets, opts={}) {
@@ -7184,6 +7242,182 @@ window.abrirCartaoSocioLogado = function() {
   }
   gerarCartaoComDados(currentSocioKey, currentSocioData);
 };
+
+// ─── RGPD ──────────────────────────────────────────────
+let rgpdDados = {};       // consentimentos do Firebase
+let rgpdSocios = {};      // cópia de socios para cruzar
+
+window.showPage = function(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  event.target.classList.add('active');
+  if (page === 'torneios') renderTorneiosAdmin();
+  if (page === 'exportar-dados') renderExportPage();
+  if (page === 'rgpd') rgpdCarregar();
+};
+
+window.rgpdCarregar = async function() {
+  const tbody = document.getElementById('rgpd-tbody');
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text2)">A carregar...</td></tr>';
+  try {
+    const [snapC, snapS] = await Promise.all([
+      get(ref(db, 'portal/consentimentos')),
+      get(ref(db, 'portal/socios'))
+    ]);
+    rgpdDados = snapC.exists() ? snapC.val() : {};
+    rgpdSocios = snapS.exists() ? snapS.val() : {};
+    rgpdFiltrar();
+    rgpdAtualizarKPIs();
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--danger)">Erro ao carregar: ${e.message}</td></tr>`;
+  }
+};
+
+function rgpdAtualizarKPIs() {
+  const total = Object.keys(rgpdDados).length;
+  const totalSocios = Object.keys(rgpdSocios).length;
+  const fotos   = Object.values(rgpdDados).filter(c => c.fotos).length;
+  const videos  = Object.values(rgpdDados).filter(c => c.videos).length;
+  const classif = Object.values(rgpdDados).filter(c => c.classificacoes).length;
+  const semRegisto = totalSocios - total;
+  document.getElementById('rgpd-k-total').textContent = total;
+  document.getElementById('rgpd-k-total-fotos').textContent = fotos;
+  document.getElementById('rgpd-k-total-videos').textContent = videos;
+  document.getElementById('rgpd-k-total-class').textContent = classif;
+  document.getElementById('rgpd-k-sem-registo').textContent = Math.max(0, semRegisto);
+}
+
+window.rgpdFiltrar = function() {
+  const search = (document.getElementById('rgpd-search')?.value||'').toLowerCase();
+  const estado = document.getElementById('rgpd-filtro-estado')?.value || 'todos';
+  const perm   = document.getElementById('rgpd-filtro-perm')?.value || 'todos';
+
+  // Construir lista: todos os sócios, cruzados com consentimentos
+  const rows = [];
+  Object.entries(rgpdSocios).forEach(([key, s]) => {
+    const c = rgpdDados[key] || null;
+    const nome = (s.nome||s.Nome||'').toLowerCase();
+    const num  = String(s.numero||s.Número||key);
+    if (search && !nome.includes(search) && !num.includes(search)) return;
+    if (estado === 'com-registo' && !c) return;
+    if (estado === 'sem-registo' && c) return;
+    if (perm === 'fotos-nao'  && (!c || c.fotos  !== false)) return;
+    if (perm === 'videos-nao' && (!c || c.videos !== false)) return;
+    if (perm === 'class-nao'  && (!c || c.classificacoes !== false)) return;
+    rows.push({ key, s, c });
+  });
+
+  // Ordenar: com registo primeiro, depois sem, ambos por nome
+  rows.sort((a,b) => {
+    if (!!a.c !== !!b.c) return a.c ? -1 : 1;
+    return (a.s.nome||a.s.Nome||'').localeCompare(b.s.nome||b.s.Nome||'');
+  });
+
+  const tbody = document.getElementById('rgpd-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text2)">Sem resultados</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(({ key, s, c }) => {
+    const num  = s.numero || s.Número || key;
+    const nome = s.nome   || s.Nome   || '—';
+    if (!c) {
+      return `<tr>
+        <td>${num}</td>
+        <td>${nome}</td>
+        <td colspan="5" style="color:var(--text2);font-size:12px">— Sem registo —</td>
+        <td style="color:var(--text2);font-size:11px">—</td>
+        <td><button class="btn btn-outline" style="font-size:11px;padding:4px 8px" onclick="rgpdEnviarLink('${key}')">📧 Enviar link</button></td>
+      </tr>`;
+    }
+    const ico = v => v ? '✅' : '❌';
+    const dt  = c.timestamp ? new Date(c.timestamp).toLocaleDateString('pt-PT') : '—';
+    return `<tr>
+      <td>${num}</td>
+      <td>${nome}</td>
+      <td style="text-align:center">${ico(c.fotos)}</td>
+      <td style="text-align:center">${ico(c.videos)}</td>
+      <td style="text-align:center">${ico(c.classificacoes)}</td>
+      <td style="text-align:center">${ico(c.relatorios)}</td>
+      <td style="text-align:center">${ico(c.contacto)}</td>
+      <td style="font-size:11px;color:var(--text2)">${dt}</td>
+      <td style="display:flex;gap:4px">
+        <button class="btn btn-outline" style="font-size:11px;padding:4px 8px" onclick="rgpdVerDetalhe('${key}')">👁</button>
+        <button class="btn btn-outline" style="font-size:11px;padding:4px 8px;color:var(--danger)" onclick="rgpdApagar('${key}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+};
+
+window.rgpdVerDetalhe = function(key) {
+  const c = rgpdDados[key];
+  const s = rgpdSocios[key];
+  if (!c) return;
+  const nome = s?.nome || s?.Nome || key;
+  const ico  = v => v ? '✅ Autoriza' : '❌ Não autoriza';
+  const dt   = c.timestamp ? new Date(c.timestamp).toLocaleString('pt-PT') : '—';
+  alert(`📋 Consentimento RGPD — ${nome}\n\n` +
+    `📸 Fotos: ${ico(c.fotos)}\n` +
+    `🎥 Vídeos: ${ico(c.videos)}\n` +
+    `🏆 Classificações públicas: ${ico(c.classificacoes)}\n` +
+    `📊 Relatórios de performance: ${ico(c.relatorios)}\n` +
+    `📧 Contacto clube: ${ico(c.contacto)}\n\n` +
+    `📅 Data: ${dt}\n` +
+    `🌐 IP: ${c.ip || '—'}`);
+};
+
+window.rgpdApagar = async function(key) {
+  const s = rgpdSocios[key];
+  const nome = s?.nome || s?.Nome || key;
+  if (!confirm(`Apagar consentimento de ${nome}?\nO sócio terá de submeter novamente.`)) return;
+  await remove(ref(db, `portal/consentimentos/${key}`));
+  delete rgpdDados[key];
+  rgpdFiltrar();
+  rgpdAtualizarKPIs();
+  toast('Consentimento removido', 'success');
+};
+
+window.rgpdEnviarLink = function(key) {
+  const s = rgpdSocios[key];
+  const email = s?.email || s?.Email || '';
+  const link = `https://vizelgolfe.net/consentimento.html?s=${key}`;
+  if (email) {
+    window.open(`mailto:${email}?subject=Vizelgolfe%20-%20Consentimento%20RGPD&body=Caro%20s%C3%B3cio%2C%0A%0APedimos%20que%20preencha%20o%20formul%C3%A1rio%20de%20consentimento%20RGPD%20em%3A%0A${encodeURIComponent(link)}%0A%0AObrigado%2C%0AVizelgolfe`);
+  } else {
+    navigator.clipboard.writeText(link).then(() => toast('Link copiado', 'success'));
+  }
+};
+
+window.rgpdCopiarLink = function() {
+  const link = 'https://vizelgolfe.net/consentimento.html';
+  navigator.clipboard.writeText(link).then(() => toast('Link copiado! Partilha no grupo WhatsApp.', 'success'));
+};
+
+window.rgpdExportar = function() {
+  const rows = [['Número','Nome','Email','Fotos','Vídeos','Classificações','Relatórios','Contacto','Data','IP']];
+  Object.entries(rgpdSocios).forEach(([key, s]) => {
+    const c = rgpdDados[key];
+    const num  = s.numero || s.Número || key;
+    const nome = s.nome   || s.Nome   || '';
+    const email = s.email || s.Email  || '';
+    if (c) {
+      const dt = c.timestamp ? new Date(c.timestamp).toLocaleString('pt-PT') : '';
+      rows.push([num, nome, email, c.fotos?'Sim':'Não', c.videos?'Sim':'Não',
+        c.classificacoes?'Sim':'Não', c.relatorios?'Sim':'Não', c.contacto?'Sim':'Não', dt, c.ip||'']);
+    } else {
+      rows.push([num, nome, email, 'Sem registo','','','','','','']);
+    }
+  });
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,\uFEFF' + encodeURIComponent(csv);
+  a.download = `consentimentos-rgpd-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+};
+
+// Sobrepor o showPage original que está antes deste bloco (removido acima)
 
 window.toast = function(msg, type='success') {
   const t = document.getElementById('toast');
