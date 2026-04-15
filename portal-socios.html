@@ -1247,6 +1247,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button class="btn btn-outline" onclick="rgpdCopiarLink()">🔗 Copiar Link Público</button>
             <button class="btn btn-outline" onclick="rgpdExportar()">📥 Exportar CSV</button>
+            <button class="btn btn-outline" onclick="rgpdRegenerarTodos()" id="btn-regenerar-pdfs">🔄 Regenerar PDFs</button>
             <button class="btn btn-accent" onclick="rgpdCarregar()">🔄 Atualizar</button>
           </div>
         </div>
@@ -7561,6 +7562,43 @@ window.rgpdEnviarLink = function(key) {
   } else {
     navigator.clipboard.writeText(link).then(() => toast('Link copiado', 'success'));
   }
+};
+
+window.rgpdRegenerarTodos = async function() {
+  const total = Object.keys(rgpdDados).length;
+  if (!total) { toast('Nenhum consentimento registado ainda', 'error'); return; }
+  if (!confirm(`Regenerar PDFs para ${total} sócio(s) com consentimento?\nOs PDFs antigos (com erros de caracteres) serão substituídos.`)) return;
+
+  const btn = document.getElementById('btn-regenerar-pdfs');
+  btn.disabled = true;
+  btn.textContent = '⏳ A regenerar...';
+
+  // Carregar jsPDF se necessário
+  if (!window.jspdf) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  let ok = 0, erros = 0;
+  for (const [key, c] of Object.entries(rgpdDados)) {
+    try {
+      const s = rgpdSocios[key] || {};
+      await gerarEGuardarPdfRgpd(s, c, key);
+      ok++;
+      btn.textContent = `⏳ ${ok}/${total}...`;
+    } catch(e) {
+      erros++;
+      console.warn('Erro PDF sócio', key, e);
+    }
+  }
+
+  btn.disabled = false;
+  btn.textContent = '🔄 Regenerar PDFs';
+  toast(`PDFs regenerados: ${ok} OK${erros ? ', ' + erros + ' erros' : ''}`, ok > 0 ? 'success' : 'error');
 };
 
 window.rgpdCopiarLink = function() {
