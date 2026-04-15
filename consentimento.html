@@ -524,7 +524,7 @@ async function gerarPdfRgpd(s, c, key, db) {
   const numero = c.numero || key;
   const dt     = new Date(c.timestamp).toLocaleString('pt-PT');
   const ip     = c.ip || '—';
-  const ico    = v => v ? '✔  Autoriza' : '✘  Não autoriza';
+  const ico    = v => v ? 'Autoriza' : 'Nao autoriza';
 
   const W = 210;
   let y = 0;
@@ -536,13 +536,13 @@ async function gerarPdfRgpd(s, c, key, db) {
   doc.setTextColor(240, 192, 64);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
-  doc.text('⛳ VIZELGOLFE', 20, 16);
+  doc.text('VIZELGOLFE', 20, 16);
 
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(180, 180, 180);
-  doc.text('Associação de Minigolfe de Vizela  ·  NIF 509 227 902', 20, 23);
-  doc.text('vizelgolfe.net  ·  secretaria@vizelgolfe.net', 20, 29);
+  doc.text('Associacao de Minigolfe de Vizela  |  NIF 509 227 902', 20, 23);
+  doc.text('vizelgolfe.net  |  secretaria@vizelgolfe.net', 20, 29);
 
   doc.setTextColor(240, 192, 64);
   doc.setFont('helvetica', 'bold');
@@ -598,11 +598,11 @@ async function gerarPdfRgpd(s, c, key, db) {
   y += 10;
 
   const perms = [
-    ['📸  Publicação de Fotografias', c.fotos],
-    ['🎥  Publicação de Vídeos', c.videos],
-    ['🏆  Classificações e Resultados Públicos', c.classificacoes],
-    ['📊  Relatórios de Performance Internos', c.relatorios],
-    ['📧  Contacto pelo Clube (email / WhatsApp)', c.contacto],
+    ['Publicacao de Fotografias', c.fotos],
+    ['Publicacao de Videos', c.videos],
+    ['Classificacoes e Resultados Publicos', c.classificacoes],
+    ['Relatorios de Performance Internos', c.relatorios],
+    ['Contacto pelo Clube (email / WhatsApp)', c.contacto],
   ];
 
   perms.forEach(([label, val], i) => {
@@ -616,8 +616,8 @@ async function gerarPdfRgpd(s, c, key, db) {
     doc.text(label, 20, y + 1);
 
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(val ? 76 : 224, val ? 175 : 85, val ? 80 : 85);
-    doc.text(ico(val), W - 20, y + 1, { align: 'right' });
+    doc.setTextColor(val ? 76 : 200, val ? 175 : 80, val ? 80 : 80);
+    doc.text(val ? '[SIM] Autoriza' : '[NAO] Nao autoriza', W - 20, y + 1, { align: 'right' });
     y += 9;
   });
 
@@ -649,7 +649,7 @@ async function gerarPdfRgpd(s, c, key, db) {
   // ── Nota legal ─────────────────────────────────────
   doc.setTextColor(120, 120, 120);
   doc.setFontSize(7.5);
-  const nota = 'O presente registo constitui prova válida de consentimento nos termos do artigo 7.º do RGPD. O titular dos dados pode revogar o consentimento a qualquer momento contactando a secretaria da Vizelgolfe. Responsável pelo tratamento: Vizelgolfe — Associação de Minigolfe de Vizela, NIF 509 227 902.';
+  const nota = 'O presente registo constitui prova valida de consentimento nos termos do artigo 7. do RGPD. O titular dos dados pode revogar o consentimento a qualquer momento contactando a secretaria da Vizelgolfe. Responsavel pelo tratamento: Vizelgolfe - Associacao de Minigolfe de Vizela, NIF 509 227 902.';
   doc.text(doc.splitTextToSize(nota, W - 40), 20, y);
 
   y += 20;
@@ -668,7 +668,7 @@ async function gerarPdfRgpd(s, c, key, db) {
   // ── Rodapé página ──────────────────────────────────
   doc.setTextColor(80, 80, 80);
   doc.setFontSize(7);
-  doc.text('Vizelgolfe — Associação de Minigolfe de Vizela  ·  Documento gerado automaticamente  ·  vizelgolfe.net', W / 2, 287, { align: 'center' });
+  doc.text('Vizelgolfe - Associacao de Minigolfe de Vizela  |  Documento gerado automaticamente  |  vizelgolfe.net', W / 2, 287, { align: 'center' });
 
   // ── Converter para base64 e guardar na Biblioteca ──
   const pdfBase64 = doc.output('datauristring').split(',')[1];
