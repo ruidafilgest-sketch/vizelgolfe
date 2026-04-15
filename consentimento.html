@@ -1,1 +1,516 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vizelgolfe — Consentimento RGPD</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f1117;
+    color: #e0e0e0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+  }
+  .logo-wrap {
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .logo-wrap h1 {
+    font-size: 22px;
+    font-weight: 800;
+    color: #f0c040;
+    letter-spacing: 1px;
+  }
+  .logo-wrap p {
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+  }
+  .card {
+    background: #1a1d27;
+    border: 1px solid #2a2d3a;
+    border-radius: 16px;
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 520px;
+  }
+  .card h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #f0c040;
+  }
+  .card .sub {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+  label.field-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #aaa;
+    margin-bottom: 5px;
+    margin-top: 16px;
+  }
+  input[type="text"], input[type="date"] {
+    width: 100%;
+    padding: 10px 14px;
+    background: #0f1117;
+    border: 1px solid #2a2d3a;
+    border-radius: 8px;
+    color: #e0e0e0;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .2s;
+  }
+  input[type="text"]:focus, input[type="date"]:focus {
+    border-color: #f0c040;
+  }
+  .err {
+    font-size: 12px;
+    color: #e05555;
+    margin-top: 6px;
+    display: none;
+  }
+  .divider {
+    border: none;
+    border-top: 1px solid #2a2d3a;
+    margin: 24px 0;
+  }
+  .perm-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ccc;
+    margin-bottom: 4px;
+  }
+  .perm-sub {
+    font-size: 11px;
+    color: #666;
+    margin-bottom: 16px;
+    line-height: 1.4;
+  }
+  .perm-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    background: #0f1117;
+    border: 1px solid #2a2d3a;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    user-select: none;
+  }
+  .perm-item:hover { border-color: #f0c040; }
+  .perm-item.checked { border-color: #f0c04060; background: #f0c04010; }
+  .perm-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #f0c040;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .perm-item .perm-text { flex: 1; }
+  .perm-item .perm-text strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ddd;
+    margin-bottom: 2px;
+  }
+  .perm-item .perm-text span {
+    font-size: 11px;
+    color: #777;
+    line-height: 1.4;
+  }
+  .perm-item .perm-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+    width: 28px;
+    text-align: center;
+  }
+  .btn-submit {
+    width: 100%;
+    margin-top: 24px;
+    padding: 14px;
+    background: #f0c040;
+    color: #0f1117;
+    font-size: 15px;
+    font-weight: 800;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .2s, transform .1s;
+  }
+  .btn-submit:hover { background: #f5d060; }
+  .btn-submit:active { transform: scale(.98); }
+  .btn-submit:disabled { background: #555; color: #888; cursor: not-allowed; }
+  .legal {
+    font-size: 11px;
+    color: #555;
+    text-align: center;
+    margin-top: 16px;
+    line-height: 1.5;
+  }
+  /* Estados */
+  #step-form, #step-sucesso, #step-erro, #step-loading, #step-ja-registado {
+    display: none;
+  }
+  #step-form.ativo, #step-sucesso.ativo, #step-erro.ativo,
+  #step-loading.ativo, #step-ja-registado.ativo { display: block; }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 3px solid #2a2d3a;
+    border-top-color: #f0c040;
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+    margin: 40px auto;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .sucesso-icon { font-size: 56px; text-align: center; margin-bottom: 16px; }
+  .sucesso-titulo { font-size: 20px; font-weight: 800; text-align: center; color: #f0c040; margin-bottom: 8px; }
+  .sucesso-sub { font-size: 13px; color: #888; text-align: center; line-height: 1.6; }
+
+  .resumo-perm {
+    background: #0f1117;
+    border: 1px solid #2a2d3a;
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 20px;
+  }
+  .resumo-perm p {
+    font-size: 12px;
+    padding: 5px 0;
+    display: flex;
+    justify-content: space-between;
+    border-bottom: 1px solid #1a1d27;
+    color: #ccc;
+  }
+  .resumo-perm p:last-child { border-bottom: none; }
+  .resumo-perm p span.val { font-weight: 700; }
+  .resumo-perm p span.sim { color: #4caf50; }
+  .resumo-perm p span.nao { color: #e05555; }
+
+  @media (max-width: 480px) {
+    .card { padding: 24px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="logo-wrap">
+  <h1>⛳ VIZELGOLFE</h1>
+  <p>Associação de Minigolfe de Vizela</p>
+</div>
+
+<div class="card">
+
+  <!-- LOADING inicial -->
+  <div id="step-loading" class="ativo">
+    <div class="spinner"></div>
+    <p style="text-align:center;color:#666;font-size:13px">A carregar...</p>
+  </div>
+
+  <!-- FORMULÁRIO -->
+  <div id="step-form">
+    <h2>🔒 Consentimento RGPD</h2>
+    <p class="sub">
+      Nos termos do Regulamento Geral sobre a Proteção de Dados (RGPD — Reg. UE 2016/679),
+      pedimos que indiques o que autorizas a Vizelgolfe a publicar ou utilizar relativamente à tua imagem e dados.
+    </p>
+
+    <label class="field-label">Número de Sócio *</label>
+    <input type="text" id="inp-numero" placeholder="ex: 208" inputmode="numeric">
+    <div class="err" id="err-numero">Número de sócio inválido ou não encontrado.</div>
+
+    <label class="field-label">Data de Nascimento *</label>
+    <input type="date" id="inp-nascimento">
+    <div class="err" id="err-nasc">Data de nascimento não corresponde ao nosso registo.</div>
+
+    <hr class="divider">
+
+    <p class="perm-title">Seleciona o que autorizas:</p>
+    <p class="perm-sub">Podes autorizar tudo, nada, ou apenas algumas opções. Podes alterar a tua escolha a qualquer momento contactando a secretaria.</p>
+
+    <div class="perm-item" onclick="togglePerm(this,'fotos')">
+      <span class="perm-icon">📸</span>
+      <div class="perm-text">
+        <strong>Publicação de Fotografias</strong>
+        <span>Autorizo que fotografias onde apareço sejam publicadas no site, redes sociais (Facebook, Instagram) e enviadas para meios de comunicação social.</span>
+      </div>
+      <input type="checkbox" id="perm-fotos" onclick="event.stopPropagation()">
+    </div>
+
+    <div class="perm-item" onclick="togglePerm(this,'videos')">
+      <span class="perm-icon">🎥</span>
+      <div class="perm-text">
+        <strong>Publicação de Vídeos</strong>
+        <span>Autorizo que vídeos onde apareço sejam publicados no site, redes sociais e plataformas de vídeo (YouTube, etc.).</span>
+      </div>
+      <input type="checkbox" id="perm-videos" onclick="event.stopPropagation()">
+    </div>
+
+    <div class="perm-item" onclick="togglePerm(this,'classificacoes')">
+      <span class="perm-icon">🏆</span>
+      <div class="perm-text">
+        <strong>Classificações e Resultados Públicos</strong>
+        <span>Autorizo que o meu nome apareça em classificações, rankings e resultados de torneios divulgados publicamente (site, redes sociais, imprensa).</span>
+      </div>
+      <input type="checkbox" id="perm-classificacoes" onclick="event.stopPropagation()">
+    </div>
+
+    <div class="perm-item" onclick="togglePerm(this,'relatorios')">
+      <span class="perm-icon">📊</span>
+      <div class="perm-text">
+        <strong>Relatórios de Performance Internos</strong>
+        <span>Autorizo que o meu nome e resultados constem em relatórios de performance para uso interno do clube e da Federação.</span>
+      </div>
+      <input type="checkbox" id="perm-relatorios" onclick="event.stopPropagation()">
+    </div>
+
+    <div class="perm-item" onclick="togglePerm(this,'contacto')">
+      <span class="perm-icon">📧</span>
+      <div class="perm-text">
+        <strong>Contacto pelo Clube</strong>
+        <span>Autorizo que o clube me contacte por email e/ou WhatsApp para assuntos relacionados com atividades, torneios e informações da associação.</span>
+      </div>
+      <input type="checkbox" id="perm-contacto" onclick="event.stopPropagation()">
+    </div>
+
+    <button class="btn-submit" id="btn-submit" onclick="submeter()">✅ Confirmar Consentimento</button>
+    <p class="legal">
+      Este registo fica guardado com data, hora e endereço IP como prova de consentimento.<br>
+      Responsável pelo tratamento: Vizelgolfe — Associação de Minigolfe de Vizela
+    </p>
+  </div>
+
+  <!-- JÁ REGISTADO -->
+  <div id="step-ja-registado">
+    <div class="sucesso-icon">📋</div>
+    <div class="sucesso-titulo">Já tens registo</div>
+    <p class="sucesso-sub" id="txt-ja-reg">Já submeteste as tuas preferências anteriormente.</p>
+    <div class="resumo-perm" id="resumo-ja-reg"></div>
+    <button class="btn-submit" style="margin-top:20px" onclick="mostrarFormulario()">✏️ Atualizar Preferências</button>
+  </div>
+
+  <!-- SUCESSO -->
+  <div id="step-sucesso">
+    <div class="sucesso-icon">✅</div>
+    <div class="sucesso-titulo">Obrigado!</div>
+    <p class="sucesso-sub" id="txt-sucesso-nome">As tuas preferências foram registadas com sucesso.</p>
+    <div class="resumo-perm" id="resumo-sucesso"></div>
+    <p class="sucesso-sub" style="margin-top:20px;font-size:11px;color:#555">
+      Podes alterar as tuas preferências a qualquer momento contactando a secretaria da Vizelgolfe.
+    </p>
+  </div>
+
+  <!-- ERRO -->
+  <div id="step-erro">
+    <div class="sucesso-icon">❌</div>
+    <div class="sucesso-titulo">Erro</div>
+    <p class="sucesso-sub" id="txt-erro">Ocorreu um problema. Tenta novamente ou contacta a secretaria.</p>
+    <button class="btn-submit" style="margin-top:20px" onclick="voltarForm()">↩️ Tentar novamente</button>
+  </div>
+
+</div><!-- /card -->
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp }        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, get, set } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",
+  authDomain: "vizelgolfe-portal.firebaseapp.com",
+  databaseURL: "https://vizelgolfe-portal-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "vizelgolfe-portal",
+  storageBucket: "vizelgolfe-portal.firebasestorage.app",
+  messagingSenderId: "651151089287",
+  appId: "1:651151089287:web:d7f044bbb6c64f2e8fa222"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// ─── Utilitários de UI ─────────────────────────
+function mostrar(id) {
+  ['step-loading','step-form','step-sucesso','step-erro','step-ja-registado']
+    .forEach(s => document.getElementById(s).classList.remove('ativo'));
+  document.getElementById(id).classList.add('ativo');
+}
+
+// Ler parâmetro ?s= da URL (número de sócio pré-preenchido)
+const params = new URLSearchParams(location.search);
+const socioParam = params.get('s') || '';
+if (socioParam) {
+  document.getElementById('inp-numero').value = socioParam;
+}
+
+// Verificar se já tem registo ao carregar
+let socioKey = null;
+let socioData = null;
+
+if (socioParam) {
+  get(ref(db, `portal/consentimentos/${socioParam}`)).then(snap => {
+    if (snap.exists()) {
+      socioKey = socioParam;
+      mostrarJaRegistado(snap.val());
+    } else {
+      mostrar('step-form');
+    }
+  }).catch(() => mostrar('step-form'));
+} else {
+  mostrar('step-form');
+}
+
+// ─── Toggle permissão ──────────────────────────
+window.togglePerm = function(div, id) {
+  const cb = document.getElementById('perm-' + id);
+  cb.checked = !cb.checked;
+  div.classList.toggle('checked', cb.checked);
+};
+
+// ─── Submeter ──────────────────────────────────
+window.submeter = async function() {
+  const numStr  = document.getElementById('inp-numero').value.trim();
+  const nascStr = document.getElementById('inp-nascimento').value.trim();
+
+  // Reset erros
+  document.getElementById('err-numero').style.display = 'none';
+  document.getElementById('err-nasc').style.display = 'none';
+
+  if (!numStr) {
+    document.getElementById('err-numero').textContent = 'Indica o teu número de sócio.';
+    document.getElementById('err-numero').style.display = 'block';
+    return;
+  }
+  if (!nascStr) {
+    document.getElementById('err-nasc').textContent = 'Indica a tua data de nascimento.';
+    document.getElementById('err-nasc').style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit');
+  btn.disabled = true;
+  btn.textContent = '⏳ A verificar...';
+
+  try {
+    // Buscar sócio no Firebase
+    const snap = await get(ref(db, `portal/socios`));
+    if (!snap.exists()) throw new Error('Base de dados indisponível');
+
+    const socios = snap.val();
+
+    // Procurar por número de sócio
+    let foundKey = null;
+    let foundSocio = null;
+    for (const [key, s] of Object.entries(socios)) {
+      const num = String(s.numero || s.Número || s['Número'] || key).trim();
+      if (num === numStr || key === numStr) {
+        foundKey   = key;
+        foundSocio = s;
+        break;
+      }
+    }
+
+    if (!foundKey) {
+      document.getElementById('err-numero').textContent = 'Número de sócio não encontrado. Confirma com a secretaria.';
+      document.getElementById('err-numero').style.display = 'block';
+      btn.disabled = false; btn.textContent = '✅ Confirmar Consentimento';
+      return;
+    }
+
+    // Validar data de nascimento
+    const nascDB = (foundSocio['Data Nascimento'] || foundSocio.data_nascimento || foundSocio.nascimento || '').slice(0,10);
+    if (nascDB && nascStr !== nascDB) {
+      document.getElementById('err-nasc').textContent = 'Data de nascimento não corresponde ao registo. Contacta a secretaria se precisares de ajuda.';
+      document.getElementById('err-nasc').style.display = 'block';
+      btn.disabled = false; btn.textContent = '✅ Confirmar Consentimento';
+      return;
+    }
+
+    socioKey  = foundKey;
+    socioData = foundSocio;
+
+    // Recolher IP (best-effort via serviço público)
+    let ip = '';
+    try {
+      const r = await fetch('https://api.ipify.org?format=json');
+      const j = await r.json();
+      ip = j.ip || '';
+    } catch(_) {}
+
+    const consentimento = {
+      fotos:          document.getElementById('perm-fotos').checked,
+      videos:         document.getElementById('perm-videos').checked,
+      classificacoes: document.getElementById('perm-classificacoes').checked,
+      relatorios:     document.getElementById('perm-relatorios').checked,
+      contacto:       document.getElementById('perm-contacto').checked,
+      timestamp:      Date.now(),
+      ip,
+      nome:   foundSocio.nome || foundSocio.Nome || '',
+      numero: numStr
+    };
+
+    btn.textContent = '⏳ A guardar...';
+    await set(ref(db, `portal/consentimentos/${foundKey}`), consentimento);
+
+    mostrarSucesso(foundSocio, consentimento);
+
+  } catch(e) {
+    document.getElementById('txt-erro').textContent = 'Erro: ' + e.message;
+    mostrar('step-erro');
+  }
+};
+
+function mostrarSucesso(s, c) {
+  const nome = s.nome || s.Nome || 'Sócio';
+  document.getElementById('txt-sucesso-nome').textContent = `Olá ${nome}, as tuas preferências foram registadas com sucesso.`;
+  document.getElementById('resumo-sucesso').innerHTML = resumoHTML(c);
+  mostrar('step-sucesso');
+}
+
+function mostrarJaRegistado(c) {
+  const dt = c.timestamp ? new Date(c.timestamp).toLocaleString('pt-PT') : '—';
+  document.getElementById('txt-ja-reg').textContent = `Já submeteste as tuas preferências em ${dt}. Podes atualizá-las abaixo.`;
+  document.getElementById('resumo-ja-reg').innerHTML = resumoHTML(c);
+  mostrar('step-ja-registado');
+}
+
+function resumoHTML(c) {
+  const ico = v => v ? '<span class="val sim">✅ Sim</span>' : '<span class="val nao">❌ Não</span>';
+  return `
+    <p><span>📸 Fotografias</span>${ico(c.fotos)}</p>
+    <p><span>🎥 Vídeos</span>${ico(c.videos)}</p>
+    <p><span>🏆 Classificações públicas</span>${ico(c.classificacoes)}</p>
+    <p><span>📊 Relatórios internos</span>${ico(c.relatorios)}</p>
+    <p><span>📧 Contacto pelo clube</span>${ico(c.contacto)}</p>
+    <p><span>📅 Registado em</span><span class="val" style="font-size:11px">${c.timestamp ? new Date(c.timestamp).toLocaleString('pt-PT') : '—'}</span></p>`;
+}
+
+window.mostrarFormulario = function() {
+  // Pré-preencher o formulário com as escolhas actuais para editar
+  if (socioParam) document.getElementById('inp-numero').value = socioParam;
+  mostrar('step-form');
+};
+
+window.voltarForm = function() {
+  document.getElementById('btn-submit').disabled = false;
+  document.getElementById('btn-submit').textContent = '✅ Confirmar Consentimento';
+  mostrar('step-form');
+};
+
+</script>
+</body>
+</html>
 
