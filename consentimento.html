@@ -301,7 +301,10 @@
     <div class="sucesso-titulo">Já tens registo</div>
     <p class="sucesso-sub" id="txt-ja-reg">Já submeteste as tuas preferências anteriormente.</p>
     <div class="resumo-perm" id="resumo-ja-reg"></div>
-    <button class="btn-submit" style="margin-top:20px" onclick="mostrarFormulario()">✏️ Atualizar Preferências</button>
+    <p class="sucesso-sub" style="margin-top:20px;font-size:12px;color:#666;line-height:1.6">
+      Para alterar as tuas preferências contacta a secretaria da Vizelgolfe:<br>
+      <strong style="color:#aaa">secretaria@vizelgolfe.net</strong>
+    </p>
   </div>
 
   <!-- SUCESSO -->
@@ -566,31 +569,6 @@ function resumoHTML(c) {
     <p><span>📧 Contacto pelo clube</span>${ico(c.contacto)}</p>
     <p><span>📅 Registado em</span><span class="val" style="font-size:11px">${c.timestamp ? new Date(c.timestamp).toLocaleString('pt-PT') : '—'}</span></p>`;
 }
-
-window.mostrarFormulario = function() {
-  if (socioParam) document.getElementById('inp-numero').value = socioParam;
-  // Pré-preencher checkboxes com escolhas anteriores
-  if (consentimentoExistente) {
-    ['fotos','videos','classificacoes','relatorios','contacto'].forEach(id => {
-      const cb  = document.getElementById('perm-' + id);
-      const div = cb?.closest('.perm-item');
-      if (cb) {
-        cb.checked = !!consentimentoExistente[id];
-        if (div) div.classList.toggle('checked', cb.checked);
-      }
-    });
-    // Se já identificado, esconder campos de identificação
-    if (socioParam) {
-      document.getElementById('inp-numero').closest('label')?.nextElementSibling && (document.getElementById('inp-numero').style.display = 'none');
-      document.getElementById('inp-nascimento').style.display = 'none';
-      // Esconder labels também
-      document.querySelectorAll('.field-label').forEach(l => l.style.display = 'none');
-      document.getElementById('err-numero').style.display = 'none';
-      document.getElementById('err-nasc').style.display = 'none';
-    }
-  }
-  mostrar('step-form');
-};
 
 // ─── Geração de PDF RGPD ───────────────────────────────
 async function gerarPdfRgpd(s, c, key, db) {
