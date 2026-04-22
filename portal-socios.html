@@ -1461,6 +1461,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         </div>
         <div class="form-group"><label>Morada</label><input id="s-morada" type="text" placeholder="Rua, número, localidade" /></div>
         <div class="form-group full"><label>Observações</label><textarea id="s-obs" rows="2" placeholder="Notas opcionais..."></textarea></div>
+        <div class="form-group"><label>ID no Sistema de Resultados <span style="font-size:10px;color:var(--text2);font-weight:400">(apenas atletas · ex: 7)</span></label><input id="s-rid" type="text" placeholder="Nº do atleta na consola" /></div>
         <div class="form-group full">
           <label>Foto do Sócio <span style="font-size:10px;color:var(--text2);font-weight:400">(tipo passe · RGPD: acesso restrito ao admin)</span></label>
           <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
@@ -2557,7 +2558,7 @@ function resetFotoModal(fotoExistente) {
 window.openModalSocio = function() {
   editSocioKey = null;
   document.getElementById('modal-socio-title').textContent = 'Novo Sócio';
-  ['s-num','s-nome','s-email','s-tel','s-nif','s-nasc','s-insc','s-obs','s-morada'].forEach(id => document.getElementById(id).value = '');
+  ['s-num','s-nome','s-email','s-tel','s-nif','s-nasc','s-insc','s-obs','s-morada','s-rid'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('s-cat').value = 'Atleta';
   document.getElementById('s-estado').value = 'Ativo';
   document.getElementById('s-insc').value = new Date().toISOString().slice(0,10);
@@ -2580,6 +2581,7 @@ window.editarSocio = function(key) {
   document.getElementById('s-morada').value = s.morada||'';
   document.getElementById('s-cat').value = s.categoria||'Atleta';
   document.getElementById('s-estado').value = s.estado||'Ativo';
+  document.getElementById('s-rid').value = s.resultadosId||'';
   openModal('modal-socio');
 };
 
@@ -2596,6 +2598,7 @@ window.gravarSocio = async function() {
     obs:        document.getElementById('s-obs').value.trim(),
     categoria:  document.getElementById('s-cat').value,
     estado:     document.getElementById('s-estado').value,
+    resultadosId: document.getElementById('s-rid').value.trim() || null,
   };
   if (!dados.nome) { toast('Nome obrigatório', 'error'); return; }
   try {
