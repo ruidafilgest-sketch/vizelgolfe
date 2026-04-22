@@ -710,6 +710,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         </select>
         <input type="text" id="search-quotas" placeholder="🔍 Pesquisar sócio..." oninput="renderQuotas()" />
         <button class="btn btn-accent" onclick="gerarQuotasAnuais()">⚡ Gerar Quotas Anuais</button>
+        <button class="btn btn-outline" onclick="enviarAlertasQuota()">📧 Alertas Pendentes</button>
       </div>
       <div class="quota-grid" id="quota-resumo"></div>
       <div class="table-wrap">
@@ -7892,6 +7893,75 @@ async function carregarParticipacoesSocio(resultadosId) {
     card.style.display = 'none';
   }
 }
+
+// ─── ALERTAS DE QUOTA ──────────────────────────────────
+window.enviarAlertasQuota = async function() {
+  const ano = document.getElementById('filter-ano-quota')?.value || new Date().getFullYear().toString();
+  const cfg = configuracoes || {};
+
+  if (!cfg.resendKey || !cfg.resendKey.startsWith('re_')) {
+    toast('API Key do Resend não configurada. Vai a ⚙️ Configurações → Email.', 'error');
+    return;
+  }
+
+  // Encontrar sócios activos com quota pendente no ano seleccionado
+  const pendentes = [];
+  Object.entries(socios).forEach(([key, s]) => {
+    if (s.estado !== 'Ativo') return;
+    if (!s.email) return;
+    const quotaAno = Object.values(quotas).find(q => q.socioKey === key && String(q.ano) === ano);
+    if (!quotaAno || quotaAno.estado === 'pago') return;
+    pendentes.push({ key, socio: s, quota: quotaAno });
+  });
+
+  if (!pendentes.length) {
+    toast('Não há sócios activos com quota pendente e email registado.', 'error');
+    return;
+  }
+
+  const iban  = cfg.iban  || '';
+  const mbway = cfg.mbway || '';
+  const nomeClube = cfg.nome || 'Vizelgolfe — Associação de Minigolfe de Vizela';
+
+  if (!confirm(`Enviar alerta de quota pendente a ${pendentes.length} sócio(s)?`)) return;
+
+  let ok = 0, semEmail = 0, erros = 0;
+  for (const { socio, quota } of pendentes) {
+    const primeiroNome = (socio.nome || '').split(' ')[0];
+    const valor = parseFloat(quota.valor || 0).toFixed(2);
+
+    const html = `
+      <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#f9f9f9;border-radius:10px;overflow:hidden">
+        <div style="background:#0f1117;padding:24px 28px;text-align:center">
+          <div style="color:#f0c040;font-size:22px;font-weight:800;letter-spacing:1px">⛳ VIZELGOLFE</div>
+          <div style="color:#888;font-size:12px;margin-top:4px">${nomeClube}</div>
+        </div>
+        <div style="padding:28px">
+          <p style="font-size:15px;margin:0 0 16px">Caro(a) <strong>${primeiroNome}</strong>,</p>
+          <p style="font-size:14px;color:#444;margin:0 0 20px;line-height:1.6">
+            Informamos que a tua quota de <strong>${ano}</strong> no valor de <strong>${valor} €</strong> ainda não se encontra registada como paga.
+          </p>
+          <div style="background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:16px;margin-bottom:20px">
+            <div style="font-size:12px;color:#888;margin-bottom:8px;font-weight:600;text-transform:uppercase">Dados para pagamento</div>
+            ${iban ? `<div style="margin-bottom:8px"><span style="font-size:12px;color:#666">Transferência bancária:</span><br><strong style="font-size:13px">${iban}</strong><br><span style="font-size:11px;color:#888">${nomeClube}</span></div>` : ''}
+            ${mbway ? `<div><span style="font-size:12px;color:#666">MBWay:</span><br><strong style="font-size:16px">${mbway}</strong></div>` : ''}
+          </div>
+          <p style="font-size:13px;color:#666;margin:0 0 20px">Por favor indica o teu nome e número de sócio na descrição do pagamento.</p>
+          <div style="text-align:center">
+            <a href="https://vizelgolfe.net/portal-socios.html" style="background:#f0c040;color:#0f1117;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px">Aceder ao Portal do Sócio</a>
+          </div>
+        </div>
+        <div style="background:#f0f0f0;padding:14px;text-align:center;font-size:11px;color:#888">
+          ${nomeClube} · vizelgolfe.net
+        </div>
+      </div>`;
+
+    const enviado = await resendEnviar(socio.email, socio.nome, `Vizelgolfe — Quota ${ano} pendente`, html);
+    if (enviado) ok++; else erros++;
+  }
+
+  toast(`Alertas enviados: ${ok} ✅${erros ? ` · ${erros} erros ❌` : ''}`, ok > 0 ? 'success' : 'error');
+};
 
 window.toast = function(msg, type='success') {
   const t = document.getElementById('toast');
