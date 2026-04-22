@@ -401,6 +401,12 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <div class="s-card-title">🏆 Próximos Torneios</div>
         <div id="s-inicio-torneios"></div>
       </div>
+
+      <!-- Participações e resultados -->
+      <div class="s-card" id="card-participacoes" style="display:none">
+        <div class="s-card-title">🏅 As Minhas Participações</div>
+        <div id="s-inicio-participacoes"></div>
+      </div>
     </div>
 
     <!-- ── QUOTAS ── -->
@@ -2015,6 +2021,9 @@ function renderAreaSocio() {
 
   // Avisos do clube
   carregarAvisosSocio();
+
+  // Participações e resultados
+  carregarParticipacoesSocio(s.resultadosId);
 
   // Logo + nome header
   document.getElementById('socio-header-logo').src = LOGO_B64;
@@ -7805,6 +7814,83 @@ async function carregarAvisosSocio() {
         <div style="font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.5">${a.mensagem}</div>
       </div>`).join('');
   } catch(e) { el.innerHTML = ''; }
+}
+
+// ─── PARTICIPAÇÕES — lê do ranking_portal calculado pela consola ───
+async function carregarParticipacoesSocio(resultadosId) {
+  const card = document.getElementById('card-participacoes');
+  const el   = document.getElementById('s-inicio-participacoes');
+  if (!card || !el) return;
+  if (!resultadosId) { card.style.display = 'none'; return; }
+
+  const rid = String(resultadosId);
+  card.style.display = 'block';
+  el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:12px">A carregar...</div>';
+
+  try {
+    const { initializeApp: initApp2, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const { getFirestore, doc, getDoc }        = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+
+    let app2 = getApps().find(a => a.name === 'resultados');
+    if (!app2) {
+      app2 = initApp2({ apiKey: "AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ", projectId: "vizelgolfe-ec270" }, 'resultados');
+    }
+    const fs   = getFirestore(app2);
+    const snap = await getDoc(doc(fs, 'vizelgolfe', 'ranking_portal'));
+
+    if (!snap.exists()) { card.style.display = 'none'; return; }
+
+    const atleta = snap.data().ranking?.[rid];
+    if (!atleta || !atleta.participacoes?.length) {
+      el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:12px">Sem participações registadas ainda</div>';
+      return;
+    }
+
+    // Agrupar participações por prova
+    const porProva = {};
+    atleta.participacoes.forEach(p => {
+      if (!porProva[p.prova]) porProva[p.prova] = { nome: p.prova, tipo: p.tipo, jornadas: [] };
+      porProva[p.prova].jornadas.push(p);
+    });
+
+    const tipoIcon = t => t === 'campeonato' ? '🏆' : t === 'taca' ? '🥇' : '⛳';
+    const posLabel = pos => pos ? `${pos}º lugar` : 'Ajuste';
+
+    el.innerHTML = Object.values(porProva).map(prova => {
+      const totalPts = prova.jornadas.reduce((a, j) => a + (j.pontos || 0), 0);
+      const linhas = prova.jornadas
+        .sort((a, b) => (a.data || '').localeCompare(b.data || ''))
+        .map(j => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border2);gap:8px">
+            <div>
+              <span style="font-size:12px;color:var(--text2)">Jornada ${j.jornada}</span>
+              <span style="font-size:11px;color:var(--text2);margin-left:6px">${j.data || ''}</span>
+            </div>
+            <div style="text-align:right">
+              <span style="font-size:12px;font-weight:600;color:var(--accent)">${j.pontos} pts</span>
+              <span style="font-size:11px;color:var(--text2);margin-left:6px">${posLabel(j.pos)}</span>
+            </div>
+          </div>`).join('');
+
+      return `<div style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <span style="font-size:13px;font-weight:700">${tipoIcon(prova.tipo)} ${prova.nome}</span>
+          <span style="font-size:12px;font-weight:700;color:var(--accent)">${totalPts} pts</span>
+        </div>
+        ${linhas}
+      </div>`;
+    }).join('');
+
+    // Total geral
+    el.innerHTML += `<div style="border-top:2px solid var(--border2);padding-top:10px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;font-weight:700">Total época</span>
+      <span style="font-size:15px;font-weight:800;color:var(--accent)">${atleta.totalPontos} pts</span>
+    </div>`;
+
+  } catch(e) {
+    console.warn('Participações não carregadas:', e);
+    card.style.display = 'none';
+  }
 }
 
 window.toast = function(msg, type='success') {
