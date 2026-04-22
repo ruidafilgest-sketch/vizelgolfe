@@ -196,11 +196,24 @@ function calcPeter(res){const v=[res?.pV1,res?.pV2,res?.pV3,res?.pV4].map(Number
 
 function calcPos(prova,j,atletaId,grupo,atletas,empates){
   const jRes=prova.resultados?.[j];if(!jRes)return 999;
-  const doGrupo=atletas.filter(a=>CAT_GRUPO[a.categoria]===grupo&&jRes[a.id]);
-  const totais=doGrupo.map(a=>({id:a.id,t:calcTotal(prova,j,jRes[a.id])??9999})).filter(x=>x.t<9999);
-  totais.sort((a,b)=>{if(a.t!==b.t)return a.t-b.t;const k=`${prova.id}_j${j}_${Math.min(a.id,b.id)}_${Math.max(a.id,b.id)}`;const v=empates?.[k];if(v)return v===a.id?-1:1;return 0;});
-  for(let i=0;i<totais.length;i++){if(totais[i].id===atletaId)return i+1;}
-  return 999;
+  const doGrupo=atletas.filter(a=>(CAT_GRUPO[a.categoria]||a.categoria)===grupo);
+  const totais=doGrupo.map(a=>{
+    const r=jRes[String(a.id)]||jRes[a.id];
+    const t=r?(calcTotal(prova,j,r)??9999):9999;
+    return{id:a.id,t};
+  }).filter(x=>x.t<9999);
+  totais.sort((a,b)=>{
+    if(a.t!==b.t)return a.t-b.t;
+    const k=`${prova.id}_j${j}_pos_${grupo.replace(/ /g,'_')}_${a.t}`;
+    const v=empates?.[k];
+    if(v!=null){
+      if(Array.isArray(v)){const ia=v.indexOf(String(a.id));const ib=v.indexOf(String(b.id));if(ia!==-1&&ib!==-1)return ia-ib;if(ia!==-1)return -1;if(ib!==-1)return 1;}
+      else{const vid=String(v).trim();const aV=String(a.id)===vid;const bV=String(b.id)===vid;if(aV&&!bV)return -1;if(bV&&!aV)return 1;}
+    }
+    return a.id-b.id;
+  });
+  const i=totais.findIndex(x=>x.id==atletaId||x.id===parseInt(atletaId));
+  return i>=0?i+1:999;
 }
 
 function calcPontosAtleta(prova,atleta,atletas,empates){
@@ -209,16 +222,14 @@ function calcPontosAtleta(prova,atleta,atletas,empates){
   const ajustesAtleta=allDataInt?.ajustesPontos?.[prova.id]?.[atleta.id]
     ?? allDataInt?.ajustesPontos?.[prova.id]?.[String(atleta.id)];
   for(let j=1;j<=(prova.jornadas||1);j++){
-    const res=prova.resultados?.[j]?.[atleta.id];
+    const res=prova.resultados?.[j]?.[String(atleta.id)]||prova.resultados?.[j]?.[atleta.id];
     const tot=calcTotal(prova,j,res);if(tot==null)continue;
-    // Ajuste manual substitui o cálculo automático desta jornada (pontos + bónus)
     const ajJ=ajustesAtleta?.[j]??ajustesAtleta?.[String(j)];
     if(ajJ!=null){pts+=Number(ajJ);continue;}
     const pos=calcPos(prova,j,atleta.id,CAT_GRUPO[atleta.categoria],atletas,empates);
     if(pos>=1&&pos<=PONTUACAO.length)pts+=PONTUACAO[pos-1];
     if(isCampVizela&&res){
       const b=prova.bonusMini||1;
-      // Usar sempre b (bonusMini) para todos os bónus — igual ao consola
       if(res.bonusMini)pts+=b;
       if(res.bonusPeter)pts+=b;
       if(res.bonusPeterManha)pts+=b;
@@ -226,8 +237,7 @@ function calcPontosAtleta(prova,atleta,atletas,empates){
     }
   }
   if(isCampVizela&&prova.bonusCompleto){
-    // Usar >= igual ao consola (não === que pode falhar em edge cases)
-    const jPart=Object.keys(prova.resultados||{}).filter(j=>prova.resultados[j]?.[atleta.id]&&calcTotal(prova,parseInt(j),prova.resultados[j][atleta.id])!=null).length;
+    const jPart=Object.keys(prova.resultados||{}).filter(j=>{const r=prova.resultados[j]?.[String(atleta.id)]||prova.resultados[j]?.[atleta.id];return r&&calcTotal(prova,parseInt(j),r)!=null;}).length;
     if(jPart>=(prova.jornadas||1))pts+=(prova.bonusCompleto||0);
   }
   return pts;
