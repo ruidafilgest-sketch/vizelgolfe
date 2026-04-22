@@ -373,6 +373,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
     <!-- ── INÍCIO ── -->
     <div class="s-section active" id="s-sec-inicio">
+      <!-- Avisos do clube -->
+      <div id="socio-avisos-clube" style="margin-bottom:12px"></div>
       <!-- Aviso quota (se pendente) -->
       <div id="socio-aviso-pendente" style="display:none;margin-bottom:12px">
         <div class="s-aviso">
@@ -486,6 +488,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <button class="nav-tab" onclick="showPage('quotas')">💰 Quotas</button>
       <button class="nav-tab" onclick="showPage('recibos')">🧾 Recibos</button>
       <button class="nav-tab" onclick="showPage('torneios')">🏆 Torneios</button>
+      <button class="nav-tab" onclick="showPage('avisos')">📣 Avisos</button>
     </div>
     <div class="nav-sep"></div>
     <!-- Grupo 2: Financeiro -->
@@ -1303,6 +1306,22 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
     </div><!-- /page-rgpd -->
 
+    <!-- AVISOS -->
+    <div id="page-avisos" class="page">
+      <div style="max-width:800px;margin:0 auto;padding:24px 16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:24px">
+          <div>
+            <h2 style="margin:0;font-size:20px">📣 Avisos aos Sócios</h2>
+            <p style="margin:4px 0 0;color:var(--text2);font-size:13px">As mensagens publicadas aparecem no portal de cada sócio</p>
+          </div>
+          <button class="btn btn-accent" onclick="abrirModalAviso()">➕ Novo Aviso</button>
+        </div>
+        <div id="avisos-admin-list">
+          <div style="text-align:center;padding:40px;color:var(--text2)">A carregar...</div>
+        </div>
+      </div>
+    </div><!-- /page-avisos -->
+
   </main>
 </div>
 
@@ -1376,6 +1395,44 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border2)">
       <button class="btn btn-outline" onclick="closeModal('modal-upload-bib')">Cancelar</button>
       <button class="btn btn-accent" onclick="executarUploadBiblioteca()">⬆ Fazer Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AVISO -->
+<div class="modal-overlay" id="modal-aviso">
+  <div class="modal" style="max-width:560px;width:95%">
+    <div class="modal-header">
+      <h3 id="modal-aviso-title">Novo Aviso</h3>
+      <button class="modal-close" onclick="closeModal('modal-aviso')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text2)">Título *</label>
+        <input id="aviso-titulo" type="text" placeholder="Ex: Convocatória para Assembleia Geral" style="width:100%;padding:10px 14px;background:var(--input);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px">
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text2)">Mensagem *</label>
+        <textarea id="aviso-mensagem" rows="5" placeholder="Escreve aqui a mensagem para os sócios..." style="width:100%;padding:10px 14px;background:var(--input);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px;resize:vertical;font-family:inherit"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text2)">Tipo</label>
+          <select id="aviso-tipo" style="width:100%;padding:10px;background:var(--input);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px">
+            <option value="info">ℹ️ Informação</option>
+            <option value="importante">⚠️ Importante</option>
+            <option value="urgente">🚨 Urgente</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text2)">Expira em (opcional)</label>
+          <input id="aviso-expira" type="date" style="width:100%;padding:10px;background:var(--input);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border2)">
+      <button class="btn btn-outline" onclick="closeModal('modal-aviso')">Cancelar</button>
+      <button class="btn btn-accent" onclick="guardarAviso()">💾 Publicar Aviso</button>
     </div>
   </div>
 </div>
@@ -1801,7 +1858,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 <div id="toast"></div>
 
 <!-- FIREBASE -->
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="module">
+<script type="module" data-cfasync="false">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, update, remove, push, onValue }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
@@ -1954,6 +2011,9 @@ window.setSocioTornFilter = function(filtro, btn) {
 function renderAreaSocio() {
   const s   = currentSocioData;
   const key = currentSocioKey;
+
+  // Avisos do clube
+  carregarAvisosSocio();
 
   // Logo + nome header
   document.getElementById('socio-header-logo').src = LOGO_B64;
@@ -7409,6 +7469,7 @@ window.showPage = function(page) {
   if (page === 'torneios') renderTorneiosAdmin();
   if (page === 'exportar-dados') renderExportPage();
   if (page === 'rgpd') rgpdCarregar();
+  if (page === 'avisos') renderAvisosAdmin();
 };
 
 window.rgpdCarregar = async function() {
@@ -7629,6 +7690,119 @@ window.rgpdExportar = function() {
 };
 
 // Sobrepor o showPage original que está antes deste bloco (removido acima)
+
+// ─── AVISOS ────────────────────────────────────────────
+let editAvisoKey = null;
+
+window.abrirModalAviso = function(key) {
+  editAvisoKey = key || null;
+  document.getElementById('modal-aviso-title').textContent = key ? 'Editar Aviso' : 'Novo Aviso';
+  if (key) {
+    get(ref(db, `/portal/avisos/${key}`)).then(snap => {
+      if (!snap.exists()) return;
+      const a = snap.val();
+      document.getElementById('aviso-titulo').value   = a.titulo   || '';
+      document.getElementById('aviso-mensagem').value = a.mensagem || '';
+      document.getElementById('aviso-tipo').value     = a.tipo     || 'info';
+      document.getElementById('aviso-expira').value   = a.expira   || '';
+    });
+  } else {
+    document.getElementById('aviso-titulo').value   = '';
+    document.getElementById('aviso-mensagem').value = '';
+    document.getElementById('aviso-tipo').value     = 'info';
+    document.getElementById('aviso-expira').value   = '';
+  }
+  document.getElementById('modal-aviso').classList.add('active');
+};
+
+window.guardarAviso = async function() {
+  const titulo   = document.getElementById('aviso-titulo').value.trim();
+  const mensagem = document.getElementById('aviso-mensagem').value.trim();
+  const tipo     = document.getElementById('aviso-tipo').value;
+  const expira   = document.getElementById('aviso-expira').value;
+  if (!titulo || !mensagem) { toast('Preenche o título e a mensagem', 'error'); return; }
+  const dados = { titulo, mensagem, tipo, expira: expira || null, data: new Date().toISOString(), ativo: true };
+  if (editAvisoKey) {
+    await update(ref(db, `/portal/avisos/${editAvisoKey}`), dados);
+    toast('Aviso atualizado ✅');
+  } else {
+    await push(ref(db, '/portal/avisos'), dados);
+    toast('Aviso publicado ✅');
+  }
+  closeModal('modal-aviso');
+  renderAvisosAdmin();
+};
+
+window.arquivarAviso = async function(key, ativo) {
+  await update(ref(db, `/portal/avisos/${key}`), { ativo: !ativo });
+  toast(ativo ? 'Aviso arquivado' : 'Aviso reativado');
+  renderAvisosAdmin();
+};
+
+window.apagarAviso = async function(key) {
+  if (!confirm('Apagar este aviso definitivamente?')) return;
+  await remove(ref(db, `/portal/avisos/${key}`));
+  toast('Aviso apagado');
+  renderAvisosAdmin();
+};
+
+window.renderAvisosAdmin = async function() {
+  const el = document.getElementById('avisos-admin-list');
+  if (!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2)">A carregar...</div>';
+  const snap = await get(ref(db, '/portal/avisos'));
+  if (!snap.exists()) {
+    el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2)">Nenhum aviso criado ainda.<br><small>Clica em "➕ Novo Aviso" para começar.</small></div>';
+    return;
+  }
+  const avisos = Object.entries(snap.val()).sort((a,b) => (b[1].data||'').localeCompare(a[1].data||''));
+  const tipoLabel = { info: 'ℹ️ Informação', importante: '⚠️ Importante', urgente: '🚨 Urgente' };
+  el.innerHTML = avisos.map(([key, a]) => {
+    const dt = a.data ? new Date(a.data).toLocaleDateString('pt-PT') : '—';
+    const expirado = a.expira && a.expira < new Date().toISOString().slice(0,10);
+    const estado = !a.ativo ? 'Arquivado' : expirado ? 'Expirado' : 'Ativo';
+    const corEstado = !a.ativo ? 'var(--text2)' : expirado ? 'var(--danger)' : 'var(--success)';
+    return `<div style="background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:18px 20px;margin-bottom:12px;opacity:${a.ativo && !expirado ? 1 : 0.6}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+        <div style="flex:1">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+            <span style="font-size:12px">${tipoLabel[a.tipo]||'ℹ️'}</span>
+            <span style="font-size:11px;color:${corEstado};font-weight:600">${estado}</span>
+            <span style="font-size:11px;color:var(--text2)">${dt}</span>
+            ${a.expira ? `<span style="font-size:11px;color:var(--text2)">· Expira: ${a.expira}</span>` : ''}
+          </div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">${a.titulo}</div>
+          <div style="font-size:13px;color:var(--text2);white-space:pre-wrap">${a.mensagem}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="btn btn-outline btn-sm" onclick="abrirModalAviso('${key}')">✏️</button>
+          <button class="btn btn-outline btn-sm" onclick="arquivarAviso('${key}',${a.ativo})">${a.ativo ? '📦' : '♻️'}</button>
+          <button class="btn btn-outline btn-sm" style="color:var(--danger)" onclick="apagarAviso('${key}')">🗑</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+};
+
+async function carregarAvisosSocio() {
+  const el = document.getElementById('socio-avisos-clube');
+  if (!el) return;
+  try {
+    const snap = await get(ref(db, '/portal/avisos'));
+    if (!snap.exists()) { el.innerHTML = ''; return; }
+    const hoje = new Date().toISOString().slice(0,10);
+    const ativos = Object.values(snap.val()).filter(a =>
+      a.ativo && (!a.expira || a.expira >= hoje)
+    ).sort((a,b) => (b.data||'').localeCompare(a.data||''));
+    if (!ativos.length) { el.innerHTML = ''; return; }
+    const corBd = { info: 'var(--border2)', importante: '#d97706', urgente: '#ef4444' };
+    el.innerHTML = ativos.map(a => `
+      <div style="background:var(--card);border:1px solid ${corBd[a.tipo]||'var(--border2)'};border-left:4px solid ${corBd[a.tipo]||'var(--accent)'};border-radius:10px;padding:14px 16px;margin-bottom:10px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:4px">${a.titulo}</div>
+        <div style="font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.5">${a.mensagem}</div>
+      </div>`).join('');
+  } catch(e) { el.innerHTML = ''; }
+}
 
 window.toast = function(msg, type='success') {
   const t = document.getElementById('toast');
