@@ -320,9 +320,20 @@ function renderInterno() {
     let ranked;
     if(isGeral){
       ranked = catAtl.map(a=>{
+        // Usar ranking_portal (calculado pela consola) se disponível
+        const rp = rankingPortal?.[String(a.id)];
+        if(rp){
+          const partProva = (rp.participacoes||[]).filter(p=>p.prova===prova.nome);
+          const pts = partProva.reduce((s,p)=>s+(p.pontos||0),0);
+          const jPart = partProva.length;
+          const totalTacadas = partProva.reduce((s,p)=>s+(p.total||0),0);
+          const det = partProva.sort((a,b)=>a.jornada-b.jornada).map(p=>`J${p.jornada}: ${p.total||'—'}t`).join(' · ');
+          return{...a,pts,jPart,totalTacadas,det};
+        }
+        // Fallback: calcular se não houver ranking_portal
         let jPart=0,totalTacadas=0,det=[];
         for(let j=1;j<=(prova.jornadas||1);j++){
-          const res=prova.resultados?.[j]?.[a.id];
+          const res=prova.resultados?.[j]?.[String(a.id)]||prova.resultados?.[j]?.[a.id];
           const tot=calcTotal(prova,j,res);if(tot==null)continue;
           jPart++;totalTacadas+=tot;det.push(`J${j}: ${tot}t`);
         }
@@ -332,7 +343,7 @@ function renderInterno() {
     }else{
       const j=jornadaAtiva||1;
       ranked=catAtl.map(a=>{
-        const res=prova.resultados?.[j]?.[a.id];
+        const res=prova.resultados?.[j]?.[String(a.id)]||prova.resultados?.[j]?.[a.id];
         return{...a,res,total:calcTotal(prova,j,res),mini:calcMini(res),peter:calcPeter(res)};
       }).filter(a=>a.total!=null).sort((a,b)=>a.total-b.total||a.nome.localeCompare(b.nome));
     }
@@ -528,9 +539,18 @@ function sairTV(){
 }
 
 // ── FIREBASE ──
+let rankingPortal = null;
+
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('exit').addEventListener('click',sairTV);
-  // Escutar dados internos
+
+  // Escutar ranking calculado (fonte de verdade para pontos)
+  onSnapshot(doc(db,'vizelgolfe','ranking_portal'),snap=>{
+    if(snap.exists()) rankingPortal = snap.data().ranking || null;
+    if(modoAtivo==='interno' && provaAtiva) renderInterno();
+  });
+
+  // Escutar dados internos (tacadas brutas + estrutura)
   onSnapshot(doc(db,'vizelgolfe','dados'),snap=>{
     if(!snap.exists())return;
     allDataInt=snap.data();
