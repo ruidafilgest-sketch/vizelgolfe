@@ -1617,7 +1617,7 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
       const jFim = jFiltro||(prova.jornadas||1);
       const ajustes = dadosInt.ajustesPontos||{};
       for (let j=jInicio;j<=jFim;j++) {
-        const res=prova.resultados?.[j]?.[a.id];
+        const res=prova.resultados?.[j]?.[String(a.id)]||prova.resultados?.[j]?.[a.id];
         if (!res) continue;
         const tot=calcTotal(prova,j,res);
         if (tot==null) continue;
@@ -1627,8 +1627,13 @@ window.renderClassProva = function(provaId, btn, jFiltro) {
         if (ajJ != null) { pts += Number(ajJ); continue; }
         const pos=calcPos(prova,j,a.id,CAT_GRUPO[cat],atletas,empates);
         if (pos>=1&&pos<=PONTUACAO.length) pts+=PONTUACAO[pos-1];
-        if (res.bonusMini) pts+=(prova.bonusMini||0);
-        if (res.bonusPeter) pts+=(prova.bonusPeter||0);
+        if (_isCampVizela(prova) && res) {
+          const b = prova.bonusMini||1;
+          if (res.bonusMini)       pts+=b;
+          if (res.bonusPeter)      pts+=b;
+          if (res.bonusPeterManha) pts+=b;
+          if (res.bonusPeterTarde) pts+=b;
+        }
       }
       return {...a, pts, jPart};
     }).filter(a=>a.jPart>0).sort((a,b)=>b.pts-a.pts);
@@ -2635,6 +2640,8 @@ async function guardarRankingCalculado() {
         const res = prova.resultados?.[j]?.[rid] || prova.resultados?.[j]?.[a.id];
         const total = calcTotal(prova, j, res);
         if (total == null && ajJ == null) continue;
+        // Se há ajuste mas não há resultado real, usar total 0 para não bloquear
+        const totalReal = total ?? 0;
 
         const pontos = ajJ != null
           ? Number(ajJ)
@@ -2659,7 +2666,7 @@ async function guardarRankingCalculado() {
           tipo:     prova.tipo || 'torneio',
           jornada:  j,
           data:     dataJornada,
-          total:    total || null,
+          total:    totalReal,
           pos:      pos || null,
           pontos,
           ajuste:   ajJ != null
