@@ -2074,6 +2074,8 @@ window.guardarResultados = async function(provaId, jornada) {
     await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
     if (msg) { msg.style.color='var(--green)'; msg.textContent='✅ Guardado com sucesso!'; setTimeout(()=>msg.textContent='',3000); }
     mostrarNotif('✅ Resultados guardados!');
+    // Guardar ranking calculado para o portal de sócios (em background)
+    guardarRankingCalculado().catch(e => console.warn('Ranking portal não guardado:', e));
   } catch(e) {
     if (msg) { msg.style.color='#cc2222'; msg.textContent='❌ Erro: '+e.message; }
     mostrarNotif('❌ Erro ao guardar!', true);
@@ -2605,6 +2607,91 @@ async function recalcularTodosBonusAuto(){
   const atletas=dadosInt.atletas||[];
   (dadosInt.provas||[]).forEach(prova=>{if(!_isCampVizela(prova))return;for(let j=1;j<=(prova.jornadas||1);j++){const jRes=prova.resultados?.[j];if(!jRes||!Object.keys(jRes).length)continue;aplicarBonusNosResultados(prova,j,calcularBonusAuto(prova,j,atletas));}});
   await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt,_vzgKey:'VZG-2026-SEC-K9x'});
+}
+
+// ── RANKING CALCULADO PARA PORTAL DE SÓCIOS ──────────────────
+async function guardarRankingCalculado() {
+  if (!dadosInt) return;
+  const atletas  = dadosInt.atletas  || [];
+  const provas   = dadosInt.provas   || [];
+  const empates  = dadosInt.empates  || {};
+  const ajustes  = dadosInt.ajustesPontos || {};
+  const ranking  = {};
+
+  atletas.forEach(a => {
+    const rid   = String(a.id);
+    const grupo = CAT_GRUPO[a.categoria] || a.categoria;
+    const participacoes = [];
+    let totalPontos = 0;
+
+    provas.forEach(prova => {
+      const isCViz = _isCampVizela(prova);
+      for (let j = 1; j <= (prova.jornadas || 1); j++) {
+        const ajJ = ajustes?.[prova.id]?.[rid]?.[j]
+                 ?? ajustes?.[prova.id]?.[rid]?.[String(j)]
+                 ?? ajustes?.[prova.id]?.[a.id]?.[j]
+                 ?? ajustes?.[prova.id]?.[a.id]?.[String(j)];
+
+        const res = prova.resultados?.[j]?.[rid] || prova.resultados?.[j]?.[a.id];
+        const total = calcTotal(prova, j, res);
+        if (total == null && ajJ == null) continue;
+
+        const pontos = ajJ != null
+          ? Number(ajJ)
+          : (() => {
+              const pos = calcPos(prova, j, a.id, grupo, atletas, empates);
+              let p = (pos >= 1 && pos <= PONTUACAO.length) ? PONTUACAO[pos - 1] : 0;
+              if (isCViz && res) {
+                const b = prova.bonusMini || 1;
+                if (res.bonusMini)        p += b;
+                if (res.bonusPeter)       p += b;
+                if (res.bonusPeterManha)  p += b;
+                if (res.bonusPeterTarde)  p += b;
+              }
+              return p;
+            })();
+
+        const pos = ajJ != null ? null : calcPos(prova, j, a.id, grupo, atletas, empates);
+        const dataJornada = prova.dataJornadas?.[j] || prova.data || '';
+
+        participacoes.push({
+          prova:    prova.nome,
+          tipo:     prova.tipo || 'torneio',
+          jornada:  j,
+          data:     dataJornada,
+          total:    total || null,
+          pos:      pos || null,
+          pontos,
+          ajuste:   ajJ != null
+        });
+
+        totalPontos += pontos;
+      }
+
+      // Bónus participação completa (só Campeonato de Vizela)
+      if (isCViz && prova.bonusCompleto) {
+        const jPart = Object.keys(prova.resultados || {}).filter(jk => {
+          const r = prova.resultados[jk]?.[rid] || prova.resultados[jk]?.[a.id];
+          return r && calcTotal(prova, parseInt(jk), r) != null;
+        }).length;
+        if (jPart >= (prova.jornadas || 1)) totalPontos += prova.bonusCompleto;
+      }
+    });
+
+    if (participacoes.length > 0) {
+      ranking[rid] = {
+        nome:      a.nome,
+        categoria: a.categoria,
+        totalPontos,
+        participacoes
+      };
+    }
+  });
+
+  await setDoc(
+    doc(db, 'vizelgolfe', 'ranking_portal'),
+    { ranking, atualizadoEm: new Date().toISOString(), _vzgKey: 'VZG-2026-SEC-K9x' }
+  );
 }
 
 // ── ATLETAS ──
