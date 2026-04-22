@@ -7712,7 +7712,7 @@ window.abrirModalAviso = function(key) {
     document.getElementById('aviso-tipo').value     = 'info';
     document.getElementById('aviso-expira').value   = '';
   }
-  document.getElementById('modal-aviso').classList.add('active');
+  openModal('modal-aviso');
 };
 
 window.guardarAviso = async function() {
