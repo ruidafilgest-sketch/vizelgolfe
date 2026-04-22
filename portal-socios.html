@@ -401,12 +401,6 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <div class="s-card-title">🏆 Próximos Torneios</div>
         <div id="s-inicio-torneios"></div>
       </div>
-
-      <!-- Participações no sistema de resultados -->
-      <div class="s-card" id="card-participacoes" style="display:none">
-        <div class="s-card-title">🏅 As Minhas Participações</div>
-        <div id="s-inicio-participacoes"></div>
-      </div>
     </div>
 
     <!-- ── QUOTAS ── -->
@@ -2021,9 +2015,6 @@ function renderAreaSocio() {
 
   // Avisos do clube
   carregarAvisosSocio();
-
-  // Participações no sistema de resultados
-  carregarParticipacoesSocio(s.resultadosId);
 
   // Logo + nome header
   document.getElementById('socio-header-logo').src = LOGO_B64;
@@ -7814,113 +7805,6 @@ async function carregarAvisosSocio() {
         <div style="font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.5">${a.mensagem}</div>
       </div>`).join('');
   } catch(e) { el.innerHTML = ''; }
-}
-
-// ─── PARTICIPAÇÕES NO SISTEMA DE RESULTADOS ────────────
-async function carregarParticipacoesSocio(resultadosId) {
-  const card = document.getElementById('card-participacoes');
-  const el   = document.getElementById('s-inicio-participacoes');
-  if (!card || !el) return;
-
-  // Se o sócio não tem ID no sistema de resultados, esconder o card
-  if (!resultadosId) { card.style.display = 'none'; return; }
-
-  const rid = String(resultadosId);
-  el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:12px">A carregar...</div>';
-  card.style.display = 'block';
-
-  try {
-    // Buscar dados do Firestore vizelgolfe-ec270
-    const { initializeApp: initApp2, getApps } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-    const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-
-    // Reutilizar app se já existir
-    let app2 = getApps().find(a => a.name === 'resultados');
-    if (!app2) {
-      app2 = initApp2({
-        apiKey: "AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",
-        projectId: "vizelgolfe-ec270"
-      }, 'resultados');
-    }
-    const fs = getFirestore(app2);
-    const snap = await getDoc(doc(fs, 'vizelgolfe', 'dados'));
-
-    if (!snap.exists()) { card.style.display = 'none'; return; }
-
-    const dados = snap.data();
-    const provas = dados.provas || [];
-
-    // Para cada prova, verificar se o atleta tem resultados
-    const participacoes = [];
-
-    provas.forEach(prova => {
-      const resultados = prova.resultados || {};
-      let totalParticipacoes = 0;
-
-      Object.entries(resultados).forEach(([jornadaIdx, jornada]) => {
-        const r = jornada[rid];
-        if (!r) return;
-
-        // Calcular totais (ignorar 126 = desistência/falta)
-        const vals = [r.mV1, r.mV2, r.pV1, r.pV2, r.pV3, r.pV4].filter(v => v && v !== 126);
-        if (!vals.length) return;
-
-        const totalMini  = [r.mV1, r.mV2].filter(v => v && v !== 126).reduce((a,b) => a+b, 0);
-        const totalPeter = [r.pV1, r.pV2, r.pV3, r.pV4].filter(v => v && v !== 126).reduce((a,b) => a+b, 0);
-        const jornadaNum = parseInt(jornadaIdx) + 1;
-        const dataJornada = prova.dataJornadas?.[jornadaNum] || prova.data || '';
-
-        totalParticipacoes++;
-        participacoes.push({
-          prova: prova.nome,
-          data: dataJornada || prova.data,
-          jornada: jornadaNum,
-          totalJornadas: prova.jornadas || 1,
-          totalMini,
-          totalPeter,
-          tipo: prova.tipo || 'torneio'
-        });
-      });
-    });
-
-    if (!participacoes.length) {
-      el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text2);font-size:12px">Sem participações registadas ainda</div>';
-      return;
-    }
-
-    // Ordenar por data mais recente
-    participacoes.sort((a,b) => (b.data||'').localeCompare(a.data||''));
-
-    // Agrupar por prova
-    const porProva = {};
-    participacoes.forEach(p => {
-      if (!porProva[p.prova]) porProva[p.prova] = { nome: p.prova, tipo: p.tipo, data: p.data, jornadas: [] };
-      porProva[p.prova].jornadas.push(p);
-    });
-
-    el.innerHTML = Object.values(porProva).map(prova => {
-      const tipoIcon = prova.tipo === 'campeonato' ? '🏆' : prova.tipo === 'taca' ? '🥇' : '⛳';
-      const linhas = prova.jornadas.map(j => {
-        const partes = [];
-        if (j.totalMini)  partes.push(`Mini: ${j.totalMini}`);
-        if (j.totalPeter) partes.push(`Peter: ${j.totalPeter}`);
-        return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border2);font-size:12px">
-          <span style="color:var(--text2)">J${j.jornada} · ${j.data || '—'}</span>
-          <span style="font-weight:600">${partes.join(' · ')}</span>
-        </div>`;
-      }).join('');
-
-      return `<div style="margin-bottom:16px">
-        <div style="font-size:13px;font-weight:700;margin-bottom:6px">${tipoIcon} ${prova.nome}</div>
-        ${linhas}
-        <div style="font-size:11px;color:var(--text2);margin-top:4px">${prova.jornadas.length} participação(ões)</div>
-      </div>`;
-    }).join('');
-
-  } catch(e) {
-    console.warn('Participações não carregadas:', e);
-    card.style.display = 'none';
-  }
 }
 
 window.toast = function(msg, type='success') {
