@@ -304,12 +304,20 @@ function corVoltaPeter(t){const n=Number(t);if(isNaN(n)||n<=0)return'';if(n<=24)
 function corPista(t){const n=Number(t);if(isNaN(n)||n<=0)return'';if(n===1)return'color:#16a34a;font-weight:700';if(n===2)return'color:#dc2626;font-weight:700';return'color:#6b7280;font-weight:700';}
 function corTotal(total,nVoltas,tipo){const n=Number(total);if(isNaN(n)||n<=0||!nVoltas)return'';const m=n/nVoltas;return tipo==='mini'?corVoltaMini(m):corVoltaPeter(m);}
 
-function renderInterno() {
+async function renderInterno() {
   if(!allDataInt||!provaAtiva) return;
   const prova = allDataInt.provas?.find(p=>p.id==provaAtiva); if(!prova) return;
   const atletas = allDataInt.atletas||[];
   const empates = allDataInt.empates||{};
   const inner = document.getElementById('inner');
+
+  // Buscar ranking calculado pela consola
+  if(!rankingPortal) {
+    try {
+      const snap = await getDoc(doc(db,'vizelgolfe','ranking_portal'));
+      if(snap.exists()) rankingPortal = snap.data().ranking || null;
+    } catch(e) { console.warn('ranking_portal não carregado:', e); }
+  }
   const isCamp = prova.tipo==='campeonato'&&(prova.jornadas||1)>1;
   const isGeral = jornadaAtiva===null&&isCamp;
   let html='', any=false;
@@ -543,12 +551,6 @@ let rankingPortal = null;
 
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('exit').addEventListener('click',sairTV);
-
-  // Escutar ranking calculado (fonte de verdade para pontos)
-  onSnapshot(doc(db,'vizelgolfe','ranking_portal'),snap=>{
-    if(snap.exists()) rankingPortal = snap.data().ranking || null;
-    if(modoAtivo==='interno' && provaAtiva) renderInterno();
-  });
 
   // Escutar dados internos (tacadas brutas + estrutura)
   onSnapshot(doc(db,'vizelgolfe','dados'),snap=>{
