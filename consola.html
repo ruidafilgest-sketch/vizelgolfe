@@ -1534,48 +1534,26 @@ window.renderRankingAnual = function(btn) {
         <thead><tr>
           <th style="width:36px">Pos</th>
           <th>Atleta</th>
-          ${(()=>{
-            // Cabeçalhos dinâmicos de voltas
-            const esp = prova.jornadaEspecial?.[jFiltro||1];
-            const isFiltroJ = !!jFiltro;
-            if(esp?.tipo==='peter4voltas') return '<th class="c">P1</th><th class="c">P2</th><th class="c">P3</th><th class="c">P4</th><th class="c">Total</th>';
-            if(isFiltroJ) return '<th class="c">M1</th><th class="c">M2</th><th class="c">P1</th><th class="c">P2</th><th class="c">Total</th>';
-            return '<th class="c">Jornadas</th><th class="c" style="text-align:right">Pontos</th>';
-          })()}
+          <th class="c">Jornadas</th><th class="c" style="text-align:right">Pontos</th>
         </tr></thead>
         <tbody>
         ${ranked.map((a,i)=>{
           const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
-          const esp = prova.jornadaEspecial?.[jFiltro||1];
-          const isFiltroJ = !!jFiltro;
-
-          // Se filtro por jornada, mostrar voltas com cores
-          if(isFiltroJ) {
-            const res = prova.resultados?.[jFiltro]?.[a.id]||{};
-            const campos = esp?.tipo==='peter4voltas'
-              ? [{id:'pV1',l:'pV1'},{id:'pV2',l:'pV2'},{id:'pV3',l:'pV3'},{id:'pV4',l:'pV4'}]
-              : [{id:'mV1',l:'mV1'},{id:'mV2',l:'mV2'},{id:'pV1',l:'pV1'},{id:'pV2',l:'pV2'}];
-            const tot = calcTotal(prova,jFiltro,res);
-            const voltaCols = campos.map(c=>{
-              const v=res[c.id];
-              if(!v) return '<td style="text-align:center;color:var(--dim)">—</td>';
-              const cor=corVolta(c.id,v); const bg=bgVolta(c.id,v); const em=emojiCor(c.id,v);
-              return '<td style="text-align:center;font-weight:700;font-size:0.88rem;color:'+cor+';background:'+bg+'">'+em+' '+v+'</td>';
-            }).join('');
-            const totCor = tot ? corTotal(tot,campos.length,campos[0].id) : 'var(--orange)';
-            return '<tr style="cursor:pointer" onclick="abrirPerfilAtleta('+a.id+')">'
-              +'<td class="'+posClass+'">'+(i+1)+'º</td>'
-              +'<td><strong>'+a.nome+'</strong></td>'
-              +voltaCols
-              +'<td style="text-align:center;font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:'+totCor+'">'+( tot||'—')+'</td>'
-              +'</tr>';
-          }
-
-          // Vista geral — pontos acumulados
+          // Ranking Anual — pontos acumulados na época
+          const jPart = (()=>{
+            let n=0;
+            (dadosInt.provas||[]).forEach(p=>{
+              for(let j=1;j<=(p.jornadas||1);j++){
+                const r=p.resultados?.[j]?.[a.id]||p.resultados?.[j]?.[String(a.id)];
+                if(r&&calcTotal(p,j,r)!=null)n++;
+              }
+            });
+            return n;
+          })();
           return '<tr style="cursor:pointer" onclick="abrirPerfilAtleta('+a.id+')">'
             +'<td class="'+posClass+'">'+(i+1)+'º</td>'
             +'<td><strong>'+a.nome+'</strong></td>'
-            +'<td style="text-align:center;color:var(--dim);font-size:0.82rem">'+a.jPart+'</td>'
+            +'<td style="text-align:center;color:var(--dim);font-size:0.82rem">'+jPart+'</td>'
             +'<td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:var(--orange)">'+a.pts+'</td>'
             +'</tr>';
         }).join('')}
@@ -3331,7 +3309,36 @@ function extrairNome(url){const m=url.match(/\/([\w]+)\/result/);return m?m[1].t
 
 // ── MODO TV ──
 window.abrirTV = function() {
+  // Mostrar modal de escolha Interno / Nacional
+  document.getElementById('modal-title').textContent = '📺 Modo TV';
+  document.getElementById('modal-meta').textContent = '';
+  document.getElementById('modal-body').innerHTML = `
+    <div style="display:flex;gap:16px;justify-content:center;padding:16px 0">
+      <div onclick="abrirTVInterno()" style="width:180px;padding:28px 20px;border:2px solid rgba(100,160,255,.4);border-radius:14px;background:linear-gradient(145deg,#0e2d5e,#1a4a8a);cursor:pointer;text-align:center;transition:all .2s" onmouseover="this.style.borderColor='rgba(100,160,255,.8)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='rgba(100,160,255,.4)';this.style.transform='none'">
+        <div style="font-family:Bebas Neue,sans-serif;font-size:1.3rem;letter-spacing:3px;color:#fff;margin-bottom:8px">🏆 TV Interno</div>
+        <div style="font-size:0.75rem;color:rgba(180,215,255,.7)">Provas e Campeonato<br>de Vizela</div>
+      </div>
+      <div onclick="abrirTVNacional()" style="width:180px;padding:28px 20px;border:2px solid rgba(220,165,50,.4);border-radius:14px;background:linear-gradient(145deg,#3a2200,#7a4a00);cursor:pointer;text-align:center;transition:all .2s" onmouseover="this.style.borderColor='rgba(220,165,50,.8)';this.style.transform='translateY(-3px)'" onmouseout="this.style.borderColor='rgba(220,165,50,.4)';this.style.transform='none'">
+        <div style="font-family:Bebas Neue,sans-serif;font-size:1.3rem;letter-spacing:3px;color:#fff;margin-bottom:8px">🇵🇹 TV Nacional</div>
+        <div style="font-size:0.75rem;color:rgba(220,185,100,.7)">Resultados das Provas<br>Nacionais FPM</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-overlay').classList.remove('on')">Cancelar</button>
+    </div>`;
+  document.getElementById('modal-overlay').classList.add('on');
+};
+
+window.abrirTVInterno = function() {
+  document.getElementById('modal-overlay').classList.remove('on');
   const tvUrl = 'https://ruidafilgest-sketch.github.io/vizelgolfe/tv-interno.html?consola=1';
+  const tvWin = window.open(tvUrl,'_blank','width=1280,height=720');
+  if (!tvWin) alert('Permite popups para este site para abrir o Modo TV.');
+};
+
+window.abrirTVNacional = function() {
+  document.getElementById('modal-overlay').classList.remove('on');
+  const tvUrl = 'https://ruidafilgest-sketch.github.io/vizelgolfe/tv-nacional.html';
   const tvWin = window.open(tvUrl,'_blank','width=1280,height=720');
   if (!tvWin) alert('Permite popups para este site para abrir o Modo TV.');
 };
