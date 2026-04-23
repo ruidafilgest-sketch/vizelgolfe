@@ -550,7 +550,11 @@ function sairTV(){
 let rankingPortal = null;
 
 document.addEventListener('DOMContentLoaded',()=>{
-  selecionarModo('interno');
+  // Arrancar sempre em modo interno — esconder seletor de modo
+  document.getElementById('modo-cards').style.display='none';
+  document.getElementById('btn-voltar').style.display='none';
+  modoAtivo='interno';
+
   document.getElementById('exit').addEventListener('click',sairTV);
 
   // Escutar dados internos (tacadas brutas + estrutura)
@@ -558,8 +562,15 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(!snap.exists())return;
     allDataInt=snap.data();
     if(modoAtivo==='interno'){
-      renderSetupInterno();
-      if(provaAtiva)renderInterno();
+      if(!provaAtiva){
+        // Auto-selecionar prova ativa, ou concluída se não houver ativa
+        const provas=allDataInt.provas||[];
+        const auto=provas.find(p=>p.estado==='ativo')||provas.find(p=>p.estado==='concluido');
+        if(auto){ iniciarTVInterno(auto.id); }
+        else { renderSetupInterno(); } // só mostra lista se não houver prova
+      } else {
+        renderInterno();
+      }
     }
   });
 });
