@@ -589,12 +589,10 @@ let rankingPortal = null;
 document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('exit').addEventListener('click',sairTV);
 
-  // Detetar se vem do link público (auto-seleciona prova ativa)
-  // ou da consola (mostra lista de provas para escolher)
   const params = new URLSearchParams(window.location.search);
   const modoConsola = params.get('consola') === '1';
 
-  // Esconder seletor interno/nacional — arrancamos sempre em interno
+  // Esconder sempre o seletor Interno/Nacional — não faz sentido aqui
   document.getElementById('modo-cards').style.display='none';
   document.getElementById('btn-voltar').style.display='none';
   modoAtivo='interno';
@@ -606,14 +604,14 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(modoAtivo==='interno'){
       if(!provaAtiva){
         if(modoConsola){
-          // Vem da consola — mostrar lista elegante de provas
-          renderSetupInterno();
-        } else {
-          // Link público — auto-selecionar prova ativa
+          // Consola — auto-selecionar prova ativa
           const provas=allDataInt.provas||[];
           const auto=provas.find(p=>p.estado==='ativo')||provas.find(p=>p.estado==='concluido');
           if(auto){ iniciarTVInterno(auto.id); }
           else { renderSetupInterno(); }
+        } else {
+          // Link público — mostrar lista de provas para escolher
+          renderSetupInterno();
         }
       } else {
         renderInterno();
