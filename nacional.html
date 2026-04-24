@@ -25,7 +25,6 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 html,body{width:100%;min-height:100%;background:var(--bg);color:var(--text);font-family:"Barlow Condensed",sans-serif;}
 
-/* HEADER */
 header{
   background:var(--navy2);border-bottom:3px solid var(--orange);
   display:flex;align-items:center;padding:0 32px;height:64px;gap:16px;
@@ -42,10 +41,8 @@ header img{width:42px;height:42px;border-radius:50%;border:2px solid var(--orang
 #live-dot.on{display:block;animation:blink 1.5s ease-in-out infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 
-/* MAIN */
 main{max-width:1200px;margin:0 auto;padding:24px 20px;}
 
-/* PAINEL CONFIG */
 #painel-config{
   background:var(--bg2);border:1px solid var(--sep);border-radius:10px;
   padding:20px 24px;margin-bottom:24px;
@@ -55,11 +52,11 @@ main{max-width:1200px;margin:0 auto;padding:24px 20px;}
 .config-row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
 .config-group{display:flex;flex-direction:column;gap:5px;flex:1;min-width:200px;}
 .config-group label{font-size:0.72rem;letter-spacing:1px;color:var(--dim);text-transform:uppercase;}
-.config-group input{
+.config-group input,.config-group select{
   padding:8px 12px;border:1px solid var(--sep);border-radius:6px;
   background:var(--bg);color:var(--text);font-size:0.85rem;font-family:"Barlow",sans-serif;
 }
-.config-group input:focus{outline:none;border-color:var(--orange);}
+.config-group input:focus,.config-group select:focus{outline:none;border-color:var(--orange);}
 .btn{
   padding:9px 18px;border:none;border-radius:6px;cursor:pointer;
   font-family:"Barlow Condensed",sans-serif;font-size:0.85rem;font-weight:700;
@@ -76,10 +73,14 @@ main{max-width:1200px;margin:0 auto;padding:24px 20px;}
 .msg-err{background:#f8d7da;color:#721c24;}
 .msg-info{background:#d1ecf1;color:#0c5460;}
 
-/* PROVA INFO */
+.config-sep{
+  font-size:0.68rem;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;
+  margin:14px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--sep);
+}
+
 #prova-info{
   background:var(--navy);border-radius:10px;padding:16px 24px;
-  margin-bottom:20px;display:none;
+  margin-bottom:20px;
   display:flex;align-items:center;gap:20px;flex-wrap:wrap;
 }
 #prova-info .pnome{font-family:"Bebas Neue",sans-serif;font-size:1.3rem;letter-spacing:3px;color:var(--org2);}
@@ -91,7 +92,6 @@ main{max-width:1200px;margin:0 auto;padding:24px 20px;}
 .pstat .n{font-family:"Bebas Neue",sans-serif;font-size:1.4rem;color:var(--org2);}
 .pstat .l{font-size:0.65rem;color:rgba(255,255,255,0.35);text-transform:uppercase;letter-spacing:1px;}
 
-/* CATEGORIA TABS */
 #cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
 .cat-tab{
   padding:5px 14px;border:1px solid var(--sep);border-radius:20px;
@@ -102,7 +102,6 @@ main{max-width:1200px;margin:0 auto;padding:24px 20px;}
 .cat-tab.on{background:var(--navy);color:#fff;border-color:var(--navy);}
 .cat-tab .vzg-count{font-size:0.65rem;color:var(--org2);margin-left:4px;}
 
-/* TABELA */
 .tbl-wrap{overflow-x:auto;background:var(--bg2);border-radius:10px;border:1px solid var(--sep);box-shadow:0 1px 4px rgba(0,0,0,0.05);}
 table{width:100%;border-collapse:collapse;}
 thead th{
@@ -130,7 +129,6 @@ tbody td{padding:11px 16px;font-size:1.1rem;}
 .pos-1 .td-tot{color:var(--orange);}
 .td-dnf{font-size:0.7rem;color:var(--red);font-weight:700;text-align:center;}
 
-/* MODAL ATLETA */
 #modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;z-index:500;padding:20px;}
 #modal-overlay.on{display:flex;}
 #modal{background:var(--bg2);border-radius:12px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;padding:28px;}
@@ -141,10 +139,7 @@ tbody td{padding:11px 16px;font-size:1.1rem;}
 #modal-body thead th{font-size:0.65rem;letter-spacing:2px;padding:6px 12px;}
 #modal-body tbody td{padding:9px 12px;font-size:0.88rem;}
 
-/* EMPTY */
 .empty{text-align:center;padding:60px 20px;color:var(--dim);font-family:"Barlow",sans-serif;font-size:0.9rem;letter-spacing:1px;text-transform:uppercase;line-height:2.5;}
-
-/* FOOTER */
 footer{text-align:center;padding:24px;font-size:0.72rem;color:var(--dim);border-top:1px solid var(--sep);margin-top:40px;}
 
 @media(max-width:600px){
@@ -157,384 +152,444 @@ footer{text-align:center;padding:24px;font-size:0.72rem;color:var(--dim);border-
 <body>
 
 <header>
-  <img src="data:image/jpeg;base64,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" alt="Vizelgolfe">
-    <div class="htitle">
-      <div class="t1">Vizelgolfe</div>
-      <div class="t2">Resultados Nacionais</div>
-    </div>
-    <div id="status-bar">
-      <div id="live-dot"></div>
-      <div id="auto-status">Sem prova ativa</div>
-      <div id="countdown"></div>
-    </div>
-  </header>
+  <img src="data:image/jpeg;base64,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" alt="Vizelgolfe">
+  <div class="htitle">
+    <div class="t1">Vizelgolfe</div>
+    <div class="t2">Resultados Nacionais</div>
+  </div>
+  <div id="status-bar">
+    <div id="live-dot"></div>
+    <div id="auto-status">Sem prova ativa</div>
+    <div id="countdown"></div>
+  </div>
+</header>
 
-  <main>
-    <!-- CONFIG -->
-    <div id="painel-config">
-      <div class="config-titulo">⚙️ Configurar Prova</div>
-      <div class="config-row">
-        <div class="config-group" style="flex:2">
-          <label>URL da prova (Bangolfe / FPM)</label>
-          <input type="text" id="inp-url" placeholder="http://www.fp-minigolfe.com/resultados/2026/.../result.htm">
-        </div>
-        <div class="config-group">
-          <label>Nome da prova</label>
-          <input type="text" id="inp-nome" placeholder="CNM 2026 — 1ª Jornada">
-        </div>
-        <div class="config-group" style="flex:0;min-width:auto">
-          <label>Atualizar cada</label>
-          <select id="inp-intervalo" style="padding:8px 12px;border:1px solid var(--sep);border-radius:6px;background:var(--bg);color:var(--text);font-family:Barlow,sans-serif;font-size:0.85rem">
-            <option value="3">3 min</option>
-            <option value="5" selected>5 min</option>
-            <option value="10">10 min</option>
-            <option value="15">15 min</option>
-          </select>
-        </div>
-        <div style="display:flex;gap:8px;align-items:flex-end">
-          <button class="btn btn-primary" onclick="iniciarAuto()">▶ Iniciar</button>
-          <button class="btn btn-stop" onclick="pararAuto()" id="btn-stop" style="display:none">⏹ Parar</button>
-          <button class="btn btn-secondary" onclick="carregarAgora()">🔄 Agora</button>
-        </div>
+<main>
+  <!-- CONFIG -->
+  <div id="painel-config">
+    <div class="config-titulo">⚙️ Configurar Prova</div>
+    <div class="config-row">
+      <div class="config-group" style="flex:2">
+        <label>URL da prova (Bangolfe / FPM)</label>
+        <input type="text" id="inp-url" placeholder="http://www.fp-minigolfe.com/resultados/2026/.../result.htm">
       </div>
-      <div id="msg-config"></div>
-    </div>
-
-    <!-- PROVA INFO -->
-    <div id="prova-info" style="display:none">
-      <div>
-        <div class="pnome" id="pi-nome">—</div>
-        <div class="pmeta" id="pi-meta">—</div>
-        <a class="plink" id="pi-link" href="#" target="_blank">Ver original ↗</a>
+      <div class="config-group">
+        <label>Nome da prova</label>
+        <input type="text" id="inp-nome" placeholder="CNM 2026 — 1ª Jornada">
       </div>
-      <div id="prova-stats">
-        <div class="pstat"><div class="n" id="pi-atletas">0</div><div class="l">Atletas</div></div>
-        <div class="pstat"><div class="n" id="pi-vzg">0</div><div class="l">Vizelgolfe</div></div>
-        <div class="pstat"><div class="n" id="pi-cats">0</div><div class="l">Categorias</div></div>
-        <div class="pstat"><div class="n" id="pi-upd">—</div><div class="l">Atualizado</div></div>
+      <div class="config-group" style="flex:0;min-width:auto">
+        <label>Atualizar cada</label>
+        <select id="inp-intervalo">
+          <option value="3">3 min</option>
+          <option value="5" selected>5 min</option>
+          <option value="10">10 min</option>
+          <option value="15">15 min</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end">
+        <button class="btn btn-primary" onclick="iniciarAuto()">▶ Iniciar</button>
+        <button class="btn btn-stop" onclick="pararAuto()" id="btn-stop" style="display:none">⏹ Parar</button>
+        <button class="btn btn-secondary" onclick="carregarAgora()">🔄 Agora</button>
       </div>
     </div>
 
-    <!-- CATEGORIAS TABS -->
-    <div id="cat-tabs"></div>
-
-    <!-- CONTEÚDO -->
-    <div id="conteudo">
-      <div class="empty">Configura uma prova acima para começar.</div>
+    <!-- DISCIPLINAS POR GRUPO -->
+    <div class="config-sep">🏌️ Disciplinas por Grupo</div>
+    <div class="config-row">
+      <div class="config-group" style="flex:0;min-width:220px">
+        <label>Grupo A — Disciplina</label>
+        <select id="inp-grupo-a">
+          <option value="peter">Petergolfe</option>
+          <option value="mini">Minigolfe</option>
+        </select>
+      </div>
+      <div class="config-group" style="flex:0;min-width:160px">
+        <label>Grupo A — Nº Voltas</label>
+        <select id="inp-voltas-a">
+          <option value="1">1 volta</option>
+          <option value="2">2 voltas</option>
+          <option value="3">3 voltas</option>
+          <option value="4">4 voltas</option>
+          <option value="5">5 voltas</option>
+          <option value="6">6 voltas</option>
+          <option value="7" selected>7 voltas</option>
+          <option value="8">8 voltas</option>
+        </select>
+      </div>
+      <div class="config-group" style="flex:0;min-width:220px">
+        <label>Grupo B — Disciplina</label>
+        <select id="inp-grupo-b">
+          <option value="mini">Minigolfe</option>
+          <option value="peter">Petergolfe</option>
+        </select>
+      </div>
+      <div class="config-group" style="flex:0;min-width:160px">
+        <label>Grupo B — Nº Voltas</label>
+        <select id="inp-voltas-b">
+          <option value="1">1 volta</option>
+          <option value="2">2 voltas</option>
+          <option value="3">3 voltas</option>
+          <option value="4">4 voltas</option>
+          <option value="5">5 voltas</option>
+          <option value="6" selected>6 voltas</option>
+          <option value="7">7 voltas</option>
+          <option value="8">8 voltas</option>
+        </select>
+      </div>
     </div>
-  </main>
 
-  <!-- MODAL ATLETA -->
-  <div id="modal-overlay" onclick="fecharModal(event)">
-    <div id="modal">
-      <button id="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('on')">✕</button>
-      <div id="modal-nome"></div>
-      <div id="modal-meta"></div>
-      <div id="modal-body"></div>
+    <div id="msg-config"></div>
+  </div>
+
+  <!-- PROVA INFO -->
+  <div id="prova-info" style="display:none">
+    <div>
+      <div class="pnome" id="pi-nome">—</div>
+      <div class="pmeta" id="pi-meta">—</div>
+      <a class="plink" id="pi-link" href="#" target="_blank">Ver original ↗</a>
+    </div>
+    <div id="prova-stats">
+      <div class="pstat"><div class="n" id="pi-atletas">0</div><div class="l">Atletas</div></div>
+      <div class="pstat"><div class="n" id="pi-vzg">0</div><div class="l">Vizelgolfe</div></div>
+      <div class="pstat"><div class="n" id="pi-cats">0</div><div class="l">Categorias</div></div>
+      <div class="pstat"><div class="n" id="pi-upd">—</div><div class="l">Atualizado</div></div>
     </div>
   </div>
 
-  <footer>© 2026 Vizelgolfe — Associação de Minigolfe de Vizela</footer>
+  <!-- CATEGORIAS TABS -->
+  <div id="cat-tabs"></div>
 
-  <script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  <!-- CONTEÚDO -->
+  <div id="conteudo">
+    <div class="empty">Configura uma prova acima para começar.</div>
+  </div>
+</main>
 
-  const firebaseConfig = {
-    apiKey:"AIzaSyDr7wfBzKbH1VAiXbte4YzkejuvJpQvltE",
-    authDomain:"vizelgolfe-ec270.firebaseapp.com",
-    projectId:"vizelgolfe-ec270",
-    storageBucket:"vizelgolfe-ec270.firebasestorage.app",
-    messagingSenderId:"386073357614",
-    appId:"1:386073357614:web:098f635403f605650e5ebf"
+<!-- MODAL ATLETA -->
+<div id="modal-overlay" onclick="fecharModal(event)">
+  <div id="modal">
+    <button id="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('on')">✕</button>
+    <div id="modal-nome"></div>
+    <div id="modal-meta"></div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<footer>© 2026 Vizelgolfe — Associação de Minigolfe de Vizela</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey:"AIzaSyDr7wfBzKbH1VAiXbte4YzkejuvJpQvltE",
+  authDomain:"vizelgolfe-ec270.firebaseapp.com",
+  projectId:"vizelgolfe-ec270",
+  storageBucket:"vizelgolfe-ec270.firebasestorage.app",
+  messagingSenderId:"386073357614",
+  appId:"1:386073357614:web:098f635403f605650e5ebf"
+};
+const app = initializeApp(firebaseConfig);
+const db  = getFirestore(app);
+
+let dadosAtuais   = null;
+let catAtiva      = null;
+let urlAtiva      = null;
+let nomeAtivo     = null;
+let intervaloId   = null;
+let countdownId   = null;
+let segsRestantes = 0;
+const CORS_PROXY  = 'https://api.allorigins.win/raw?url=';
+
+const CAT_ORDEM = ['Homens','Senhoras','Juniores Masculinos','Juniores Femininos',
+  'Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos',
+  'Veteranos Masculinos','Veteranos Femininos'];
+
+// Grupos A e B conforme FPM/CNI
+const CAT_GRUPO_A = ['Homens','Juniores Masculinos','Seniores Masculinos','Veteranos Masculinos'];
+const CAT_GRUPO_B = ['Senhoras','Juniores Femininos','Seniores Femininos','Veteranos Femininos','Infantis Masculinos','Infantis Femininos'];
+
+function isVzg(clube) { return clube && clube.toLowerCase().includes('vizelgolfe'); }
+
+function msg(texto, tipo) {
+  const el = document.getElementById('msg-config');
+  el.textContent = texto;
+  el.className = 'msg-' + tipo;
+  el.style.display = 'block';
+  if (tipo === 'ok') setTimeout(() => el.style.display='none', 4000);
+}
+
+function getConfig() {
+  return {
+    grupoA: document.getElementById('inp-grupo-a').value,
+    voltasA: parseInt(document.getElementById('inp-voltas-a').value),
+    grupoB: document.getElementById('inp-grupo-b').value,
+    voltasB: parseInt(document.getElementById('inp-voltas-b').value)
   };
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
+}
 
-  // ── ESTADO ──
-  let dadosAtuais   = null;
-  let catAtiva      = null;
-  let urlAtiva      = null;
-  let nomeAtivo     = null;
-  let intervaloId   = null;
-  let countdownId   = null;
-  let segsRestantes = 0;
-  const CORS_PROXY  = 'https://api.allorigins.win/raw?url=';
+function setConfig(cfg) {
+  if (!cfg) return;
+  if (cfg.grupoA) document.getElementById('inp-grupo-a').value = cfg.grupoA;
+  if (cfg.voltasA) document.getElementById('inp-voltas-a').value = cfg.voltasA;
+  if (cfg.grupoB) document.getElementById('inp-grupo-b').value = cfg.grupoB;
+  if (cfg.voltasB) document.getElementById('inp-voltas-b').value = cfg.voltasB;
+}
 
-  // ── CATEGORIAS ──
-  const CAT_ORDEM = ['Homens','Senhoras','Juniores Masculinos','Juniores Femininos',
-    'Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos',
-    'Veteranos Masculinos','Veteranos Femininos'];
-
-  function isVzg(clube) { return clube && clube.toLowerCase().includes('vizelgolfe'); }
-
-  // ── MOSTRAR MENSAGEM ──
-  function msg(texto, tipo) {
-    const el = document.getElementById('msg-config');
-    el.textContent = texto;
-    el.className = 'msg-' + tipo;
-    el.style.display = 'block';
-    if (tipo === 'ok') setTimeout(() => el.style.display='none', 4000);
+function getDisciplina(catName) {
+  if (CAT_GRUPO_A.some(g => catName === g || catName.startsWith(g))) {
+    return getConfig().grupoA;
   }
-
-  // ── FETCH DO BANGOLFE ──
-  async function fetchBangolfe(url) {
-    const proxyUrl = CORS_PROXY + encodeURIComponent(url);
-    const resp = await fetch(proxyUrl);
-    if (!resp.ok) throw new Error('Não foi possível aceder ao site da FPM');
-    const html = await resp.text();
-    return parseBangolfe(html);
+  if (CAT_GRUPO_B.some(g => catName === g || catName.startsWith(g))) {
+    return getConfig().grupoB;
   }
+  return getConfig().grupoA; // fallback
+}
 
-  // ── PARSER HTML BANGOLFE ──
-  function parseBangolfe(html) {
-    const parser = new DOMParser();
-    const doc2 = parser.parseFromString(html, 'text/html');
-    const tables = doc2.querySelectorAll('table');
-    const categorias = {};
-    let catAtual = null;
+async function fetchBangolfe(url) {
+  const proxyUrl = CORS_PROXY + encodeURIComponent(url);
+  const resp = await fetch(proxyUrl);
+  if (!resp.ok) throw new Error('Não foi possível aceder ao site da FPM');
+  const html = await resp.text();
+  return parseBangolfe(html);
+}
 
-    tables.forEach(tbl => {
-      // Detetar nome de categoria (primeira célula com colspan ou texto simples)
-      const rows = tbl.querySelectorAll('tr');
-      rows.forEach(row => {
-        const cells = row.querySelectorAll('td, th');
-        if (!cells.length) return;
-        const primeiro = cells[0].textContent.trim();
+function parseBangolfe(html) {
+  const parser = new DOMParser();
+  const doc2 = parser.parseFromString(html, 'text/html');
+  const tables = doc2.querySelectorAll('table');
+  const categorias = {};
+  let catAtual = null;
 
-        // Verificar se é cabeçalho de categoria
-        const cats = ['Homens','Senhoras','Juniores Masculinos','Juniores Femininos',
-          'Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos',
-          'Veteranos Masculinos','Veteranos Femininos'];
-        const catMatch = cats.find(c => primeiro.includes(c));
-        if (catMatch) { catAtual = catMatch; if (!categorias[catAtual]) categorias[catAtual] = []; return; }
+  tables.forEach(tbl => {
+    const rows = tbl.querySelectorAll('tr');
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td, th');
+      if (!cells.length) return;
+      const primeiro = cells[0].textContent.trim();
 
-        // Verificar se é linha de dados (primeira célula é número = rank)
-        const rank = parseInt(primeiro);
-        if (!catAtual || isNaN(rank)) return;
+      const cats = ['Homens','Senhoras','Juniores Masculinos','Juniores Femininos',
+        'Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos',
+        'Veteranos Masculinos','Veteranos Femininos'];
+      const catMatch = cats.find(c => primeiro.includes(c));
+      if (catMatch) { catAtual = catMatch; if (!categorias[catAtual]) categorias[catAtual] = []; return; }
 
-        // Extrair células
-        const vals = Array.from(cells).map(c => c.textContent.trim());
-        if (vals.length < 4) return;
+      const rank = parseInt(primeiro);
+      if (!catAtual || isNaN(rank)) return;
 
-        const nome  = vals[1] || '—';
-        const clube = vals[2] || '—';
+      const vals = Array.from(cells).map(c => c.textContent.trim());
+      if (vals.length < 4) return;
 
-        // Extrair voltas (valores numéricos nas colunas 3 em diante, excluindo médias/somas)
-        const voltas = [];
-        for (let i = 3; i < vals.length - 4; i++) {
-          const v = parseInt(vals[i]);
-          if (!isNaN(v) && v > 0 && v < 100) voltas.push(v);
-        }
+      const nome  = vals[1] || '—';
+      const clube = vals[2] || '—';
 
-        // Total é a última coluna numérica antes de "Não terminou"
-        const ultimaCell = vals[vals.length - 1];
-        const dnf = ultimaCell.includes('Não terminou') || ultimaCell.includes('terminou');
-        const totalStr = dnf ? vals[vals.length - 2] : vals[vals.length - 1];
-        const total = parseInt(totalStr) || 0;
-
-        categorias[catAtual].push({ rank, nome, clube, voltas, total, completo: !dnf, dnf });
-      });
-    });
-
-    return categorias;
-  }
-
-  // ── CARREGAR AGORA ──
-  window.carregarAgora = async function() {
-    const url = document.getElementById('inp-url').value.trim();
-    if (!url) { msg('Cola o URL da prova da FPM!', 'err'); return; }
-    msg('⏳ A carregar resultados...', 'info');
-    try {
-      const cats = await fetchBangolfe(url);
-      const totalCats = Object.keys(cats).length;
-      const totalAtletas = Object.values(cats).reduce((s,a) => s+a.length, 0);
-      if (!totalAtletas) throw new Error('Não foram encontrados resultados nesta página');
-
-      dadosAtuais = {
-        url, nome: document.getElementById('inp-nome').value.trim() || extrairNome(url),
-        atualizadoEm: new Date().toISOString(), categorias: cats
-      };
-      nomeAtivo = dadosAtuais.nome;
-      urlAtiva  = url;
-
-      // Guardar no Firebase
-      await setDoc(doc(db, 'vizelgolfe', 'nacional'), { bangolfe: dadosAtuais });
-
-      msg(`✅ ${totalAtletas} atletas em ${totalCats} categorias`, 'ok');
-      renderTudo();
-    } catch(e) {
-      msg('❌ Erro: ' + e.message, 'err');
-    }
-  };
-
-  // ── AUTO ATUALIZAÇÃO ──
-  window.iniciarAuto = async function() {
-    const url = document.getElementById('inp-url').value.trim();
-    if (!url) { msg('Cola o URL primeiro!', 'err'); return; }
-    const mins = parseInt(document.getElementById('inp-intervalo').value);
-
-    await window.carregarAgora();
-
-    segsRestantes = mins * 60;
-    intervaloId = setInterval(async () => { await window.carregarAgora(); segsRestantes = mins * 60; }, mins * 60 * 1000);
-    countdownId = setInterval(() => {
-      segsRestantes--;
-      const m = Math.floor(segsRestantes/60), s = segsRestantes % 60;
-      document.getElementById('countdown').textContent = `${m}:${String(s).padStart(2,'0')}`;
-    }, 1000);
-
-    document.getElementById('live-dot').classList.add('on');
-    document.getElementById('auto-status').textContent = 'A atualizar cada ' + mins + ' min';
-    document.getElementById('btn-stop').style.display = '';
-  };
-
-  window.pararAuto = function() {
-    clearInterval(intervaloId); clearInterval(countdownId);
-    intervaloId = countdownId = null;
-    document.getElementById('live-dot').classList.remove('on');
-    document.getElementById('auto-status').textContent = 'Parado';
-    document.getElementById('countdown').textContent = '';
-    document.getElementById('btn-stop').style.display = 'none';
-    msg('Atualização automática parada.', 'info');
-  };
-
-  function extrairNome(url) {
-    const m = url.match(/\/(\d{4})\/([^\/]+)\//);
-    return m ? m[2].toUpperCase() + ' ' + m[1] : 'Prova Nacional';
-  }
-
-  // ── RENDER ──
-  function renderTudo() {
-    if (!dadosAtuais) return;
-    const cats = dadosAtuais.categorias;
-
-    // Prova info
-    const pi = document.getElementById('prova-info');
-    pi.style.display = 'flex';
-    document.getElementById('pi-nome').textContent = dadosAtuais.nome;
-    const upd = new Date(dadosAtuais.atualizadoEm);
-    document.getElementById('pi-meta').textContent = 'Última atualização: ' + upd.toLocaleTimeString('pt-PT');
-    const link = document.getElementById('pi-link');
-    link.href = dadosAtuais.url; link.textContent = 'Ver original ↗';
-    const totalAtletas = Object.values(cats).reduce((s,a)=>s+a.length,0);
-    const totalVzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube)).length,0);
-    document.getElementById('pi-atletas').textContent = totalAtletas;
-    document.getElementById('pi-vzg').textContent = totalVzg;
-    document.getElementById('pi-cats').textContent = Object.keys(cats).length;
-    document.getElementById('pi-upd').textContent = upd.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
-
-    // Tabs categorias
-    const tabsEl = document.getElementById('cat-tabs');
-    const catsOrdenadas = CAT_ORDEM.filter(c => cats[c] && cats[c].length);
-    if (!catAtiva || !cats[catAtiva]) catAtiva = catsOrdenadas[0];
-
-    tabsEl.innerHTML = catsOrdenadas.map(c => {
-      const vzgN = cats[c].filter(a => isVzg(a.clube)).length;
-      return `<div class="cat-tab${c===catAtiva?' on':''}" onclick="mudarCat('${c}')">
-        ${c}${vzgN?`<span class="vzg-count">(${vzgN}🟡)</span>`:''}
-      </div>`;
-    }).join('');
-
-    renderCategoria();
-  }
-
-  function renderCategoria() {
-    if (!dadosAtuais || !catAtiva) return;
-    const atletas = dadosAtuais.categorias[catAtiva] || [];
-    const cont = document.getElementById('conteudo');
-
-    if (!atletas.length) { cont.innerHTML = '<div class="empty">Sem atletas nesta categoria.</div>'; return; }
-
-    // Descobrir nº de voltas
-    const maxV = Math.max(...atletas.map(a => (a.voltas||[]).length), 0);
-    const voltasCols = maxV ? Array.from({length:maxV},(_,i)=>`<th class="c">V${i+1}</th>`).join('') : '';
-
-    let html = `<div class="tbl-wrap"><table>
-      <thead><tr>
-        <th class="c">Pos</th><th>Atleta</th><th>Clube</th>
-        ${voltasCols}
-        <th class="r">Total</th><th class="c">Sit.</th>
-      </tr></thead><tbody>`;
-
-    atletas.forEach((a,i) => {
-      const vzg = isVzg(a.clube);
-      const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
-      const voltasCells = (a.voltas||[]).map(v=>`<td class="td-vol">${v}</td>`).join('');
-      const vazios = maxV - (a.voltas||[]).length;
-      const vaziosCells = Array(vazios).fill('<td class="td-vol">—</td>').join('');
-      html += `<tr class="${posClass}${vzg?' vzg':''}${a.dnf?' dnf':''}" onclick="abrirModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">
-        <td class="td-pos">${a.rank||'—'}</td>
-        <td class="td-nome">${a.nome}</td>
-        <td class="td-clube">${a.clube}</td>
-        ${voltasCells}${vaziosCells}
-        <td class="td-tot">${a.total||'—'}</td>
-        <td class="td-dnf">${a.dnf?'DNF':a.completo?'✅':'⏳'}</td>
-      </tr>`;
-    });
-
-    html += '</tbody></table></div>';
-    cont.innerHTML = html;
-  }
-
-  window.mudarCat = function(cat) {
-    catAtiva = cat;
-    document.querySelectorAll('.cat-tab').forEach(t => t.classList.toggle('on', t.textContent.trim().startsWith(cat)));
-    renderCategoria();
-  };
-
-  // ── MODAL ATLETA ──
-  window.abrirModal = function(atleta) {
-    document.getElementById('modal-nome').textContent = atleta.nome;
-    document.getElementById('modal-meta').textContent = atleta.clube + ' · ' + catAtiva;
-    const voltas = atleta.voltas || [];
-    let html = '';
-    if (voltas.length) {
-      html += `<table><thead><tr>${voltas.map((_,i)=>`<th class="c">Percurso ${i+1}</th>`).join('')}<th class="r">Total</th></tr></thead>
-      <tbody><tr>${voltas.map(v=>`<td style="text-align:center;font-size:1.1rem;font-weight:600">${v}</td>`).join('')}
-      <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.5rem;color:var(--orange)">${atleta.total}</td>
-      </tr></tbody></table>`;
-    } else {
-      html = '<p style="color:var(--dim);font-size:0.9rem">Sem detalhe de percursos disponível.</p>';
-    }
-    html += `<div style="margin-top:16px;padding:12px;background:var(--bg);border-radius:8px;font-size:0.82rem;color:var(--silver)">
-      Posição: <strong>${atleta.rank}º</strong> · 
-      Total: <strong>${atleta.total}</strong> · 
-      ${atleta.dnf?'<span style="color:var(--red)">Não terminou (DNF)</span>':atleta.completo?'<span style="color:var(--green)">Completou</span>':'<span style="color:var(--orange)">Em curso</span>'}
-    </div>`;
-    document.getElementById('modal-body').innerHTML = html;
-    document.getElementById('modal-overlay').classList.add('on');
-  };
-
-  window.fecharModal = function(e) {
-    if (e.target === document.getElementById('modal-overlay'))
-      document.getElementById('modal-overlay').classList.remove('on');
-  };
-
-  // ── CARREGAR DO FIREBASE AO INICIAR E ESCUTAR ALTERAÇÕES ──
-  onSnapshot(doc(db, 'vizelgolfe', 'nacional'), (snap) => {
-    if (snap.exists()) {
-      const d = snap.data();
-      if (d.bangolfe) {
-        dadosAtuais = d.bangolfe;
-        document.getElementById('inp-url').value = dadosAtuais.url || '';
-        document.getElementById('inp-nome').value = dadosAtuais.nome || '';
-        
-        // Se a categoria ativa não existir nos novos dados, limpa-a
-        if (catAtiva && (!dadosAtuais.categorias || !dadosAtuais.categorias[catAtiva])) {
-          catAtiva = null;
-        }
-        
-        renderTudo();
-        document.getElementById('auto-status').textContent = 'Dados atualizados em tempo real';
+      const voltas = [];
+      for (let i = 3; i < vals.length - 4; i++) {
+        const v = parseInt(vals[i]);
+        if (!isNaN(v) && v > 0 && v < 100) voltas.push(v);
       }
-    } else {
-      console.log('Sem dados anteriores');
-    }
-  }, (error) => {
-    console.error("Erro ao escutar dados:", error);
-    msg('Erro ao ligar à base de dados.', 'err');
+
+      const ultimaCell = vals[vals.length - 1];
+      const dnf = ultimaCell.includes('Não terminou') || ultimaCell.includes('terminou');
+      const totalStr = dnf ? vals[vals.length - 2] : vals[vals.length - 1];
+      const total = parseInt(totalStr) || 0;
+
+      categorias[catAtual].push({ rank, nome, clube, voltas, total, completo: !dnf, dnf });
+    });
   });
-  </script>
+
+  return categorias;
+}
+
+window.carregarAgora = async function() {
+  const url = document.getElementById('inp-url').value.trim();
+  if (!url) { msg('Cola o URL da prova da FPM!', 'err'); return; }
+  msg('⏳ A carregar resultados...', 'info');
+  try {
+    const cats = await fetchBangolfe(url);
+    const totalCats = Object.keys(cats).length;
+    const totalAtletas = Object.values(cats).reduce((s,a) => s+a.length, 0);
+    if (!totalAtletas) throw new Error('Não foram encontrados resultados nesta página');
+
+    dadosAtuais = {
+      url, nome: document.getElementById('inp-nome').value.trim() || extrairNome(url),
+      atualizadoEm: new Date().toISOString(), categorias: cats
+    };
+    nomeAtivo = dadosAtuais.nome;
+    urlAtiva  = url;
+
+    // Guardar no Firebase com configuração de disciplinas
+    const config = getConfig();
+    await setDoc(doc(db, 'vizelgolfe', 'nacional'), { bangolfe: dadosAtuais, config });
+
+    msg(`✅ ${totalAtletas} atletas em ${totalCats} categorias`, 'ok');
+    renderTudo();
+  } catch(e) {
+    msg('❌ Erro: ' + e.message, 'err');
+  }
+};
+
+window.iniciarAuto = async function() {
+  const url = document.getElementById('inp-url').value.trim();
+  if (!url) { msg('Cola o URL primeiro!', 'err'); return; }
+  const mins = parseInt(document.getElementById('inp-intervalo').value);
+
+  await window.carregarAgora();
+
+  segsRestantes = mins * 60;
+  intervaloId = setInterval(async () => { await window.carregarAgora(); segsRestantes = mins * 60; }, mins * 60 * 1000);
+  countdownId = setInterval(() => {
+    segsRestantes--;
+    const m = Math.floor(segsRestantes/60), s = segsRestantes % 60;
+    document.getElementById('countdown').textContent = `${m}:${String(s).padStart(2,'0')}`;
+  }, 1000);
+
+  document.getElementById('live-dot').classList.add('on');
+  document.getElementById('auto-status').textContent = 'A atualizar cada ' + mins + ' min';
+  document.getElementById('btn-stop').style.display = '';
+};
+
+window.pararAuto = function() {
+  clearInterval(intervaloId); clearInterval(countdownId);
+  intervaloId = countdownId = null;
+  document.getElementById('live-dot').classList.remove('on');
+  document.getElementById('auto-status').textContent = 'Parado';
+  document.getElementById('countdown').textContent = '';
+  document.getElementById('btn-stop').style.display = 'none';
+  msg('Atualização automática parada.', 'info');
+};
+
+function extrairNome(url) {
+  const m = url.match(/\/(\d{4})\/([^\/]+)\//);
+  return m ? m[2].toUpperCase() + ' ' + m[1] : 'Prova Nacional';
+}
+
+function renderTudo() {
+  if (!dadosAtuais) return;
+  const cats = dadosAtuais.categorias;
+
+  const pi = document.getElementById('prova-info');
+  pi.style.display = 'flex';
+  document.getElementById('pi-nome').textContent = dadosAtuais.nome;
+  const upd = new Date(dadosAtuais.atualizadoEm);
+  document.getElementById('pi-meta').textContent = 'Última atualização: ' + upd.toLocaleTimeString('pt-PT');
+  const link = document.getElementById('pi-link');
+  link.href = dadosAtuais.url; link.textContent = 'Ver original ↗';
+  const totalAtletas = Object.values(cats).reduce((s,a)=>s+a.length,0);
+  const totalVzg = Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzg(x.clube)).length,0);
+  document.getElementById('pi-atletas').textContent = totalAtletas;
+  document.getElementById('pi-vzg').textContent = totalVzg;
+  document.getElementById('pi-cats').textContent = Object.keys(cats).length;
+  document.getElementById('pi-upd').textContent = upd.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+
+  const tabsEl = document.getElementById('cat-tabs');
+  const catsOrdenadas = CAT_ORDEM.filter(c => cats[c] && cats[c].length);
+  if (!catAtiva || !cats[catAtiva]) catAtiva = catsOrdenadas[0];
+
+  tabsEl.innerHTML = catsOrdenadas.map(c => {
+    const vzgN = cats[c].filter(a => isVzg(a.clube)).length;
+    return `<div class="cat-tab${c===catAtiva?' on':''}" onclick="mudarCat('${c}')">
+      ${c}${vzgN?`<span class="vzg-count">(${vzgN}🟡)</span>`:''}
+    </div>`;
+  }).join('');
+
+  renderCategoria();
+}
+
+function renderCategoria() {
+  if (!dadosAtuais || !catAtiva) return;
+  const atletas = dadosAtuais.categorias[catAtiva] || [];
+  const cont = document.getElementById('conteudo');
+
+  if (!atletas.length) { cont.innerHTML = '<div class="empty">Sem atletas nesta categoria.</div>'; return; }
+
+  const maxV = Math.max(...atletas.map(a => (a.voltas||[]).length), 0);
+  const voltasCols = maxV ? Array.from({length:maxV},(_,i)=>`<th class="c">V${i+1}</th>`).join('') : '';
+
+  let html = `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th class="c">Pos</th><th>Atleta</th><th>Clube</th>
+      ${voltasCols}
+      <th class="r">Total</th><th class="c">Sit.</th>
+    </tr></thead><tbody>`;
+
+  atletas.forEach((a,i) => {
+    const vzg = isVzg(a.clube);
+    const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
+    const voltasCells = (a.voltas||[]).map(v=>`<td class="td-vol">${v}</td>`).join('');
+    const vazios = maxV - (a.voltas||[]).length;
+    const vaziosCells = Array(vazios).fill('<td class="td-vol">—</td>').join('');
+    html += `<tr class="${posClass}${vzg?' vzg':''}${a.dnf?' dnf':''}" onclick="abrirModal(${JSON.stringify(a).replace(/"/g,'&quot;')})">
+      <td class="td-pos">${a.rank||'—'}</td>
+      <td class="td-nome">${a.nome}</td>
+      <td class="td-clube">${a.clube}</td>
+      ${voltasCells}${vaziosCells}
+      <td class="td-tot">${a.total||'—'}</td>
+      <td class="td-dnf">${a.dnf?'DNF':a.completo?'✅':'⏳'}</td>
+    </tr>`;
+  });
+
+  html += '</tbody></table></div>';
+  cont.innerHTML = html;
+}
+
+window.mudarCat = function(cat) {
+  catAtiva = cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.toggle('on', t.textContent.trim().startsWith(cat)));
+  renderCategoria();
+};
+
+window.abrirModal = function(atleta) {
+  document.getElementById('modal-nome').textContent = atleta.nome;
+  document.getElementById('modal-meta').textContent = atleta.clube + ' · ' + catAtiva;
+  const voltas = atleta.voltas || [];
+  let html = '';
+  if (voltas.length) {
+    html += `<table><thead><tr>${voltas.map((_,i)=>`<th class="c">Percurso ${i+1}</th>`).join('')}<th class="r">Total</th></tr></thead>
+    <tbody><tr>${voltas.map(v=>`<td style="text-align:center;font-size:1.1rem;font-weight:600">${v}</td>`).join('')}
+    <td style="text-align:right;font-family:Bebas Neue,sans-serif;font-size:1.5rem;color:var(--orange)">${atleta.total}</td>
+    </tr></tbody></table>`;
+  } else {
+    html = '<p style="color:var(--dim);font-size:0.9rem">Sem detalhe de percursos disponível.</p>';
+  }
+  html += `<div style="margin-top:16px;padding:12px;background:var(--bg);border-radius:8px;font-size:0.82rem;color:var(--silver)">
+    Posição: <strong>${atleta.rank}º</strong> · 
+    Total: <strong>${atleta.total}</strong> · 
+    ${atleta.dnf?'<span style="color:var(--red)">Não terminou (DNF)</span>':atleta.completo?'<span style="color:var(--green)">Completou</span>':'<span style="color:var(--orange)">Em curso</span>'}
+  </div>`;
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('on');
+};
+
+window.fecharModal = function(e) {
+  if (e.target === document.getElementById('modal-overlay'))
+    document.getElementById('modal-overlay').classList.remove('on');
+};
+
+// Carregar do Firebase ao iniciar
+onSnapshot(doc(db, 'vizelgolfe', 'nacional'), (snap) => {
+  if (snap.exists()) {
+    const d = snap.data();
+    if (d.bangolfe) {
+      dadosAtuais = d.bangolfe;
+      document.getElementById('inp-url').value = dadosAtuais.url || '';
+      document.getElementById('inp-nome').value = dadosAtuais.nome || '';
+
+      // Restaurar configuração de disciplinas
+      if (d.config) setConfig(d.config);
+
+      if (catAtiva && (!dadosAtuais.categorias || !dadosAtuais.categorias[catAtiva])) {
+        catAtiva = null;
+      }
+
+      renderTudo();
+      document.getElementById('auto-status').textContent = 'Dados atualizados em tempo real';
+    }
+  }
+}, (error) => {
+  console.error("Erro ao escutar dados:", error);
+  msg('Erro ao ligar à base de dados.', 'err');
+});
+</script>
 </body>
 </html>
