@@ -279,7 +279,8 @@ onSnapshot(doc(db, 'vizelgolfe', 'nacional'), (docSnap) => {
   };
 } else if (docData.config) {
   liveConfig = docData.config;
-} 
+}
+if (data && data.categorias) renderCategorias(data.categorias);
 
     if (data) {
       document.getElementById('loading').style.display = 'none';
