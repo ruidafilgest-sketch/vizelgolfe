@@ -272,9 +272,14 @@ onSnapshot(doc(db, 'vizelgolfe', 'nacional'), (docSnap) => {
     const data = docData.bangolfe;
 
     // Ler configuração de disciplinas guardada pelo nacional.html
-    if (docData.config) {
-      liveConfig = docData.config;
-    }
+   if (docData.bangolfe && docData.bangolfe.grupoA) {
+  liveConfig = {
+    grupoA: docData.bangolfe.grupoA.vertente || docData.bangolfe.grupoA,
+    grupoB: docData.bangolfe.grupoB.vertente || docData.bangolfe.grupoB
+  };
+} else if (docData.config) {
+  liveConfig = docData.config;
+} 
 
     if (data) {
       document.getElementById('loading').style.display = 'none';
