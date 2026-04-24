@@ -161,7 +161,7 @@ const CAT_GRUPO_A = ['Homens','Juniores Masculinos','Seniores Masculinos','Veter
 const CAT_GRUPO_B = ['Senhoras','Juniores Femininos','Seniores Femininos','Veteranos Femininos','Infantis Masculinos','Infantis Femininos'];
 
 // Configuração global lida do Firebase
-let liveConfig = { grupoA: 'peter', grupoB: 'mini' };
+let liveConfig = null;
 
 function getDisciplina(catName) {
   // Verifica Grupo A
@@ -288,8 +288,8 @@ onSnapshot(doc(db, 'vizelgolfe', 'nacional'), (docSnap) => {
       const d = new Date(data.atualizadoEm);
       document.getElementById('last-update').textContent = 'Atualizado: ' + d.toLocaleTimeString('pt-PT').slice(0,5);
 
-      renderCategorias(data.categorias);
-
+     
+if (liveConfig) renderCategorias(data.categorias);
       if (!isScrolling) {
         isScrolling = true;
         scrollLoop();
