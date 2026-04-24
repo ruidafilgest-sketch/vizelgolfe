@@ -198,7 +198,7 @@ function renderCategorias(categorias) {
         <td class="clube">${a.clube}</td>
       `;
 
-      const disciplina = nac_vertentes[catName] || 'peter';
+      const disciplina = nac_vertentes[catName] || 'mini';
       const isMini = disciplina === 'mini';
       const cV = isMini ? corVoltaMini : corVoltaPeter;
       for(let i=0; i<maxVoltas; i++) {
