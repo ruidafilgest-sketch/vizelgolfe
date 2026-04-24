@@ -157,9 +157,8 @@ setInterval(() => {
 function corVoltaMini(t){const n=Number(t);if(isNaN(n)||n<=0)return'';if(n<=19)return'color:#60c8ff;font-weight:700';if(n<=24)return'color:#4ade80;font-weight:700';if(n<=29)return'color:#f87171;font-weight:700';return'color:#9ca3af;font-weight:700';}
 function corVoltaPeter(t){const n=Number(t);if(isNaN(n)||n<=0)return'';if(n<=24)return'color:#60c8ff;font-weight:700';if(n<=29)return'color:#4ade80;font-weight:700';if(n<=35)return'color:#f87171;font-weight:700';return'color:#9ca3af;font-weight:700';}
 function corTotal(total,nVoltas,tipo){const n=Number(total);if(isNaN(n)||n<=0||!nVoltas)return'';const m=n/nVoltas;return tipo==='mini'?corVoltaMini(m):corVoltaPeter(m);}
-const CAT_GRUPO_A=['Homens','Senhoras'];
-const CAT_GRUPO_B=['Juniores Masculinos','Juniores Femininos','Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos','Veteranos Masculinos','Veteranos Femininos'];
-let liveConfig = { grupoA: 'mini', grupoB: 'peter' };
+// Vertentes por categoria — lidas do Firebase (gravadas pela consola)
+let nac_vertentes = {};
 
 function renderCategorias(categorias) {
   const content = document.getElementById('content');
@@ -199,7 +198,7 @@ function renderCategorias(categorias) {
         <td class="clube">${a.clube}</td>
       `;
 
-      const disciplina = CAT_GRUPO_A.some(g=>catName===g||catName.startsWith(g)) ? liveConfig.grupoA : liveConfig.grupoB;
+      const disciplina = nac_vertentes[catName] || 'peter';
       const isMini = disciplina === 'mini';
       const cV = isMini ? corVoltaMini : corVoltaPeter;
       for(let i=0; i<maxVoltas; i++) {
@@ -253,12 +252,9 @@ onSnapshot(doc(db, 'vizelgolfe', 'nacional'), (docSnap) => {
   const docData = docSnap.data();
   const data = docData.bangolfe;
 
-  // Ler disciplinas gravadas pela consola (grupoA e grupoB são {vertente, voltas})
-  if (data && data.grupoA) {
-    liveConfig = {
-      grupoA: typeof data.grupoA === 'object' ? (data.grupoA.vertente || 'mini') : data.grupoA,
-      grupoB: typeof data.grupoB === 'object' ? (data.grupoB.vertente || 'peter') : data.grupoB
-    };
+  // Ler vertentes por categoria gravadas pela consola
+  if (data && data.vertentes) {
+    nac_vertentes = data.vertentes;
   }
 
   if (data && data.categorias) {
