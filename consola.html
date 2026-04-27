@@ -10,6 +10,14 @@
 <meta name="theme-color" content="#0d1f3c">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vizelgolfe">
+<meta name="theme-color" content="#1a2d4f">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vizelgolfe — Consola</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
@@ -211,6 +219,213 @@ tr:hover td{background:rgba(0,0,0,0.02);}
 </style>
 </head>
 <body>
+<style>
+/* ── WELCOME / INSTALL SCREEN ── */
+#vzg-welcome {
+  position: fixed;
+  inset: 0;
+  background: #0d1e38;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem 3rem;
+  font-family: "Barlow Condensed", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: opacity 0.4s ease;
+  overflow-y: auto;
+}
+#vzg-welcome.hidden { opacity: 0; pointer-events: none; }
+
+.vzg-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.75rem;
+  animation: vzg-up 0.6s 0.1s both;
+}
+.vzg-logo-wrap img {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  border: 3px solid #d4820a;
+  box-shadow: 0 0 28px rgba(212,130,10,0.35);
+}
+.vzg-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 2rem;
+  letter-spacing: 6px;
+  color: #e8960f;
+  margin: 0;
+}
+.vzg-subtitle {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+/* App selector */
+.vzg-app-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.6rem;
+  width: 100%;
+  max-width: 360px;
+  margin-bottom: 1.5rem;
+  animation: vzg-up 0.5s 0.25s both;
+}
+.vzg-app-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1.5px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  padding: 0.85rem 0.5rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.vzg-app-btn:active { background: rgba(212,130,10,0.12); }
+.vzg-app-btn.selected {
+  border-color: #d4820a;
+  background: rgba(212,130,10,0.1);
+}
+.vzg-app-btn .ico { font-size: 1.5rem; line-height: 1; }
+.vzg-app-btn .lbl { font-size: 0.72rem; color: rgba(255,255,255,0.75); font-weight: 600; letter-spacing: 0.04em; text-align: center; }
+
+/* Install button */
+.vzg-btn-install {
+  width: 100%; max-width: 360px;
+  padding: 0.95rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #d4820a, #e8960f);
+  color: #0d1e38;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 20px rgba(212,130,10,0.4);
+  transition: opacity 0.2s, transform 0.12s;
+}
+.vzg-btn-install.show { display: flex; animation: vzg-up 0.5s 0.4s both; }
+.vzg-btn-install:active { opacity: 0.85; transform: scale(0.98); }
+
+/* Steps */
+.vzg-steps {
+  width: 100%; max-width: 360px;
+  display: none;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.vzg-steps.show { display: flex; animation: vzg-up 0.5s 0.4s both; }
+.vzg-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: rgba(255,255,255,0.05);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+}
+.vzg-step-n {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: rgba(212,130,10,0.2);
+  border: 1.5px solid #d4820a;
+  color: #e8960f;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.vzg-step p { font-size: 0.84rem; line-height: 1.5; color: rgba(255,255,255,0.78); margin: 0; }
+.vzg-step p strong { color: #fff; font-weight: 600; }
+.vzg-pill {
+  display: inline-block;
+  background: rgba(212,130,10,0.15);
+  border: 1px solid rgba(212,130,10,0.4);
+  border-radius: 5px;
+  padding: 0.04rem 0.38rem;
+  font-size: 0.78rem;
+  color: #e8960f;
+  white-space: nowrap;
+}
+
+/* Warn */
+.vzg-warn {
+  width: 100%; max-width: 360px;
+  background: rgba(234,179,8,0.08);
+  border: 1px solid rgba(234,179,8,0.28);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(255,255,255,0.78);
+  display: none;
+  margin-bottom: 0.75rem;
+}
+.vzg-warn.show { display: block; animation: vzg-up 0.4s 0.3s both; }
+.vzg-warn strong { color: #fde047; }
+
+/* Installed */
+.vzg-installed { display: none; }
+.vzg-installed.show { display: block; color: rgba(255,255,255,0.5); font-size: 0.84rem; text-align: center; }
+
+/* Skip */
+.vzg-skip {
+  margin-top: 1.25rem;
+  font-size: 0.76rem;
+  color: rgba(255,255,255,0.28);
+  cursor: pointer;
+  text-decoration: underline;
+  background: none; border: none;
+  -webkit-tap-highlight-color: transparent;
+  animation: vzg-up 0.5s 0.6s both;
+}
+
+@keyframes vzg-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+<div id="vzg-welcome">
+  <div class="vzg-logo-wrap">
+    <img src="/apple-touch-icon.png" alt="Vizelgolfe">
+    <h1 class="vzg-title">Vizelgolfe</h1>
+    <p class="vzg-subtitle">Associação de Minigolfe de Vizela</p>
+  </div>
+
+  <div class="vzg-app-grid" id="vzg-app-grid">
+    <button class="vzg-app-btn selected" onclick="vzgSelect(this,'consola')" id="vzg-btn-consola">
+      <span class="ico">🖥️</span><span class="lbl">Consola</span>
+    </button>
+    <button class="vzg-app-btn" onclick="vzgSelect(this,'resultados')" id="vzg-btn-resultados">
+      <span class="ico">📺</span><span class="lbl">Resultados</span>
+    </button>
+    <button class="vzg-app-btn" onclick="vzgSelect(this,'portal')" id="vzg-btn-portal">
+      <span class="ico">👤</span><span class="lbl">Portal Sócio</span>
+    </button>
+  </div>
+
+  <div class="vzg-installed" id="vzg-installed"><p>✓ Já instalado no teu ecrã</p></div>
+  <div class="vzg-warn" id="vzg-warn"></div>
+  <button class="vzg-btn-install" id="vzg-btn-install" onclick="vzgDoInstall()">⬇ Instalar no ecrã</button>
+  <div class="vzg-steps" id="vzg-steps"></div>
+  <button class="vzg-skip" onclick="vzgSkip()">Continuar sem instalar</button>
+</div>
+
 
 <!-- LOGIN -->
 <div id="login">
@@ -221,7 +436,7 @@ tr:hover td{background:rgba(0,0,0,0.02);}
     <input type="password" id="pass-input" placeholder="Password de acesso">
     <div class="login-erro" id="login-erro">Password incorreta</div>
     <button class="btn-login" id="btn-login">Entrar</button>
-    <div class="login-hint">Admin: Vizela2026*** · Atletas: Vizelgolfe2026*</div>
+    
   </div>
 </div>
 
@@ -3503,6 +3718,140 @@ window.addEventListener('appinstalled', function() {
   var btn = document.getElementById('pwa-install-btn');
   if (btn) btn.style.display = 'none';
 });
+</script>
+
+<script>
+(function(){
+  var APPS = {
+    consola:    'https://vizelgolfe.net/consola.html',
+    resultados: 'https://vizelgolfe.net/',
+    portal:     'https://vizelgolfe.net/portal-socios.html'
+  };
+  var selectedApp = 'consola';
+  var ua = navigator.userAgent;
+  var isIOS     = /iphone|ipad|ipod/i.test(ua);
+  var isSafari  = /safari/i.test(ua) && !/chrome|crios|fxios|fban|fbav/i.test(ua);
+  var isChrome  = /chrome|crios/i.test(ua) && !/edge/i.test(ua);
+  var isSamsung = /samsungbrowser/i.test(ua);
+  var isAndroid = /android/i.test(ua);
+  var isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+  var deferredPrompt = null;
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js').catch(function(){});
+    });
+  }
+
+  window.addEventListener('beforeinstallprompt', function(e) {
+    e.preventDefault();
+    deferredPrompt = e;
+    renderSteps();
+  });
+
+  window.addEventListener('appinstalled', function() {
+    vzgSkip();
+  });
+
+  function getBrowser() {
+    if (isSamsung) return 'Samsung Internet';
+    if (/firefox|fxios/i.test(ua)) return 'Firefox';
+    if (/edg/i.test(ua)) return 'Edge';
+    if (isChrome) return 'Chrome';
+    if (isSafari) return 'Safari';
+    return 'este browser';
+  }
+
+  function step(n, t, s) {
+    return '<div class="vzg-step"><div class="vzg-step-n">' + n + '</div><div><p>' + t +
+      (s ? '<br><span style="font-size:0.7rem;opacity:0.42;">' + s + '</span>' : '') +
+      '</p></div></div>';
+  }
+
+  function renderSteps() {
+    var warn  = document.getElementById('vzg-warn');
+    var btn   = document.getElementById('vzg-btn-install');
+    var steps = document.getElementById('vzg-steps');
+    var inst  = document.getElementById('vzg-installed');
+    var url   = APPS[selectedApp].replace('https://','');
+
+    warn.classList.remove('show');
+    btn.classList.remove('show');
+    steps.classList.remove('show');
+    steps.innerHTML = '';
+    inst.classList.remove('show');
+
+    if (isStandalone) { inst.classList.add('show'); return; }
+
+    if (isIOS) {
+      if (isSafari) {
+        steps.classList.add('show');
+        steps.innerHTML =
+          step(1, 'Toca no ícone de partilha <span class="vzg-pill">&#9633; &#8593;</span>', 'Barra em baixo no Safari') +
+          step(2, 'Toca em <span class="vzg-pill">Adicionar ao Início</span>', 'Desliza a lista para encontrar') +
+          step(3, 'Toca em <strong>Adicionar</strong> no canto superior direito', '');
+      } else {
+        warn.innerHTML = 'No iPhone só funciona no <strong>Safari</strong>. Estás a usar o ' + getBrowser() + '.';
+        warn.classList.add('show');
+        steps.classList.add('show');
+        steps.innerHTML =
+          step(1, 'Abre o <strong>Safari</strong>', 'O ícone azul com a bússola') +
+          step(2, 'Copia o link: <span class="vzg-pill">' + url + '</span>', '') +
+          step(3, '<span class="vzg-pill">&#9633; &#8593;</span> → <span class="vzg-pill">Adicionar ao Início</span>', '');
+      }
+    } else if (isAndroid) {
+      if (deferredPrompt) {
+        btn.classList.add('show');
+      } else if (isChrome || isSamsung) {
+        steps.classList.add('show');
+        steps.innerHTML =
+          step(1, 'Toca nos <strong>três pontinhos &#8942;</strong>', 'Canto superior direito') +
+          step(2, 'Toca em <span class="vzg-pill">Adicionar ao ecrã inicial</span>', '') +
+          step(3, 'Toca em <strong>Adicionar</strong> para confirmar', '');
+      } else {
+        warn.innerHTML = 'Para instalar usa o <strong>Chrome</strong>. Estás a usar o ' + getBrowser() + '.';
+        warn.classList.add('show');
+        steps.classList.add('show');
+        steps.innerHTML =
+          step(1, 'Abre o <strong>Chrome</strong>', '') +
+          step(2, 'Copia o link: <span class="vzg-pill">' + url + '</span>', '') +
+          step(3, '<span class="vzg-pill">&#8942;</span> → <span class="vzg-pill">Adicionar ao ecrã inicial</span>', '');
+      }
+    } else {
+      // Desktop — skip
+      vzgSkip();
+    }
+  }
+
+  window.vzgSelect = function(el, app) {
+    selectedApp = app;
+    document.querySelectorAll('.vzg-app-btn').forEach(function(b) { b.classList.remove('selected'); });
+    el.classList.add('selected');
+    renderSteps();
+  };
+
+  window.vzgDoInstall = function() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function() {
+      deferredPrompt = null;
+      vzgSkip();
+    });
+  };
+
+  window.vzgSkip = function() {
+    var w = document.getElementById('vzg-welcome');
+    w.classList.add('hidden');
+    setTimeout(function() { w.style.display = 'none'; }, 450);
+  };
+
+  // Show or hide on load
+  if (isStandalone) {
+    document.getElementById('vzg-welcome').style.display = 'none';
+  } else {
+    renderSteps();
+  }
+})();
 </script>
 </body>
 </html>
