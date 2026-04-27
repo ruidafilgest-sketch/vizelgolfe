@@ -2,6 +2,14 @@
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
+<link rel="manifest" href="/manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Vizelgolfe">
+<meta name="theme-color" content="#0d1f3c">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vizelgolfe — Consola</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700&family=Barlow:wght@300;400&display=swap" rel="stylesheet">
@@ -3402,5 +3410,99 @@ window.guardarNovoAtleta = async function() {
   </div>
 </div>
 
+
+<!-- PWA iOS Banner -->
+<style>
+#ios-banner{
+  display:none;
+  position:fixed;
+  bottom:0;left:0;right:0;
+  background:#0d1f3c;
+  color:#fff;
+  padding:1rem 1.25rem 1.5rem;
+  z-index:99999;
+  border-top:3px solid #e8960f;
+  font-family:"Barlow Condensed",sans-serif;
+  box-shadow:0 -4px 24px rgba(0,0,0,0.4);
+  animation: slideup 0.4s ease;
+}
+@keyframes slideup{ from{transform:translateY(100%)} to{transform:translateY(0)} }
+#ios-banner.show{ display:block; }
+#ios-banner-inner{
+  display:flex;
+  align-items:center;
+  gap:1rem;
+  max-width:480px;
+  margin:0 auto;
+}
+#ios-banner img{ width:52px;height:52px;border-radius:12px;flex-shrink:0; }
+#ios-banner-text{ flex:1; }
+#ios-banner-title{ font-size:1.05rem;font-weight:700;letter-spacing:0.02em; }
+#ios-banner-sub{ font-size:0.82rem;opacity:0.7;margin-top:0.15rem;line-height:1.4; }
+#ios-banner-sub span{
+  display:inline-block;
+  background:rgba(255,255,255,0.15);
+  border:1px solid rgba(255,255,255,0.3);
+  border-radius:5px;
+  padding:0.05rem 0.4rem;
+  font-size:0.8rem;
+}
+#ios-banner-close{
+  background:none;border:none;color:rgba(255,255,255,0.5);
+  font-size:1.4rem;cursor:pointer;flex-shrink:0;line-height:1;
+  padding:0.25rem;
+}
+</style>
+
+<div id="ios-banner">
+  <div id="ios-banner-inner">
+    <img src="/apple-touch-icon.png" alt="Vizelgolfe">
+    <div id="ios-banner-text">
+      <div id="ios-banner-title">Instalar Vizelgolfe</div>
+      <div id="ios-banner-sub">Toca em <span>□ ↑</span> e depois em <span>Adicionar ao Início</span></div>
+    </div>
+    <button id="ios-banner-close" onclick="document.getElementById('ios-banner').classList.remove('show')">✕</button>
+  </div>
+</div>
+
+<script>
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+
+// Android install prompt
+var androidPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  androidPrompt = e;
+  // Show install button if it exists in the page
+  var btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'flex';
+});
+
+// iOS banner - show if iOS Safari and not standalone
+var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+var isSafari = /safari/i.test(navigator.userAgent) && !/chrome|crios|fxios/i.test(navigator.userAgent);
+var isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+
+if (isIOS && isSafari && !isStandalone) {
+  var shown = sessionStorage.getItem('ios-banner-shown');
+  if (!shown) {
+    setTimeout(function() {
+      document.getElementById('ios-banner').classList.add('show');
+      sessionStorage.setItem('ios-banner-shown', '1');
+    }, 2000);
+  }
+}
+
+// Android: trigger install when prompt available
+window.addEventListener('appinstalled', function() {
+  var btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+});
+</script>
 </body>
 </html>
