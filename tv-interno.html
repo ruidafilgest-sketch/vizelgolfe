@@ -394,16 +394,9 @@ async function renderInterno() {
     ${isGeral?(()=>{
       let cabJ='';
       for(let jj=1;jj<=(prova.jornadas||1);jj++){
-        const espJ=prova.jornadaEspecial?.[jj];
-        const isP4=espJ?.tipo==='peter4voltas';
-        const jLabel=`J${jj}`;
-        if(isP4){
-          cabJ+=`<th class="c" colspan="4" style="font-size:0.5rem;border-left:2px solid #c8d0dc">${jLabel} P1·P2·P3·P4</th><th class="c" style="font-size:0.5rem">Tot</th><th class="c" style="font-size:0.5rem">Pts</th>`;
-        }else{
-          cabJ+=`<th class="c" colspan="4" style="font-size:0.5rem;border-left:2px solid #c8d0dc">${jLabel} M1·M2·P1·P2</th><th class="c" style="font-size:0.5rem">Tot</th><th class="c" style="font-size:0.5rem">Pts</th>`;
-        }
+        cabJ+=`<th class="c" style="font-size:0.58rem;border-left:2px solid #c8d0dc;color:#5a7090">J${jj} Tot</th><th class="c" style="font-size:0.58rem;color:#5a7090">J${jj} Pts</th>`;
       }
-      return cabJ+`<th class="c" style="font-size:0.5rem;border-left:2px solid #c8d0dc">∑Tac</th><th class="r" style="font-size:0.5rem">∑Pts</th>`;
+      return cabJ+`<th class="c" style="font-size:0.62rem;border-left:3px solid #7090b0;color:#1a3a6a">∑Tac</th><th class="r" style="font-size:0.62rem;color:#1a3a6a">∑Pts</th>`;
     })():`${voltaCab}<th class="r">Total</th>`}
     </tr></thead><tbody>`;
     ranked.forEach((a,i)=>{
@@ -426,51 +419,55 @@ async function renderInterno() {
       }
       html+=`<tr class="${cls}"><td class="td-pos">${i+1}</td><td><div class="td-name">${a.nome}</div></td>
       ${isGeral?(()=>{
-        let cells='';
-        let totalTac=0;
-        // Pontos por jornada: tentar ranking_portal primeiro, depois calcPontosAtleta como fallback
+        // ── LINHA PRINCIPAL: Tot e Pts por jornada + totais finais ──
         const rpA=rankingPortal?.[String(a.id)];
         const partProva=rpA?(rpA.participacoes||[]).filter(p=>p.prova===prova.nome):[];
-        for(let jj=1;jj<=(prova.jornadas||1);jj++){
+        let mainCells='', detCells='', totalTac=0;
+        const nJornadas=prova.jornadas||1;
+        for(let jj=1;jj<=nJornadas;jj++){
           const espJ=prova.jornadaEspecial?.[jj];
           const isP4=espJ?.tipo==='peter4voltas';
           const res=prova.resultados?.[jj]?.[String(a.id)]||prova.resultados?.[jj]?.[a.id]||{};
           const ajJ=prova.ajustesPontos?.[String(jj)]?.[String(a.id)];
-          // Pontos desta jornada
           let jPts=0;
           if(ajJ!=null){jPts=Number(ajJ);}
           else{const pp=partProva.find(p=>p.jornada===jj);jPts=pp?pp.pontos:0;}
           let jTot=0,hasBon=false;
-          let jCells='';
+          // Voltas para linha de detalhe
+          let detV=[];
           if(isP4){
             const vs=[res.pV1,res.pV2,res.pV3,res.pV4];
-            vs.forEach(v=>{
-              const vv=(v>0&&v<126)?v:null;
-              if(vv)jTot+=vv;
-              jCells+=`<td class="td-par" style="font-size:0.9rem;padding:8px 5px;border-left:1px solid #e0e5ed;${vv?corVoltaPeter(vv):''}">${vv||'—'}</td>`;
-            });
+            vs.forEach(v=>{const vv=(v>0&&v<126)?v:null;if(vv)jTot+=vv;detV.push({v:vv,tipo:'peter'});});
             hasBon=!!(res.bonusPeterManha||res.bonusPeterTarde);
-            const nV=vs.filter(v=>v>0&&v<126).length;
-            jCells+=`<td class="td-tot" style="padding:8px 5px;font-size:0.9rem;${corTotal(jTot,nV,'peter')}">${jTot||'—'}</td>`;
           }else{
-            [res.mV1,res.mV2].forEach(v=>{
-              const vv=(v>0&&v<126)?v:null;
-              if(vv)jTot+=vv;
-              jCells+=`<td class="td-par" style="font-size:0.9rem;padding:8px 5px;border-left:1px solid #e0e5ed;${vv?corVoltaMini(vv):''}">${vv||'—'}</td>`;
-            });
-            [res.pV1,res.pV2].forEach(v=>{
-              const vv=(v>0&&v<126)?v:null;
-              if(vv)jTot+=vv;
-              jCells+=`<td class="td-par" style="font-size:0.9rem;padding:8px 5px;${vv?corVoltaPeter(vv):''}">${vv||'—'}</td>`;
-            });
+            [res.mV1,res.mV2].forEach(v=>{const vv=(v>0&&v<126)?v:null;if(vv)jTot+=vv;detV.push({v:vv,tipo:'mini'});});
+            [res.pV1,res.pV2].forEach(v=>{const vv=(v>0&&v<126)?v:null;if(vv)jTot+=vv;detV.push({v:vv,tipo:'peter'});});
             hasBon=!!(res.bonusMini||res.bonusPeter);
-            const nV=[res.mV1,res.mV2,res.pV1,res.pV2].filter(v=>v>0&&v<126).length;
-            jCells+=`<td class="td-tot" style="padding:8px 5px;font-size:0.9rem;${corTotal(jTot,nV,'peter')}">${jTot||'—'}</td>`;
           }
           totalTac+=jTot;
-          cells+=`<td style="border-left:2px solid #c8d0dc;padding:0;width:0"></td>`+jCells+`<td class="td-tot" style="padding:8px 6px;font-size:0.9rem;font-weight:600">${jPts>0?jPts:'—'}${hasBon?'<span style="color:#f0a000;font-size:0.55rem;vertical-align:super">★</span>':''}</td>`;
+          const nV=detV.filter(d=>d.v).length;
+          const corTot=corTotal(jTot,nV,'peter');
+          // Linha principal: Tot + Pts
+          mainCells+=`<td class="td-tot" style="border-left:2px solid #c8d0dc;padding:10px 14px;font-size:1.25rem;${corTot}">${jTot||'—'}</td>`;
+          mainCells+=`<td class="td-tot" style="padding:10px 14px;font-size:1.25rem;font-weight:700">${jPts>0?jPts:'—'}${hasBon?'<span style="color:#f0a000;font-size:0.6rem;vertical-align:super">★</span>':''}</td>`;
+          // Linha detalhe: voltas individuais com cor
+          detCells+=`<td colspan="2" style="border-left:2px solid #e8ecf2;padding:2px 8px;text-align:center">`;
+          detCells+=detV.map(d=>{
+            if(!d.v)return`<span style="color:#bbb;font-size:0.7rem">—</span>`;
+            const cor=d.tipo==='mini'?corVoltaMini(d.v):corVoltaPeter(d.v);
+            // extrair só a cor de fundo para um badge inline
+            const bg=cor.includes('background')?cor.replace(/color:[^;]+;?/,'').replace('background','background').trim():'';
+            return`<span style="display:inline-block;min-width:26px;padding:1px 4px;margin:1px;border-radius:3px;font-size:0.72rem;font-weight:600;${bg}">${d.v}</span>`;
+          }).join(' ');
+          detCells+=`</td>`;
         }
-        return cells+`<td class="td-tot" style="border-left:3px solid #7090b0;padding:8px 10px;font-size:1rem">${totalTac||a.totalTacadas}</td><td class="td-tot" style="padding:8px 10px;font-size:1.1rem;font-weight:700;color:#1a3a6a">${a.pts}</td>`;
+        // Totais finais
+        mainCells+=`<td class="td-tot" style="border-left:3px solid #7090b0;padding:10px 16px;font-size:1.3rem;font-weight:600">${totalTac||a.totalTacadas}</td>`;
+        mainCells+=`<td class="td-tot" style="padding:10px 16px;font-size:1.45rem;font-weight:800;color:#1a3a6a">${a.pts}</td>`;
+        // Célula vazia para totais na linha de detalhe
+        detCells+=`<td colspan="2" style="border-left:3px solid #e8ecf2"></td>`;
+        return mainCells+`</tr><tr class="${cls}" style="border-bottom:none">`+
+          `<td style="padding:0"></td><td style="padding:2px 40px 6px;font-size:0.68rem;color:#8090a8;font-style:italic">${i===0?'🥇':i===1?'🥈':i===2?'🥉':''} voltas</td>`+detCells;
       })():vc}
       </tr>`;
     });
