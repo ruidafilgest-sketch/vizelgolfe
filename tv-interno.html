@@ -388,35 +388,107 @@ async function renderInterno() {
     }
     if(!ranked.length) continue;
     any=true;
-    const jAtual=jornadaAtiva||1;
-    const esp=prova.jornadaEspecial?.[jAtual];
-    const soloP4=esp?.tipo==='peter4voltas';
-    let voltaCab='';
-    if(!isGeral){
-      if(soloP4)voltaCab='<th class="c" style="font-size:0.55rem">P1</th><th class="c" style="font-size:0.55rem">P2</th><th class="c" style="font-size:0.55rem">P3</th><th class="c" style="font-size:0.55rem">P4</th>';
-      else voltaCab='<th class="c" style="font-size:0.55rem">M1</th><th class="c" style="font-size:0.55rem">M2</th><th class="c" style="font-size:0.55rem">P1</th><th class="c" style="font-size:0.55rem">P2</th>';
-    }
-    html+=`<div class="cat-hdr"><div class="cat-name">${cat}</div><div class="cat-count">${ranked.length} atleta${ranked.length!==1?'s':''}</div><div class="cat-badge">${isGeral?'Classificação Geral':`Jornada ${jAtual}`}</div></div>
-    <table class="tbl"><thead><tr><th class="c">Pos</th><th>Atleta</th>
-    ${isGeral?(()=>{
-      let cabJ='';
+
+    if(isGeral){
+      // ── BLOCO 1: RESUMO GERAL (Pos · Nome · J1Tot · J1Pts · J2Tot · J2Pts · ∑Tac · ∑Pts) ──
+      let cabRes='';
+      for(let jj=1;jj<=(prova.jornadas||1);jj++){
+        cabRes+=`<th class="c" style="border-left:2px solid #c8d0dc;font-size:0.6rem;color:#5a7090">J${jj} Tot</th><th class="c" style="font-size:0.6rem;color:#5a7090">J${jj} Pts</th>`;
+      }
+      cabRes+=`<th class="c" style="border-left:3px solid #5a7898;font-size:0.65rem;color:#1a3a6a">∑Tac</th><th class="r" style="font-size:0.65rem;color:#1a3a6a;font-weight:700">∑Pts</th>`;
+      html+=`<div class="cat-hdr"><div class="cat-name">${cat}</div><div class="cat-count">${ranked.length} atleta${ranked.length!==1?'s':''}</div><div class="cat-badge">Classificação Geral</div></div>
+      <table class="tbl"><thead><tr><th class="c">Pos</th><th>Atleta</th>${cabRes}</tr></thead><tbody>`;
+      ranked.forEach((a,i)=>{
+        const cls=i===0?'g1':i===1?'g2':i===2?'g3':'';
+        const rpA=rankingPortal?.[String(a.id)];
+        const partProva=rpA?(rpA.participacoes||[]).filter(p=>p.prova===prova.nome):[];
+        let rowCells='';
+        for(let jj=1;jj<=(prova.jornadas||1);jj++){
+          const ajJ=prova.ajustesPontos?.[String(jj)]?.[String(a.id)];
+          let jPts=0;
+          if(ajJ!=null){jPts=Number(ajJ);}
+          else{const pp=partProva.find(p=>p.jornada===jj);jPts=pp?pp.pontos:0;}
+          const pp=partProva.find(p=>p.jornada===jj);
+          const jTot=pp?pp.total:0;
+          const hasBon=jPts>(PONTUACAO?.[0]||25)?false:false; // bónus já incluído em jPts
+          rowCells+=`<td class="td-tot" style="border-left:2px solid #c8d0dc;font-size:1.3rem;text-align:center">${jTot||'—'}</td>`;
+          rowCells+=`<td class="td-tot" style="font-size:1.3rem;font-weight:700;text-align:center">${jPts>0?jPts:'—'}</td>`;
+        }
+        rowCells+=`<td class="td-tot" style="border-left:3px solid #5a7898;font-size:1.3rem;font-weight:600;text-align:center">${a.totalTacadas||'—'}</td>`;
+        rowCells+=`<td class="td-tot" style="font-size:1.5rem;font-weight:800;color:#1a3a6a;text-align:right">${a.pts}</td>`;
+        html+=`<tr class="${cls}"><td class="td-pos">${i+1}</td><td><div class="td-name">${a.nome}</div></td>${rowCells}</tr>`;
+      });
+      html+=`</tbody></table><div class="cat-sep"></div><div class="cat-gap"></div>`;
+
+      // ── BLOCOS DE DETALHE: um por jornada ──
       for(let jj=1;jj<=(prova.jornadas||1);jj++){
         const espJ=prova.jornadaEspecial?.[jj];
         const isP4=espJ?.tipo==='peter4voltas';
-        if(isP4){
-          cabJ+=`<th class="c geral-v" colspan="4" style="border-left:2px solid #c8d0dc">J${jj} P1·P2·P3·P4</th><th class="c geral-v">Tot</th><th class="c geral-v">Pts</th>`;
-        }else{
-          cabJ+=`<th class="c geral-v" colspan="4" style="border-left:2px solid #c8d0dc">J${jj} M1·M2·P1·P2</th><th class="c geral-v">Tot</th><th class="c geral-v">Pts</th>`;
-        }
+        const rpA_all=rankingPortal;
+        // ordenar igual ao geral
+        const rankedJ=ranked.filter(a=>{
+          const res=prova.resultados?.[jj]?.[String(a.id)]||prova.resultados?.[jj]?.[a.id];
+          return res&&(isP4?(res.pV1||res.pV2||res.pV3||res.pV4):(res.mV1||res.mV2||res.pV1||res.pV2));
+        });
+        if(!rankedJ.length) continue;
+        const cabDet=isP4
+          ?`<th class="c" style="font-size:0.62rem;color:#5a7090;padding:6px 20px">P1</th><th class="c" style="font-size:0.62rem;color:#5a7090;padding:6px 20px">P2</th><th class="c" style="font-size:0.62rem;color:#5a7090;padding:6px 20px">P3</th><th class="c" style="font-size:0.62rem;color:#5a7090;padding:6px 20px">P4</th>`
+          :`<th class="c" style="font-size:0.62rem;color:#5a7090;padding:6px 20px">M1</th><th class="c" style="font-size:0.62rem;color:#5a7090;padding:6px 20px">M2</th><th class="c" style="font-size:0.62rem;color:#5a7090;padding:6px 20px">P1</th><th class="c" style="font-size:0.62rem;color:#5a7090;padding:6px 20px">P2</th>`;
+        html+=`<div class="cat-hdr"><div class="cat-name">${cat}</div><div class="cat-count">${rankedJ.length} atleta${rankedJ.length!==1?'s':''}</div><div class="cat-badge" style="background:#1a3a6a;color:#fff">Jornada ${jj} · Detalhe</div></div>
+        <table class="tbl"><thead><tr><th class="c">Pos</th><th>Atleta</th>${cabDet}<th class="c" style="font-size:0.62rem;color:#4a6080;padding:6px 16px">Total</th><th class="r" style="font-size:0.62rem;color:#1a3a6a;padding:6px 16px">Pontos</th></tr></thead><tbody>`;
+        rankedJ.forEach((a,i)=>{
+          const cls=i===0?'g1':i===1?'g2':i===2?'g3':'';
+          const res=prova.resultados?.[jj]?.[String(a.id)]||prova.resultados?.[jj]?.[a.id]||{};
+          const rpA=rankingPortal?.[String(a.id)];
+          const partProva=rpA?(rpA.participacoes||[]).filter(p=>p.prova===prova.nome):[];
+          const ajJ=prova.ajustesPontos?.[String(jj)]?.[String(a.id)];
+          let jPts=0;
+          if(ajJ!=null){jPts=Number(ajJ);}
+          else{const pp=partProva.find(p=>p.jornada===jj);jPts=pp?pp.pontos:0;}
+          let jTot=0,hasBon=false,voltasCells='';
+          if(isP4){
+            [res.pV1,res.pV2,res.pV3,res.pV4].forEach(v=>{
+              const vv=(v>0&&v<126)?v:null;
+              if(vv)jTot+=vv;
+              voltasCells+=`<td class="td-par" style="font-size:1.8rem;font-weight:700;padding:10px 20px;text-align:center;${vv?corVoltaPeter(vv):''}">${vv||'—'}</td>`;
+            });
+            hasBon=!!(res.bonusPeterManha||res.bonusPeterTarde);
+            const nV=[res.pV1,res.pV2,res.pV3,res.pV4].filter(v=>v>0&&v<126).length;
+            voltasCells+=`<td class="td-tot" style="font-size:1.6rem;padding:10px 16px;${corTotal(jTot,nV,'peter')};text-align:center">${jTot||'—'}</td>`;
+          }else{
+            [res.mV1,res.mV2].forEach(v=>{
+              const vv=(v>0&&v<126)?v:null;
+              if(vv)jTot+=vv;
+              voltasCells+=`<td class="td-par" style="font-size:1.8rem;font-weight:700;padding:10px 20px;text-align:center;${vv?corVoltaMini(vv):''}">${vv||'—'}</td>`;
+            });
+            [res.pV1,res.pV2].forEach(v=>{
+              const vv=(v>0&&v<126)?v:null;
+              if(vv)jTot+=vv;
+              voltasCells+=`<td class="td-par" style="font-size:1.8rem;font-weight:700;padding:10px 20px;text-align:center;${vv?corVoltaPeter(vv):''}">${vv||'—'}</td>`;
+            });
+            hasBon=!!(res.bonusMini||res.bonusPeter);
+            const nV=[res.mV1,res.mV2,res.pV1,res.pV2].filter(v=>v>0&&v<126).length;
+            voltasCells+=`<td class="td-tot" style="font-size:1.6rem;padding:10px 16px;${corTotal(jTot,nV,'peter')};text-align:center">${jTot||'—'}</td>`;
+          }
+          voltasCells+=`<td class="td-tot" style="font-size:1.8rem;font-weight:800;color:#1a3a6a;padding:10px 16px;text-align:right">${jPts>0?jPts:'—'}${hasBon?'<span style="color:#f0a000;font-size:0.7rem;vertical-align:super">★</span>':''}</td>`;
+          html+=`<tr class="${cls}"><td class="td-pos">${i+1}</td><td><div class="td-name">${a.nome}</div></td>${voltasCells}</tr>`;
+        });
+        html+=`</tbody></table><div class="cat-sep"></div><div class="cat-gap"></div>`;
       }
-      return cabJ+`<th class="c geral-v" style="border-left:3px solid #5a7898">∑Tac</th><th class="r geral-v" style="font-weight:700">∑Pts</th>`;
-    })():`${voltaCab}<th class="r">Total</th>`}
-    </tr></thead><tbody>`;
-    ranked.forEach((a,i)=>{
-      const cls=i===0?'g1':i===1?'g2':i===2?'g3':'';
-      let vc='';
-      if(!isGeral){
+    } else {
+      // ── MODO JORNADA ESPECÍFICA (botão J1/J2 clicado) ──
+      const jAtual=jornadaAtiva||1;
+      const esp=prova.jornadaEspecial?.[jAtual];
+      const soloP4=esp?.tipo==='peter4voltas';
+      let voltaCab='';
+      if(soloP4)voltaCab='<th class="c" style="font-size:0.55rem">P1</th><th class="c" style="font-size:0.55rem">P2</th><th class="c" style="font-size:0.55rem">P3</th><th class="c" style="font-size:0.55rem">P4</th>';
+      else voltaCab='<th class="c" style="font-size:0.55rem">M1</th><th class="c" style="font-size:0.55rem">M2</th><th class="c" style="font-size:0.55rem">P1</th><th class="c" style="font-size:0.55rem">P2</th>';
+      html+=`<div class="cat-hdr"><div class="cat-name">${cat}</div><div class="cat-count">${ranked.length} atleta${ranked.length!==1?'s':''}</div><div class="cat-badge">Jornada ${jAtual}</div></div>
+      <table class="tbl"><thead><tr><th class="c">Pos</th><th>Atleta</th>${voltaCab}<th class="r">Total</th></tr></thead><tbody>`;
+      ranked.forEach((a,i)=>{
+        const cls=i===0?'g1':i===1?'g2':i===2?'g3':'';
         const r=a.res||{};
+        let vc='';
         if(soloP4){
           [r.pV1,r.pV2,r.pV3,r.pV4].forEach(v=>{vc+=`<td class="td-par" style="font-size:1.1rem;${corVoltaPeter(v)}">${v>0?v:'—'}</td>`;});
           const nVP=[r.pV1,r.pV2,r.pV3,r.pV4].filter(v=>v>0).length;
@@ -429,56 +501,10 @@ async function renderInterno() {
           const nV=[r.mV1,r.mV2,r.pV1,r.pV2].filter(v=>v>0).length;
           vc+=`<td class="td-tot" style="${corTotal(a.total,nV,'peter')}">${a.total!=null?a.total:'—'}</td>`;
         }
-      }
-      html+=`<tr class="${cls}"><td class="td-pos">${i+1}</td><td><div class="td-name">${a.nome}</div></td>
-      ${isGeral?(()=>{
-        const rpA=rankingPortal?.[String(a.id)];
-        const partProva=rpA?(rpA.participacoes||[]).filter(p=>p.prova===prova.nome):[];
-        let cells=''; let totalTac=0;
-        for(let jj=1;jj<=(prova.jornadas||1);jj++){
-          const espJ=prova.jornadaEspecial?.[jj];
-          const isP4=espJ?.tipo==='peter4voltas';
-          const res=prova.resultados?.[jj]?.[String(a.id)]||prova.resultados?.[jj]?.[a.id]||{};
-          const ajJ=prova.ajustesPontos?.[String(jj)]?.[String(a.id)];
-          let jPts=0;
-          if(ajJ!=null){jPts=Number(ajJ);}
-          else{const pp=partProva.find(p=>p.jornada===jj);jPts=pp?pp.pontos:0;}
-          let jTot=0,hasBon=false;
-          cells+=`<td style="border-left:2px solid #c8d0dc;padding:0;width:1px"></td>`;
-          if(isP4){
-            [res.pV1,res.pV2,res.pV3,res.pV4].forEach(v=>{
-              const vv=(v>0&&v<126)?v:null;
-              if(vv)jTot+=vv;
-              cells+=`<td class="td-par geral-v" style="${vv?corVoltaPeter(vv):''}">${vv||'—'}</td>`;
-            });
-            hasBon=!!(res.bonusPeterManha||res.bonusPeterTarde);
-            const nV=[res.pV1,res.pV2,res.pV3,res.pV4].filter(v=>v>0&&v<126).length;
-            cells+=`<td class="td-tot geral-v" style="${corTotal(jTot,nV,'peter')}">${jTot||'—'}</td>`;
-          }else{
-            [res.mV1,res.mV2].forEach(v=>{
-              const vv=(v>0&&v<126)?v:null;
-              if(vv)jTot+=vv;
-              cells+=`<td class="td-par geral-v" style="${vv?corVoltaMini(vv):''}">${vv||'—'}</td>`;
-            });
-            [res.pV1,res.pV2].forEach(v=>{
-              const vv=(v>0&&v<126)?v:null;
-              if(vv)jTot+=vv;
-              cells+=`<td class="td-par geral-v" style="${vv?corVoltaPeter(vv):''}">${vv||'—'}</td>`;
-            });
-            hasBon=!!(res.bonusMini||res.bonusPeter);
-            const nV=[res.mV1,res.mV2,res.pV1,res.pV2].filter(v=>v>0&&v<126).length;
-            cells+=`<td class="td-tot geral-v" style="${corTotal(jTot,nV,'peter')}">${jTot||'—'}</td>`;
-          }
-          totalTac+=jTot;
-          cells+=`<td class="td-tot geral-v" style="font-weight:700">${jPts>0?jPts:'—'}${hasBon?'<span style="color:#f0a000;font-size:0.6rem;vertical-align:super">★</span>':''}</td>`;
-        }
-        cells+=`<td class="td-tot geral-v" style="border-left:3px solid #5a7898;font-weight:600">${totalTac||a.totalTacadas}</td>`;
-        cells+=`<td class="td-tot geral-v" style="font-weight:800;color:#1a3a6a">${a.pts}</td>`;
-        return cells;
-      })():vc}
-      </tr>`;
-    });
-    html+=`</tbody></table><div class="cat-sep"></div><div class="cat-gap"></div>`;
+        html+=`<tr class="${cls}"><td class="td-pos">${i+1}</td><td><div class="td-name">${a.nome}</div></td>${vc}</tr>`;
+      });
+      html+=`</tbody></table><div class="cat-sep"></div><div class="cat-gap"></div>`;
+    }
   }
   if(!any) html=`<div class="nodata">Sem resultados inseridos ainda.<br>A aguardar dados ao vivo…</div>`;
   document.getElementById('inner').innerHTML=html;
