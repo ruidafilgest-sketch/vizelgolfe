@@ -391,7 +391,20 @@ async function renderInterno() {
     }
     html+=`<div class="cat-hdr"><div class="cat-name">${cat}</div><div class="cat-count">${ranked.length} atleta${ranked.length!==1?'s':''}</div><div class="cat-badge">${isGeral?'Classificação Geral':`Jornada ${jAtual}`}</div></div>
     <table class="tbl"><thead><tr><th class="c">Pos</th><th>Atleta</th>
-    ${isGeral?`<th class="c">Tacadas</th><th class="r">Pontos</th>`:`${voltaCab}<th class="r">Total</th>`}
+    ${isGeral?(()=>{
+      let cabJ='';
+      for(let jj=1;jj<=(prova.jornadas||1);jj++){
+        const espJ=prova.jornadaEspecial?.[jj];
+        const isP4=espJ?.tipo==='peter4voltas';
+        const jLabel=`J${jj}`;
+        if(isP4){
+          cabJ+=`<th class="c" colspan="4" style="font-size:0.5rem;border-left:2px solid #c8d0dc">${jLabel} P1·P2·P3·P4</th><th class="c" style="font-size:0.5rem">Tot</th><th class="c" style="font-size:0.5rem">Pts</th>`;
+        }else{
+          cabJ+=`<th class="c" colspan="4" style="font-size:0.5rem;border-left:2px solid #c8d0dc">${jLabel} M1·M2·P1·P2</th><th class="c" style="font-size:0.5rem">Tot</th><th class="c" style="font-size:0.5rem">Pts</th>`;
+        }
+      }
+      return cabJ+`<th class="c" style="font-size:0.5rem;border-left:2px solid #c8d0dc">∑Tac</th><th class="r" style="font-size:0.5rem">∑Pts</th>`;
+    })():`${voltaCab}<th class="r">Total</th>`}
     </tr></thead><tbody>`;
     ranked.forEach((a,i)=>{
       const cls=i===0?'g1':i===1?'g2':i===2?'g3':'';
@@ -412,7 +425,53 @@ async function renderInterno() {
         }
       }
       html+=`<tr class="${cls}"><td class="td-pos">${i+1}</td><td><div class="td-name">${a.nome}</div></td>
-      ${isGeral?`<td class="td-par">${a.totalTacadas}</td><td class="td-tot">${a.pts}</td>`:vc}
+      ${isGeral?(()=>{
+        let cells='';
+        let totalTac=0;
+        // Pontos por jornada: tentar ranking_portal primeiro, depois calcPontosAtleta como fallback
+        const rpA=rankingPortal?.[String(a.id)];
+        const partProva=rpA?(rpA.participacoes||[]).filter(p=>p.prova===prova.nome):[];
+        for(let jj=1;jj<=(prova.jornadas||1);jj++){
+          const espJ=prova.jornadaEspecial?.[jj];
+          const isP4=espJ?.tipo==='peter4voltas';
+          const res=prova.resultados?.[jj]?.[String(a.id)]||prova.resultados?.[jj]?.[a.id]||{};
+          const ajJ=prova.ajustesPontos?.[String(jj)]?.[String(a.id)];
+          // Pontos desta jornada
+          let jPts=0;
+          if(ajJ!=null){jPts=Number(ajJ);}
+          else{const pp=partProva.find(p=>p.jornada===jj);jPts=pp?pp.pontos:0;}
+          let jTot=0,hasBon=false;
+          let jCells='';
+          if(isP4){
+            const vs=[res.pV1,res.pV2,res.pV3,res.pV4];
+            vs.forEach(v=>{
+              const vv=(v>0&&v<126)?v:null;
+              if(vv)jTot+=vv;
+              jCells+=`<td class="td-par" style="font-size:0.9rem;padding:8px 5px;border-left:1px solid #e0e5ed;${vv?corVoltaPeter(vv):''}">${vv||'—'}</td>`;
+            });
+            hasBon=!!(res.bonusPeterManha||res.bonusPeterTarde);
+            const nV=vs.filter(v=>v>0&&v<126).length;
+            jCells+=`<td class="td-tot" style="padding:8px 5px;font-size:0.9rem;${corTotal(jTot,nV,'peter')}">${jTot||'—'}</td>`;
+          }else{
+            [res.mV1,res.mV2].forEach(v=>{
+              const vv=(v>0&&v<126)?v:null;
+              if(vv)jTot+=vv;
+              jCells+=`<td class="td-par" style="font-size:0.9rem;padding:8px 5px;border-left:1px solid #e0e5ed;${vv?corVoltaMini(vv):''}">${vv||'—'}</td>`;
+            });
+            [res.pV1,res.pV2].forEach(v=>{
+              const vv=(v>0&&v<126)?v:null;
+              if(vv)jTot+=vv;
+              jCells+=`<td class="td-par" style="font-size:0.9rem;padding:8px 5px;${vv?corVoltaPeter(vv):''}">${vv||'—'}</td>`;
+            });
+            hasBon=!!(res.bonusMini||res.bonusPeter);
+            const nV=[res.mV1,res.mV2,res.pV1,res.pV2].filter(v=>v>0&&v<126).length;
+            jCells+=`<td class="td-tot" style="padding:8px 5px;font-size:0.9rem;${corTotal(jTot,nV,'peter')}">${jTot||'—'}</td>`;
+          }
+          totalTac+=jTot;
+          cells+=`<td style="border-left:2px solid #c8d0dc;padding:0;width:0"></td>`+jCells+`<td class="td-tot" style="padding:8px 6px;font-size:0.9rem;font-weight:600">${jPts>0?jPts:'—'}${hasBon?'<span style="color:#f0a000;font-size:0.55rem;vertical-align:super">★</span>':''}</td>`;
+        }
+        return cells+`<td class="td-tot" style="border-left:3px solid #7090b0;padding:8px 10px;font-size:1rem">${totalTac||a.totalTacadas}</td><td class="td-tot" style="padding:8px 10px;font-size:1.1rem;font-weight:700;color:#1a3a6a">${a.pts}</td>`;
+      })():vc}
       </tr>`;
     });
     html+=`</tbody></table><div class="cat-sep"></div><div class="cat-gap"></div>`;
