@@ -430,7 +430,15 @@ const CAT_NAC=['Homens','Senhoras','Juniores Masculinos','Juniores Femininos','I
 let slides=[];        // [{catName, html}]
 let slideIdx=0;
 let carouselTimer=null;
-const SLIDE_DURATION=9000; // ms por categoria
+let slideScrollRaf=null;
+let slideScrollY=0;
+const SLIDE_MIN_DURATION=6000; // ms mínimo por slide (sem scroll ou scroll curto)
+const SCROLL_SPEED=0.8;        // px por frame
+const SCROLL_PAUSE_TOP=100;    // frames de pausa no topo antes de começar
+const SCROLL_PAUSE_BOT=80;     // frames de pausa no fim antes de avançar
+let scrollPauseFrames=0;
+let scrollPhase='pause_top';   // 'pause_top' | 'scrolling' | 'pause_bot'
+let slideStartTime=null;
 let progressStart=null;
 let progressRaf=null;
 
@@ -495,7 +503,7 @@ function calcPontosAtleta(prova,atleta,atletas,empates){
 
 // ── CORES VOLTAS ──
 // REGRA NJ: null/undefined/''/0 → '—' cinzento, ignorado em cálculos
-function voltaVal(v){return(v!=null&&v!==''&&Number(v)>0)?Number(v):null;}
+function voltaVal(v){const n=Number(v);return(v!=null&&v!==''&&n>0&&n!==126)?n:null;}
 function corVoltaMini(v){
   const n=voltaVal(v);
   if(n===null)return'cv-null';
@@ -685,10 +693,64 @@ function buildGeralHTML(prova,ranked,cat,atletas,empates){
     </tr>`;
   });
 
-  return`<table class="btbl">
+  let html=`<table class="btbl">
     <thead><tr>${cab}</tr><tr>${subJ}</tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
+
+  // ── BLOCO 2: RESUMO DE VOLTAS (todas as jornadas com dados) ──
+  if(jornadasComDados.length>0){
+    // cabeçalho voltas: cada jornada tem 4 colunas de voltas + Tot + Pts
+    let cabVol='<th class="c" style="width:60px">Pos</th><th>Atleta</th>';
+    jornadasComDados.forEach(jj=>{
+      const espJ=prova.jornadaEspecial?.[jj];
+      const isP4=espJ?.tipo==='peter4voltas';
+      cabVol+=`<th class="c" colspan="4" style="border-left:2px solid rgba(200,148,50,.2);font-size:0.56rem;color:rgba(200,148,50,.6);padding:7px 8px;letter-spacing:2px">J${jj} ${isP4?'P1·P2·P3·P4':'M1·M2·P1·P2'}</th>`;
+      cabVol+=`<th class="c" style="font-size:0.53rem;color:var(--dim);padding:7px 8px">Tot</th>`;
+      cabVol+=`<th class="c" style="font-size:0.53rem;color:var(--gold);padding:7px 8px">Pts</th>`;
+    });
+
+    let rowsVol='';
+    ranked.forEach((a,i)=>{
+      const cls=i===0?'p1':i===1?'p2':i===2?'p3':'';
+      const vzg=isVzg(a.clube)&&!VZG_EXCECOES.includes(a.nome);
+      let jCells='';
+      jornadasComDados.forEach(jj=>{
+        const espJ=prova.jornadaEspecial?.[jj];
+        const isP4=espJ?.tipo==='peter4voltas';
+        const res=prova.resultados?.[jj]?.[String(a.id)]||prova.resultados?.[jj]?.[a.id]||{};
+        const ajJ=allDataInt?.ajustesPontos?.[prova.id]?.[String(a.id)]?.[jj]??allDataInt?.ajustesPontos?.[prova.id]?.[String(a.id)]?.[String(jj)];
+        let jPts=0;
+        if(ajJ!=null){jPts=Number(ajJ);}
+        else{const pp=(a.partProva||[]).find(p=>p.jornada===jj);jPts=pp?pp.pontos:0;}
+        const hasBon=isP4?!!(res.bonusPeterManha||res.bonusPeterTarde):!!(res.bonusMini||res.bonusPeter);
+        const vs=isP4?[res.pV1,res.pV2,res.pV3,res.pV4]:[res.mV1,res.mV2,res.pV1,res.pV2];
+        const corFns=isP4?[corVoltaPeter,corVoltaPeter,corVoltaPeter,corVoltaPeter]:[corVoltaMini,corVoltaMini,corVoltaPeter,corVoltaPeter];
+        let jTot=0;const nV=vs.filter(v=>voltaVal(v)!==null).length;
+        vs.forEach(v=>{const vv=voltaVal(v);if(vv)jTot+=vv;});
+        jCells+=`<td style="border-left:2px solid rgba(200,148,50,.15);padding:0;width:1px"></td>`;
+        vs.forEach((v,vi)=>jCells+=voltaHTML(v,corFns[vi]));
+        jCells+=`<td class="td-v ${corTotal(jTot,nV,'peter')}" style="padding:10px 10px!important">${jTot||'<span class=cv-null>—</span>'}</td>`;
+        jCells+=`<td class="td-v" style="font-weight:700;color:var(--gold);padding:10px 10px!important">${jPts>0?jPts+'<span class=bon>'+(hasBon?'★':'')+'</span>':'<span class=cv-null>—</span>'}</td>`;
+      });
+      rowsVol+=`<tr class="${cls}">
+        <td class="td-pos">${i+1}</td>
+        <td class="td-name-wrap"><div class="td-name${vzg?' td-vzg':''}" style="font-size:1.2rem">${a.nome}</div></td>
+        ${jCells}
+      </tr>`;
+    });
+
+    html+=`<div class="bloco2-hdr">
+      <div class="bloco2-label">${cat}</div>
+      <div class="bloco2-badge">Resumo de Voltas</div>
+    </div>
+    <table class="btbl">
+      <thead><tr>${cabVol}</tr></thead>
+      <tbody>${rowsVol}</tbody>
+    </table>`;
+  }
+
+  return html;
 }
 
 // ── BUILD HTML — JORNADA ──
@@ -811,24 +873,75 @@ function goToSlide(idx){
   const prev=document.getElementById(`slide-${slideIdx}`);
   const next=document.getElementById(`slide-${idx}`);
   if(prev){prev.classList.remove('active');prev.classList.add('exiting');setTimeout(()=>{prev.classList.remove('exiting');},450);}
-  if(next){next.classList.add('active');}
-  // dots
+  if(next){
+    next.classList.add('active');
+    // reset scroll da slide-body
+    const body=next.querySelector('.slide-body');
+    if(body)body.scrollTop=0;
+  }
   document.querySelectorAll('.cat-dot').forEach((d,i)=>d.classList.toggle('on',i===idx));
   slideIdx=idx;
+  resetSlideScroll();
   resetProgress();
 }
 
 function nextSlide(){goToSlide((slideIdx+1)%slides.length);}
 
 function startCarousel(){
-  if(carouselTimer)clearInterval(carouselTimer);
+  stopCarousel();
+  resetSlideScroll();
   resetProgress();
-  carouselTimer=setInterval(()=>{nextSlide();},SLIDE_DURATION);
+  startSlideScrollLoop();
 }
 
 function stopCarousel(){
   if(carouselTimer){clearInterval(carouselTimer);carouselTimer=null;}
+  if(slideScrollRaf){cancelAnimationFrame(slideScrollRaf);slideScrollRaf=null;}
   if(progressRaf){cancelAnimationFrame(progressRaf);progressRaf=null;}
+}
+
+function resetSlideScroll(){
+  slideScrollY=0;
+  scrollPhase='pause_top';
+  scrollPauseFrames=0;
+  slideStartTime=performance.now();
+}
+
+function startSlideScrollLoop(){
+  if(slideScrollRaf)cancelAnimationFrame(slideScrollRaf);
+  function loop(){
+    const slide=document.getElementById(`slide-${slideIdx}`);
+    const body=slide?slide.querySelector('.slide-body'):null;
+    if(!body){slideScrollRaf=requestAnimationFrame(loop);return;}
+    const maxScroll=body.scrollHeight-body.clientHeight;
+    const needsScroll=maxScroll>10;
+    const elapsed=performance.now()-slideStartTime;
+
+    if(scrollPhase==='pause_top'){
+      scrollPauseFrames++;
+      // se não precisa scroll, usa timer mínimo; se precisa, pausa curta depois avança
+      const pauseTarget=needsScroll?SCROLL_PAUSE_TOP:(SLIDE_MIN_DURATION/16.67);
+      if(scrollPauseFrames>=pauseTarget){
+        if(!needsScroll){nextSlide();}
+        else{scrollPhase='scrolling';}
+      }
+    }else if(scrollPhase==='scrolling'){
+      slideScrollY+=SCROLL_SPEED;
+      if(slideScrollY>=maxScroll){
+        slideScrollY=maxScroll;
+        body.scrollTop=slideScrollY;
+        scrollPhase='pause_bot';
+        scrollPauseFrames=0;
+      }else{
+        body.scrollTop=slideScrollY;
+      }
+    }else if(scrollPhase==='pause_bot'){
+      scrollPauseFrames++;
+      if(scrollPauseFrames>=SCROLL_PAUSE_BOT){nextSlide();}
+    }
+    slideScrollRaf=requestAnimationFrame(loop);
+  }
+  slideScrollRaf=requestAnimationFrame(loop);
 }
 
 function resetProgress(){
@@ -838,13 +951,14 @@ function resetProgress(){
   bar.style.width='0%';
   if(progressRaf)cancelAnimationFrame(progressRaf);
   progressStart=null;
+  // duração visual da progress bar: baseada no scroll real
   function step(ts){
     if(!progressStart)progressStart=ts;
+    // não sabemos duração exacta — avança suavemente, o goToSlide reseta
     const elapsed=ts-progressStart;
-    const pct=Math.min(100,elapsed/SLIDE_DURATION*100);
-    bar.style.transition='none';
-    bar.style.width=pct+'%';
-    if(pct<100)progressRaf=requestAnimationFrame(step);
+    const est=Math.min(100,elapsed/20000*100); // estimate 20s max visual
+    bar.style.width=est+'%';
+    if(est<100)progressRaf=requestAnimationFrame(step);
   }
   progressRaf=requestAnimationFrame(step);
 }
