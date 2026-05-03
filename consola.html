@@ -1991,14 +1991,22 @@ function renderFormInserir(prova, jornada) {
       campos.forEach(c => {
         const voltaInativa = inativas.includes(c.id);
         const val = voltaInativa ? 126 : (r[c.id] != null ? r[c.id] : '');
-        const estilo = voltaInativa
-          ? 'background:#2a1010;color:#cc4444;cursor:not-allowed;border-color:#cc4444'
-          : (val ? _corInserir(c.id, val) : '');
+        const estiloInativa = 'background:#2a1010;color:#cc4444;cursor:not-allowed;border-color:#cc4444';
+        const estiloNormal = val ? _corInserir(c.id, val) : '';
+        // 126 individual (não inativa) → fundo vermelho mas editável
+        const estiloInd126 = !voltaInativa && Number(val)===126
+          ? 'background:#4a0010;color:#ff6666;border-color:#cc2222'
+          : estiloNormal;
+        const estilo = voltaInativa ? estiloInativa : estiloInd126;
+        const titleAttr = voltaInativa
+          ? 'title="Volta não jogada — marcada na configuração acima"'
+          : (Number(val)===126 ? 'title="Penalização: atleta não jogou esta volta (conta 126 tacadas)"' : '');
         html += `<td style="padding:4px 2px;text-align:center">
           <input type="number" min="18" max="126"
             id="inp_${a.id}_${c.id}"
             value="${val}"
-            ${voltaInativa ? 'readonly title="Volta não jogada — marcada na configuração acima"' : ''}
+            ${voltaInativa ? 'readonly' : ''}
+            ${titleAttr}
             style="width:64px;text-align:center;padding:5px 4px;border:1px solid var(--sep);border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;${estilo}"
             oninput="atualizarTotalInserir(${a.id},'${prova.id}',${jornada})"
             onchange="atualizarTotalInserir(${a.id},'${prova.id}',${jornada})">
@@ -2035,9 +2043,9 @@ window.atualizarTotalInserir = function(atletaId, provaId, jornada) {
   const campos = isP4
     ? ['pV1','pV2','pV3','pV4']
     : ['mV1','mV2','pV1','pV2'];
-  let soma = 0, temAlgum = false, temVazia = false;
+  let soma = 0, temAlgum = false, temVazio = false;
   campos.forEach(c => {
-    if (inativas.includes(c)) return; // volta não jogada — ignorar
+    if (inativas.includes(c)) return; // volta inativa da config — ignorar
     const el = document.getElementById(`inp_${atletaId}_${c}`);
     if (!el) return;
     const v = Number(el.value);
@@ -2046,15 +2054,20 @@ window.atualizarTotalInserir = function(atletaId, provaId, jornada) {
       const sty = _corInserir(c, v);
       el.style.cssText = `width:64px;text-align:center;padding:5px 4px;border:1px solid var(--sep);border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;${sty}`;
     }
-    if (v > 0 && v !== 126) { soma += v; temAlgum = true; }
-    else { temVazia = true; }
+    if (v > 0) { soma += v; temAlgum = true; } // 126 individual conta como penalização
+    else { temVazio = true; } // campo vazio = dados não inseridos
   });
-  // Mostrar total parcial se há pelo menos 1 volta válida
-  const tot = temAlgum ? soma : '';
   const totEl = document.getElementById(`tot_${atletaId}`);
   if (totEl) {
-    totEl.textContent = tot;
-    totEl.style.color = temVazia && temAlgum ? 'var(--orange)' : 'var(--orange)';
+    // Só mostrar total se todos os campos activos têm valor
+    if (temAlgum && !temVazio) {
+      totEl.textContent = soma;
+      // Destacar a vermelho se tem 126 (penalização)
+      totEl.style.color = soma >= 126 ? '#cc2222' : 'var(--orange)';
+    } else {
+      totEl.textContent = '';
+      totEl.style.color = 'var(--orange)';
+    }
   }
 };
 
@@ -2150,16 +2163,23 @@ function calcTotal(prova,j,res){
   if(!res)return null;
   const esp=prova.jornadaEspecial?.[j];
   const campos=esp?.tipo==='peter4voltas'?['pV1','pV2','pV3','pV4']:['mV1','mV2','pV1','pV2'];
-  // Voltas não jogadas: 126 = flag "não jogada", ignorar no total
-  // Voltas ativas desta jornada (definidas em esp.voltasInativas)
   const inativas=esp?.voltasInativas||[];
-  const vals=campos.map(c=>{
-    if(inativas.includes(c))return null; // volta não jogada (config jornada)
+  let soma=0, temValido=false, temVazio=false;
+  for(const c of campos){
+    if(inativas.includes(c))continue; // volta não jogada para toda a gente — ignorar
     const v=Number(res[c]);
-    return(!isNaN(v)&&v>0&&v!==126)?v:null;
-  }).filter(v=>v!==null);
-  // Pelo menos 1 volta válida → atleta participou
-  return vals.length>0?vals.reduce((a,b)=>a+b,0):null;
+    if(!isNaN(v)&&v>0){
+      soma+=v;   // 126 individual conta como penalização (126 tacadas)
+      temValido=true;
+    } else {
+      temVazio=true; // campo vazio = atleta ainda não inseriu
+    }
+  }
+  // Se nenhuma volta activa tem valor → atleta não participou
+  if(!temValido)return null;
+  // Se há campos vazios (sem dados inseridos) → total incompleto → null
+  if(temVazio)return null;
+  return soma;
 }
 // ── AJUSTE MANUAL DE PONTOS ──
 function renderAjusteInit() {
