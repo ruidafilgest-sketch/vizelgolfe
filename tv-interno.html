@@ -447,8 +447,16 @@ function calcTotal(prova,j,res){
   if(!res)return null;
   const esp=prova.jornadaEspecial?.[j];
   const campos=esp?.tipo==='peter4voltas'?['pV1','pV2','pV3','pV4']:['mV1','mV2','pV1','pV2'];
-  const vals=campos.map(c=>{const v=res[c];return(v!=null&&v!==''&&Number(v)>0)?Number(v):null;}).filter(v=>v!==null);
-  return vals.length?vals.reduce((a,b)=>a+b,0):null;
+  const inativas=esp?.voltasInativas||[];
+  let soma=0,temValido=false,temVazio=false;
+  for(const c of campos){
+    if(inativas.includes(c))continue;
+    const v=Number(res[c]);
+    if(!isNaN(v)&&v>0){soma+=v;temValido=true;}
+    else{temVazio=true;}
+  }
+  if(!temValido||temVazio)return null;
+  return soma;
 }
 function calcMini(res){const v=[res?.mV1,res?.mV2].map(v=>(v!=null&&v!==''&&Number(v)>0)?Number(v):null).filter(v=>v!==null);return v.length?v.reduce((a,b)=>a+b,0):null;}
 function calcPeter(res){const v=[res?.pV1,res?.pV2,res?.pV3,res?.pV4].map(v=>(v!=null&&v!==''&&Number(v)>0)?Number(v):null).filter(v=>v!==null);return v.length?v.reduce((a,b)=>a+b,0):null;}
@@ -503,7 +511,7 @@ function calcPontosAtleta(prova,atleta,atletas,empates){
 
 // ── CORES VOLTAS ──
 // REGRA NJ: null/undefined/''/0 → '—' cinzento, ignorado em cálculos
-function voltaVal(v){const n=Number(v);return(v!=null&&v!==''&&n>0&&n!==126)?n:null;}
+function voltaVal(v){const n=Number(v);return(v!=null&&v!==''&&n>0)?n:null;} // 126 individual conta como penalização
 function corVoltaMini(v){
   const n=voltaVal(v);
   if(n===null)return'cv-null';
@@ -523,6 +531,7 @@ function corTotal(total,nVoltas,tipo){
 function voltaHTML(v,corFn){
   const n=voltaVal(v);
   if(n===null)return`<td class="td-v cv-null">—</td>`;
+  if(n===126)return`<td class="td-v" style="color:#f87171;font-size:0.85rem;font-weight:600" title="Não jogou">126</td>`;
   return`<td class="td-v ${corFn(n)}">${n}</td>`;
 }
 
