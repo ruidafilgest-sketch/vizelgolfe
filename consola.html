@@ -1900,7 +1900,51 @@ function renderFormInserir(prova, jornada) {
 
   const jRes = prova.resultados?.[jornada] || {};
 
+  // Nomes das voltas conforme tipo
+  const nomesVoltas = isP4
+    ? ['pV1','pV2','pV3','pV4']
+    : ['mV1','mV2','pV1','pV2'];
+  const labelsVoltas = isP4
+    ? ['Peter V1','Peter V2','Peter V3','Peter V4']
+    : ['Mini V1','Mini V2','Peter V1','Peter V2'];
+  const inativas = esp?.voltasInativas || [];
+
   let html = `<div style="margin-top:12px">`;
+
+  // ── PAINEL DE CONFIGURAÇÃO DA JORNADA ──
+  html += `<div class="card" style="margin-bottom:14px;padding:14px 18px;background:#f0f4fa;border:1px solid var(--sep)">`;
+  html += `<div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">`;
+
+  // Tipo de jornada
+  html += `<div>
+    <div style="font-size:0.7rem;font-weight:700;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Tipo de Jornada</div>
+    <select id="cfg-tipo-jornada" style="padding:6px 10px;border:1px solid var(--sep);border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.88rem;cursor:pointer"
+      onchange="cfgTipoJornada(${prova.id},${jornada},this.value)">
+      <option value="normal"${!isP4?' selected':''}>Normal — M1 M2 P1 P2</option>
+      <option value="peter4voltas"${isP4?' selected':''}>Peter 4 Voltas — P1 P2 P3 P4</option>
+    </select>
+  </div>`;
+
+  // Voltas activas
+  html += `<div>
+    <div style="font-size:0.7rem;font-weight:700;color:var(--dim);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">Voltas Jogadas</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">`;
+  nomesVoltas.forEach((v,i) => {
+    const ativa = !inativas.includes(v);
+    html += `<label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:5px 10px;border-radius:6px;border:1px solid ${ativa?'var(--orange)':'var(--sep)'};background:${ativa?'rgba(212,130,10,0.08)':'#f5f5f5'};font-size:0.82rem;font-weight:600;user-select:none">
+      <input type="checkbox" id="cfg-volta-${v}" ${ativa?'checked':''} style="accent-color:var(--orange)"
+        onchange="cfgVoltaInativa(${prova.id},${jornada},'${v}',this.checked)">
+      ${labelsVoltas[i]}${!ativa?' <span style="color:#cc2222;font-size:0.7rem">(não jogada)</span>':''}
+    </label>`;
+  });
+  html += `</div>`;
+  if (inativas.length > 0) {
+    html += `<div style="font-size:0.72rem;color:#cc2222;margin-top:6px">⚠️ ${inativas.length} volta(s) marcada(s) como não jogada(s) — valor 126 será gravado automaticamente para todos os atletas.</div>`;
+  }
+  html += `</div>`; // end voltas activas
+
+  html += `</div></div>`; // end config card
+
   html += `<div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap">`;
   html += `<button class="btn btn-primary" onclick="guardarResultados(${prova.id},${jornada})" style="padding:8px 24px">💾 Guardar Resultados</button>`;
   if (isCViz) {
@@ -1945,12 +1989,16 @@ function renderFormInserir(prova, jornada) {
       html += `</td>`;
 
       campos.forEach(c => {
-        const val = r[c.id] != null ? r[c.id] : '';
-        const estilo = val ? _corInserir(c.id, val) : '';
+        const voltaInativa = inativas.includes(c.id);
+        const val = voltaInativa ? 126 : (r[c.id] != null ? r[c.id] : '');
+        const estilo = voltaInativa
+          ? 'background:#2a1010;color:#cc4444;cursor:not-allowed;border-color:#cc4444'
+          : (val ? _corInserir(c.id, val) : '');
         html += `<td style="padding:4px 2px;text-align:center">
           <input type="number" min="18" max="126"
             id="inp_${a.id}_${c.id}"
             value="${val}"
+            ${voltaInativa ? 'readonly title="Volta não jogada — marcada na configuração acima"' : ''}
             style="width:64px;text-align:center;padding:5px 4px;border:1px solid var(--sep);border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;${estilo}"
             oninput="atualizarTotalInserir(${a.id},'${prova.id}',${jornada})"
             onchange="atualizarTotalInserir(${a.id},'${prova.id}',${jornada})">
@@ -1983,23 +2031,31 @@ window.atualizarTotalInserir = function(atletaId, provaId, jornada) {
   if (!prova) return;
   const esp = prova.jornadaEspecial?.[jornada];
   const isP4 = esp?.tipo === 'peter4voltas';
+  const inativas = esp?.voltasInativas || [];
   const campos = isP4
     ? ['pV1','pV2','pV3','pV4']
     : ['mV1','mV2','pV1','pV2'];
-  const vals = campos.map(c => {
+  let soma = 0, temAlgum = false, temVazia = false;
+  campos.forEach(c => {
+    if (inativas.includes(c)) return; // volta não jogada — ignorar
     const el = document.getElementById(`inp_${atletaId}_${c}`);
-    const v = el ? Number(el.value) : 0;
+    if (!el) return;
+    const v = Number(el.value);
     // aplicar cor ao input
-    if (el && el.value) {
+    if (el.value) {
       const sty = _corInserir(c, v);
       el.style.cssText = `width:64px;text-align:center;padding:5px 4px;border:1px solid var(--sep);border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;${sty}`;
     }
-    return v;
+    if (v > 0 && v !== 126) { soma += v; temAlgum = true; }
+    else { temVazia = true; }
   });
-  const completo = vals.every(v => v > 0);
-  const tot = completo ? vals.reduce((a,b)=>a+b,0) : '';
+  // Mostrar total parcial se há pelo menos 1 volta válida
+  const tot = temAlgum ? soma : '';
   const totEl = document.getElementById(`tot_${atletaId}`);
-  if (totEl) totEl.textContent = tot;
+  if (totEl) {
+    totEl.textContent = tot;
+    totEl.style.color = temVazia && temAlgum ? 'var(--orange)' : 'var(--orange)';
+  }
 };
 
 window.guardarResultados = async function(provaId, jornada) {
@@ -2016,10 +2072,15 @@ window.guardarResultados = async function(provaId, jornada) {
   if (!prova.resultados[jornada]) prova.resultados[jornada] = {};
   const jRes = prova.resultados[jornada];
 
+  // Voltas inativas desta jornada (config "não se jogou")
+  const inativas = esp?.voltasInativas || [];
+
   atletas.forEach(a => {
     const vals = {};
     let temAlgum = false;
     campos.forEach(c => {
+      // Volta inativa: gravar 126 automaticamente para todos
+      if (inativas.includes(c)) { vals[c] = 126; temAlgum = true; return; }
       const el = document.getElementById(`inp_${a.id}_${c}`);
       if (el && el.value !== '') {
         const v = Number(el.value);
@@ -2089,9 +2150,16 @@ function calcTotal(prova,j,res){
   if(!res)return null;
   const esp=prova.jornadaEspecial?.[j];
   const campos=esp?.tipo==='peter4voltas'?['pV1','pV2','pV3','pV4']:['mV1','mV2','pV1','pV2'];
-  const vals=campos.map(c=>Number(res[c])).filter(v=>!isNaN(v)&&v>0);
-  if(vals.length<campos.length)return null;
-  return vals.reduce((a,b)=>a+b,0);
+  // Voltas não jogadas: 126 = flag "não jogada", ignorar no total
+  // Voltas ativas desta jornada (definidas em esp.voltasInativas)
+  const inativas=esp?.voltasInativas||[];
+  const vals=campos.map(c=>{
+    if(inativas.includes(c))return null; // volta não jogada (config jornada)
+    const v=Number(res[c]);
+    return(!isNaN(v)&&v>0&&v!==126)?v:null;
+  }).filter(v=>v!==null);
+  // Pelo menos 1 volta válida → atleta participou
+  return vals.length>0?vals.reduce((a,b)=>a+b,0):null;
 }
 // ── AJUSTE MANUAL DE PONTOS ──
 function renderAjusteInit() {
@@ -2484,6 +2552,59 @@ window.resolverEmpate = async function(key, atletaId) {
     await setDoc(doc(db, 'vizelgolfe', 'dados'), { ...dadosInt, _vzgKey: 'VZG-2026-SEC-K9x' });
     mostrarNotif('✅ Desempate gravado!');
     renderDesempates();
+    // Forçar re-render das classificações (mesmo fora da secção activa)
+    renderClassificacoes();
+    // Publicar ranking calculado em background
+    guardarRankingCalculado().catch(e => console.warn('Ranking portal:', e));
+  } catch(e) { mostrarNotif('❌ Erro: ' + e.message, true); }
+};
+
+// ── CONFIG JORNADA: tipo (Normal / Peter4Voltas) ──
+window.cfgTipoJornada = async function(provaId, jornada, tipo) {
+  if (!dadosInt || !modoAdmin) return;
+  const prova = (dadosInt.provas||[]).find(p=>p.id==provaId);
+  if (!prova) return;
+  if (!prova.jornadaEspecial) prova.jornadaEspecial = {};
+  if (!prova.jornadaEspecial[jornada]) prova.jornadaEspecial[jornada] = {};
+  if (tipo === 'peter4voltas') {
+    prova.jornadaEspecial[jornada].tipo = 'peter4voltas';
+  } else {
+    delete prova.jornadaEspecial[jornada].tipo;
+    if (!Object.keys(prova.jornadaEspecial[jornada]).length)
+      delete prova.jornadaEspecial[jornada];
+  }
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    mostrarNotif('✅ Tipo de jornada guardado!');
+    // Re-render do formulário com o novo tipo
+    renderFormInserir(prova, jornada);
+  } catch(e) { mostrarNotif('❌ Erro: ' + e.message, true); }
+};
+
+// ── CONFIG JORNADA: volta inativa (não se jogou) ──
+window.cfgVoltaInativa = async function(provaId, jornada, volta, ativa) {
+  if (!dadosInt || !modoAdmin) return;
+  const prova = (dadosInt.provas||[]).find(p=>p.id==provaId);
+  if (!prova) return;
+  if (!prova.jornadaEspecial) prova.jornadaEspecial = {};
+  if (!prova.jornadaEspecial[jornada]) prova.jornadaEspecial[jornada] = {};
+  let inativas = prova.jornadaEspecial[jornada].voltasInativas || [];
+  if (!ativa) {
+    // Marcar como não jogada
+    if (!inativas.includes(volta)) inativas = [...inativas, volta];
+  } else {
+    // Marcar como jogada
+    inativas = inativas.filter(v => v !== volta);
+  }
+  prova.jornadaEspecial[jornada].voltasInativas = inativas;
+  // Limpar entrada vazia
+  if (!prova.jornadaEspecial[jornada].tipo && !inativas.length)
+    delete prova.jornadaEspecial[jornada];
+  try {
+    await setDoc(doc(db,'vizelgolfe','dados'), {...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+    mostrarNotif(ativa ? '✅ Volta reactivada!' : '⚠️ Volta marcada como não jogada!');
+    // Re-render para actualizar checkboxes e aviso
+    renderFormInserir(prova, jornada);
   } catch(e) { mostrarNotif('❌ Erro: ' + e.message, true); }
 };
 
@@ -2568,8 +2689,11 @@ function calcularBonusAuto(prova,jornada,atletas){
     const comRes=atletas.filter(a=>(CAT_GRUPO[a.categoria]||a.categoria)===grupo&&(jRes[String(a.id)]||jRes[a.id]));
     if(!comRes.length)return;
     const p4=prova.jornadaEspecial?.[jornada]?.tipo==='peter4voltas';
+    const inativasBonus=prova.jornadaEspecial?.[jornada]?.voltasInativas||[];
     const pares=p4?[['bonusManha','pV1','pV2'],['bonusTarde','pV3','pV4']]:[['bonusMini','mV1','mV2'],['bonusPeter','pV1','pV2']];
     pares.forEach(([key,c1,c2])=>{
+      // Se ambas as voltas deste par forem inativas, não há bónus
+      if(inativasBonus.includes(c1)&&inativasBonus.includes(c2))return;
       const rank=comRes.map(a=>{const r=jRes[String(a.id)]||jRes[a.id]||{};return{id:a.id,nome:a.nome,melhor:_melhorVoltaIndividual(r,c1,c2)};}).filter(x=>x.melhor!==null).sort((a,b)=>a.melhor-b.melhor);
       if(!rank.length)return;
       const mv=rank[0].melhor,emp=rank.filter(x=>x.melhor===mv);
