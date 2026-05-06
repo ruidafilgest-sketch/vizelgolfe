@@ -1811,6 +1811,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-inscritos')">Fechar</button>
+      <button class="btn btn-accent" id="btn-imprimir-inscritos" onclick="imprimirListaInscritos()" style="margin-left:8px">🖨️ Imprimir Lista</button>
     </div>
   </div>
 </div>
@@ -5224,7 +5225,9 @@ window.apagarTorneio = async function(key) {
 };
 
 // ── ADMIN: ver e gerir inscritos ──────────────────
+let inscritosActivoKey = null;
 window.verInscritos = function(key) {
+  inscritosActivoKey = key;
   const t = torneios[key];
   document.getElementById('modal-inscritos-title').textContent = `🏆 ${t.nome} — Inscritos`;
   const inscTorneio = Object.entries(inscricoes).filter(([,i]) => i.torneioKey === key);
@@ -7961,6 +7964,172 @@ window.enviarAlertasQuota = async function() {
   }
 
   toast(`Alertas enviados: ${ok} ✅${erros ? ` · ${erros} erros ❌` : ''}`, ok > 0 ? 'success' : 'error');
+};
+
+// ── IMPRIMIR LISTA DE INSCRITOS ────────────────────
+window.imprimirListaInscritos = async function() {
+  const key = inscritosActivoKey;
+  if (!key) return;
+  const t = torneios[key];
+  if (!t) return;
+
+  // Carregar jsPDF se necessário
+  if (!window.jspdf) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const W = 210;
+  const cfg = configuracoes || {};
+  const nomeClube = cfg.nome || 'Vizelgolfe — Associacao de Minigolfe de Vizela';
+  const inscritos = Object.entries(inscricoes)
+    .filter(([,i]) => i.torneioKey === key)
+    .sort((a,b) => (a[1].socioNome||'').localeCompare(b[1].socioNome||''));
+
+  const estadoLabel = { pendente: 'Pendente', confirmado: 'Confirmado', rejeitado: 'Rejeitado' };
+  const totalConf = inscritos.filter(([,i]) => i.estado === 'confirmado').length;
+  const totalPend = inscritos.filter(([,i]) => i.estado === 'pendente').length;
+
+  // ── Cabeçalho ──────────────────────────────────
+  doc.setFillColor(15, 17, 23);
+  doc.rect(0, 0, W, 40, 'F');
+
+  doc.setTextColor(240, 192, 64);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.text('VIZELGOLFE', 20, 16);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(180, 180, 180);
+  doc.text('Associacao de Minigolfe de Vizela  |  NIF 509 227 902', 20, 23);
+  doc.text('vizelgolfe.net', 20, 29);
+
+  doc.setTextColor(240, 192, 64);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('LISTA DE INSCRITOS', W - 20, 18, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(180, 180, 180);
+  doc.text(new Date().toLocaleDateString('pt-PT'), W - 20, 26, { align: 'right' });
+
+  let y = 50;
+
+  // ── Info do torneio ────────────────────────────
+  doc.setFillColor(26, 29, 39);
+  doc.roundedRect(14, y - 6, W - 28, 26, 3, 3, 'F');
+
+  doc.setTextColor(240, 192, 64);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text(t.nome || 'Torneio', 20, y + 4);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(180, 180, 180);
+  const dataStr = t.data ? new Date(t.data + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+  doc.text(`Data: ${dataStr}`, 20, y + 13);
+  doc.text(`${inscritos.length} inscritos  |  ${totalConf} confirmados  |  ${totalPend} pendentes`, W - 20, y + 13, { align: 'right' });
+
+  y += 34;
+
+  // ── Cabeçalho da tabela ────────────────────────
+  doc.setFillColor(240, 192, 64);
+  doc.rect(14, y - 4, W - 28, 9, 'F');
+  doc.setTextColor(15, 17, 23);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('Nº', 20, y + 1);
+  doc.text('Nome', 35, y + 1);
+  doc.text('Categoria', 120, y + 1);
+  doc.text('Estado', 165, y + 1);
+  doc.text('Inscrito em', W - 20, y + 1, { align: 'right' });
+  y += 11;
+
+  // ── Linhas da tabela ───────────────────────────
+  if (!inscritos.length) {
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text('Sem inscrições registadas.', W / 2, y + 10, { align: 'center' });
+  } else {
+    inscritos.forEach(([, i], idx) => {
+      // Nova página se necessário
+      if (y > 265) {
+        doc.addPage();
+        y = 20;
+        // Repetir cabeçalho tabela
+        doc.setFillColor(240, 192, 64);
+        doc.rect(14, y - 4, W - 28, 9, 'F');
+        doc.setTextColor(15, 17, 23);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.text('Nr', 20, y + 1);
+        doc.text('Nome', 35, y + 1);
+        doc.text('Categoria', 120, y + 1);
+        doc.text('Estado', 165, y + 1);
+        doc.text('Inscrito em', W - 20, y + 1, { align: 'right' });
+        y += 11;
+      }
+
+      const bg = idx % 2 === 0 ? [26, 29, 39] : [22, 25, 34];
+      doc.setFillColor(...bg);
+      doc.rect(14, y - 4, W - 28, 9, 'F');
+
+      const corEstado = i.estado === 'confirmado' ? [76, 175, 80] : i.estado === 'rejeitado' ? [200, 80, 80] : [200, 160, 60];
+
+      doc.setTextColor(200, 200, 200);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.text(String(i.socioNum || '—'), 20, y + 1);
+      doc.text((i.socioNome || '—').substring(0, 40), 35, y + 1);
+      doc.text((i.categoria || '—').substring(0, 25), 120, y + 1);
+
+      doc.setTextColor(...corEstado);
+      doc.setFont('helvetica', 'bold');
+      doc.text(estadoLabel[i.estado] || i.estado || '—', 165, y + 1);
+
+      doc.setTextColor(160, 160, 160);
+      doc.setFont('helvetica', 'normal');
+      const dtInsc = i.criadoEm ? new Date(i.criadoEm).toLocaleDateString('pt-PT') : '—';
+      doc.text(dtInsc, W - 20, y + 1, { align: 'right' });
+
+      y += 9;
+    });
+  }
+
+  // ── Rodapé ─────────────────────────────────────
+  y += 10;
+  if (y < 260) {
+    doc.setDrawColor(60, 60, 70);
+    doc.setLineWidth(0.3);
+    doc.line(14, y, W - 14, y);
+    y += 6;
+    doc.setTextColor(120, 120, 120);
+    doc.setFontSize(7.5);
+    doc.text(`Documento gerado em ${new Date().toLocaleString('pt-PT')}  |  ${nomeClube}  |  vizelgolfe.net`, W / 2, y, { align: 'center' });
+  }
+
+  // Rodapé de página
+  const totalPages = doc.getNumberOfPages();
+  for (let pg = 1; pg <= totalPages; pg++) {
+    doc.setPage(pg);
+    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(7);
+    doc.text(`${nomeClube}  |  vizelgolfe.net`, W / 2, 287, { align: 'center' });
+    if (totalPages > 1) doc.text(`${pg} / ${totalPages}`, W - 14, 287, { align: 'right' });
+  }
+
+  const nomeFich = `inscritos_${(t.nome||'torneio').replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_]/g,'')}.pdf`;
+  doc.save(nomeFich);
+  toast('PDF gerado ✅');
 };
 
 window.toast = function(msg, type='success') {
