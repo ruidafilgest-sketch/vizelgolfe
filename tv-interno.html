@@ -389,6 +389,12 @@ html,body{width:100%;height:100%;background:var(--navy);color:var(--text);font-f
   .bloco-full th,.bloco-full td{padding:3px 4px;}
 }
 </style>
+<script>
+function selecionarModo(m){setTimeout(function(){if(window._selecionarModo)window._selecionarModo(m);},50);}
+function voltarModo(){setTimeout(function(){if(window._voltarModo)window._voltarModo();},50);}
+function dsOpen(a,b){setTimeout(function(){if(window.dsOpen)window.dsOpen(a,b);},50);}
+function dsClose(){setTimeout(function(){if(window.dsClose)window.dsClose();},50);}
+</script>
 </head>
 <body>
 
@@ -584,14 +590,14 @@ function voltaHTML(v,corFn){
 }
 
 // ── MODO SELECTOR ──
-window.selecionarModo=function(modo){
+window._selecionarModo=function(modo){
   modoAtivo=modo;
   document.getElementById('modo-cards').style.display='none';
   document.getElementById('btn-voltar').style.display='block';
   if(modo==='interno'){renderSetupInterno();}
   else{iniciarTVNacional();}
 };
-window.voltarModo=function(){
+window._voltarModo=function(){
   document.getElementById('modo-cards').style.display='flex';
   document.getElementById('setup-provas').style.display='none';
   document.getElementById('btn-voltar').style.display='none';
