@@ -8723,7 +8723,7 @@ function confirmarApagarEmp(key) {
 
 // ── PDF INVENTÁRIO ──
 async function exportarInventarioPDF() {
-  // Carregar jsPDF dinamicamente — padrão do portal
+  // Carregar jsPDF
   if (!window.jspdf) {
     await new Promise((resolve, reject) => {
       const s = document.createElement('script');
@@ -8732,79 +8732,228 @@ async function exportarInventarioPDF() {
       document.head.appendChild(s);
     });
   }
-  if (!window.jspdf) { toast('Erro ao carregar PDF','error'); return; }
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  if (!window.jspdf) { toast('Erro ao carregar PDF', 'error'); return; }
+  const { jsPDF } = window.jspdf;
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const W = 297; const H = 210;
   const hoje = new Date().toLocaleDateString('pt-PT');
-  doc.setFillColor(10,22,40); doc.rect(0,0,297,20,'F');
-  doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(212,130,10);
-  doc.text('VIZELGOLFE — Inventário de Equipamento e Material', 148,13,{align:'center'});
-  doc.setFontSize(8); doc.setTextColor(150,150,150);
-  doc.text(`Gerado em ${hoje}`, 285,13,{align:'right'});
   const empQtd = getEmpQtd();
-  const rows = Object.entries(_inv)
-    .sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||''))
-    .map(([key,a])=>[
-      a.nome||'', a.categoria||'',
-      String(a.qtd||0), String(Number(a.qtd||0)-(empQtd[key]||0)),
-      a.estado||'', a.valor?Number(a.valor).toFixed(2)+' €':'—',
-      a.dataAquisicao||'—', a.desc||''
-    ]);
-  doc.autoTable({
-    startY:25, head:[['Artigo','Categoria','Qtd Total','Disponível','Estado','Valor','Aquisição','Descrição']],
-    body:rows.length?rows:[['Sem artigos','','','','','','','']],
-    theme:'striped', styles:{fontSize:8,cellPadding:2.5},
-    headStyles:{fillColor:[10,22,40],textColor:[212,130,10],fontStyle:'bold'},
-    columnStyles:{0:{cellWidth:50},7:{cellWidth:45}},
-    margin:{left:5,right:5,bottom:15}
-  });
-  // Página 2 — empréstimos activos
-  const ativos = Object.entries(_emp).filter(([,e])=>!e.devolvido);
-  if(ativos.length){
-    doc.addPage();
-    doc.setFillColor(10,22,40); doc.rect(0,0,297,20,'F');
-    doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(212,130,10);
-    doc.text('Empréstimos Activos', 148,13,{align:'center'});
-    const hoje2 = new Date().toISOString().split('T')[0];
-    const rowsE = ativos.map(([,e])=>{
-      const art=_inv[e.artigoId];
-      return [art?.nome||'—', String(e.qtd||1), e.socio||'—', e.contacto||'—', e.dataSaida||'—', e.dataDev||'—', e.dataDev<hoje2?'⚠ ATRASADO':'Activo', e.obs||''];
-    });
-    doc.autoTable({
-      startY:25, head:[['Artigo','Qtd','Sócio/Atleta','Contacto','Saída','Dev. Prevista','Estado','Obs']],
-      body:rowsE, theme:'striped', styles:{fontSize:8,cellPadding:2.5},
-      headStyles:{fillColor:[10,22,40],textColor:[212,130,10],fontStyle:'bold'},
-      margin:{left:5,right:5}
+
+  // ── Cabeçalho ──
+  doc.setFillColor(10, 22, 40);
+  doc.rect(0, 0, W, 22, 'F');
+  doc.setFillColor(212, 130, 10);
+  doc.rect(0, 22, W, 1, 'F');
+
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(212, 130, 10);
+  doc.text('VIZELGOLFE', 14, 10);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(180, 160, 120);
+  doc.text('Associação de Minigolfe de Vizela', 14, 16);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('Inventário de Equipamento e Material', W / 2, 13, { align: 'center' });
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(150, 130, 90);
+  doc.text('Gerado em ' + hoje, W - 14, 10, { align: 'right' });
+
+  // ── Tabela manual ──
+  const arts = Object.entries(_inv).sort((a, b) => (a[1].nome || '').localeCompare(b[1].nome || ''));
+
+  // Cabeçalho da tabela
+  let y = 30;
+  const cols = [
+    { label: 'Artigo',       x: 14,  w: 65 },
+    { label: 'Categoria',    x: 79,  w: 38 },
+    { label: 'Qtd Total',    x: 117, w: 22 },
+    { label: 'Disponível',   x: 139, w: 22 },
+    { label: 'Estado',       x: 161, w: 28 },
+    { label: 'Valor (€)',    x: 189, w: 24 },
+    { label: 'Aquisição',    x: 213, w: 26 },
+    { label: 'Descrição',    x: 239, w: 54 },
+  ];
+
+  // Header row
+  doc.setFillColor(10, 22, 40);
+  doc.rect(14, y, W - 28, 8, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(212, 130, 10);
+  cols.forEach(c => doc.text(c.label, c.x + 2, y + 5.5));
+  y += 8;
+
+  // Linhas
+  if (!arts.length) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(120, 100, 60);
+    doc.text('Sem artigos registados no inventário', W / 2, y + 10, { align: 'center' });
+  } else {
+    arts.forEach(([key, a], i) => {
+      if (y > H - 25) {
+        doc.addPage('a4', 'landscape');
+        y = 20;
+        // Re-header
+        doc.setFillColor(10, 22, 40);
+        doc.rect(14, y, W - 28, 8, 'F');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(212, 130, 10);
+        cols.forEach(c => doc.text(c.label, c.x + 2, y + 5.5));
+        y += 8;
+      }
+
+      const disp = Number(a.qtd || 0) - (empQtd[key] || 0);
+      const rowH = 7;
+      const bg = i % 2 === 0 ? [250, 247, 240] : [255, 255, 255];
+      doc.setFillColor(...bg);
+      doc.rect(14, y, W - 28, rowH, 'F');
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(30, 30, 30);
+
+      const truncate = (str, maxW) => {
+        if (!str) return '—';
+        const s = String(str);
+        return doc.getTextWidth(s) * 8 / 10 > maxW ? s.substring(0, Math.floor(maxW / 2)) + '...' : s;
+      };
+
+      doc.text(truncate(a.nome, 60), cols[0].x + 2, y + 4.8);
+      doc.text(truncate(a.categoria, 34), cols[1].x + 2, y + 4.8);
+
+      doc.setFont('helvetica', 'bold');
+      doc.text(String(a.qtd || 0), cols[2].x + 11, y + 4.8, { align: 'center' });
+
+      doc.setTextColor(disp > 0 ? 46 : 231, disp > 0 ? 140 : 76, disp > 0 ? 60 : 60);
+      doc.text(String(disp), cols[3].x + 11, y + 4.8, { align: 'center' });
+      doc.setTextColor(30, 30, 30);
+
+      doc.setFont('helvetica', 'normal');
+      const estadoCor = { Bom: [46,140,60], Usado: [180,140,20], Danificado: [200,60,60], Abatido: [120,120,120] };
+      const ec = estadoCor[a.estado] || [100,100,100];
+      doc.setTextColor(...ec);
+      doc.text(a.estado || '—', cols[4].x + 2, y + 4.8);
+      doc.setTextColor(30, 30, 30);
+
+      doc.text(a.valor ? Number(a.valor).toFixed(2) : '—', cols[5].x + 2, y + 4.8);
+      doc.text(a.dataAquisicao || '—', cols[6].x + 2, y + 4.8);
+      doc.text(truncate(a.desc, 50), cols[7].x + 2, y + 4.8);
+
+      // Linha separadora
+      doc.setDrawColor(220, 210, 190);
+      doc.setLineWidth(0.2);
+      doc.line(14, y + rowH, W - 14, y + rowH);
+      y += rowH;
     });
   }
-  doc.save('Vizelgolfe_Inventario.pdf');
+
+  // ── Totais ──
+  y += 4;
+  doc.setFillColor(10, 22, 40);
+  doc.rect(14, y, W - 28, 8, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(212, 130, 10);
+  const totalArtigos = arts.length;
+  const totalQtd = arts.reduce((s, [, a]) => s + Number(a.qtd || 0), 0);
+  const totalDisp = arts.reduce((s, [key, a]) => s + Number(a.qtd || 0) - (empQtd[key] || 0), 0);
+  const totalVal = arts.reduce((s, [, a]) => s + (a.valor ? Number(a.valor) : 0), 0);
+  doc.text(`Total: ${totalArtigos} artigos · ${totalQtd} unidades · ${totalDisp} disponíveis · Valor total: ${totalVal.toFixed(2)} €`, 16, y + 5.5);
+
+  // ── Página 2 — Empréstimos activos ──
+  const ativos = Object.entries(_emp).filter(([, e]) => !e.devolvido);
+  if (ativos.length) {
+    doc.addPage('a4', 'landscape');
+
+    doc.setFillColor(10, 22, 40);
+    doc.rect(0, 0, W, 22, 'F');
+    doc.setFillColor(212, 130, 10);
+    doc.rect(0, 22, W, 1, 'F');
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text('Empréstimos Activos', W / 2, 13, { align: 'center' });
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(150, 130, 90);
+    doc.text('Gerado em ' + hoje, W - 14, 10, { align: 'right' });
+
+    y = 30;
+    const cols2 = [
+      { label: 'Artigo',          x: 14,  w: 60 },
+      { label: 'Qtd',             x: 74,  w: 16 },
+      { label: 'Sócio / Atleta',  x: 90,  w: 60 },
+      { label: 'Contacto',        x: 150, w: 45 },
+      { label: 'Saída',           x: 195, w: 26 },
+      { label: 'Dev. Prevista',   x: 221, w: 26 },
+      { label: 'Estado',          x: 247, w: 28 },
+      { label: 'Obs',             x: 275, w: 20 },
+    ];
+
+    doc.setFillColor(10, 22, 40);
+    doc.rect(14, y, W - 28, 8, 'F');
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(212, 130, 10);
+    cols2.forEach(c => doc.text(c.label, c.x + 2, y + 5.5));
+    y += 8;
+
+    const hojeISO = new Date().toISOString().split('T')[0];
+    ativos.forEach(([, e], i) => {
+      const art = _inv[e.artigoId];
+      const atr = e.dataDev < hojeISO;
+      const rowH = 7;
+      const bg = i % 2 === 0 ? [250, 247, 240] : [255, 255, 255];
+      doc.setFillColor(...bg);
+      doc.rect(14, y, W - 28, rowH, 'F');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(30, 30, 30);
+      doc.text(String(art?.nome || '—').substring(0, 30), cols2[0].x + 2, y + 4.8);
+      doc.text(String(e.qtd || 1), cols2[1].x + 8, y + 4.8, { align: 'center' });
+      doc.text(String(e.socio || '—').substring(0, 28), cols2[2].x + 2, y + 4.8);
+      doc.text(String(e.contacto || '—').substring(0, 20), cols2[3].x + 2, y + 4.8);
+      doc.text(e.dataSaida || '—', cols2[4].x + 2, y + 4.8);
+      doc.setTextColor(atr ? 200 : 30, atr ? 60 : 30, 30);
+      doc.text(e.dataDev || '—', cols2[5].x + 2, y + 4.8);
+      doc.setTextColor(atr ? 200 : 46, atr ? 60 : 140, atr ? 60 : 60);
+      doc.setFont('helvetica', 'bold');
+      doc.text(atr ? 'ATRASADO' : 'Activo', cols2[6].x + 2, y + 4.8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(30, 30, 30);
+      doc.text(String(e.obs || '').substring(0, 10), cols2[7].x + 2, y + 4.8);
+      doc.setDrawColor(220, 210, 190);
+      doc.line(14, y + rowH, W - 14, y + rowH);
+      y += rowH;
+    });
+  }
+
+  // ── Rodapé ──
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFillColor(10, 22, 40);
+    doc.rect(0, H - 10, W, 10, 'F');
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(120, 100, 60);
+    doc.text('© Rui Gonçalves · Vizelgolfe — Associação de Minigolfe de Vizela', 14, H - 3.5);
+    doc.setTextColor(212, 130, 10);
+    doc.text('Pág. ' + i + ' / ' + pageCount, W - 14, H - 3.5, { align: 'right' });
+  }
+
+  doc.save('Vizelgolfe_Inventario_' + new Date().toISOString().split('T')[0] + '.pdf');
   toast('PDF gerado ✅');
 }
 
-// Intercepção do showPage para carregar dados
-const _showPageOrig = window.showPage;
-if(_showPageOrig) {
-  window.showPage = function(page) {
-    _showPageOrig(page);
-    if(page==='inventario') loadInventario();
-  };
-}
 
-
-// ── INVENTÁRIO — window exports ──
-window.abrirModalArtigo = abrirModalArtigo;
-window.abrirEditArtigo = abrirEditArtigo;
-window.guardarArtigo = guardarArtigo;
-window.confirmarApagarArtigo = confirmarApagarArtigo;
-window.abrirModalEmprestimo = abrirModalEmprestimo;
-window.abrirEmpArtigo = abrirEmpArtigo;
-window.guardarEmprestimo = guardarEmprestimo;
-window.populateEmpSelect = populateEmpSelect;
-window.abrirModalDev = abrirModalDev;
-window.registarDevolucao = registarDevolucao;
-window.confirmarApagarEmp = confirmarApagarEmp;
-window.switchInvTab = switchInvTab;
-window.renderEmpHistorico = renderEmpHistorico;
 window.exportarInventarioPDF = exportarInventarioPDF;
 
 </script>
