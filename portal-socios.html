@@ -8722,8 +8722,17 @@ function confirmarApagarEmp(key) {
 }
 
 // ── PDF INVENTÁRIO ──
-function exportarInventarioPDF() {
-  if(!window.jspdf){ toast('A carregar PDF...','info'); setTimeout(exportarInventarioPDF,800); return; }
+async function exportarInventarioPDF() {
+  // Carregar jsPDF dinamicamente — padrão do portal
+  if (!window.jspdf) {
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+  }
+  if (!window.jspdf) { toast('Erro ao carregar PDF','error'); return; }
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
   const hoje = new Date().toLocaleDateString('pt-PT');
