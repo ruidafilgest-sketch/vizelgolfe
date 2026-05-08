@@ -8735,7 +8735,7 @@ async function exportarInventarioPDF() {
   if (!window.jspdf) { toast('Erro ao carregar PDF', 'error'); return; }
   const { jsPDF } = window.jspdf;
 
-  const doc = new window.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const W = 297; const H = 210;
   const hoje = new Date().toLocaleDateString('pt-PT');
   const empQtd = getEmpQtd();
