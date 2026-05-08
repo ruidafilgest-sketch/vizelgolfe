@@ -229,6 +229,10 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   main { padding: 16px; }
 }
 </style>
+<script>
+// Wrappers globais para funções do módulo ES6
+function switchLoginTab(t){if(window._switchLoginTab)window._switchLoginTab(t);else setTimeout(function(){switchLoginTab(t);},100);}
+</script>
 </head>
 <body>
 
@@ -7628,7 +7632,7 @@ async function gerarEGuardarPdfRgpd(socioData, consentimento, key) {
   const dt     = c.timestamp ? new Date(c.timestamp).toLocaleString('pt-PT') : '—';
   const ip     = c.ip || '—';
   const W = 210; let y = 0;
-  const doc = new window.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   // Cabeçalho
   doc.setFillColor(15, 17, 23); doc.rect(0, 0, W, 38, 'F');
@@ -8230,7 +8234,7 @@ window.imprimirListaInscritos = async function() {
   }
 
   const { jsPDF } = window.jspdf;
-  const doc = new window.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = 210;
   const cfg = configuracoes || {};
   const nomeClube = cfg.nome || 'Vizelgolfe — Associacao de Minigolfe de Vizela';
@@ -8980,4 +8984,6 @@ if(_origSP) {
   };
 }
 
+
+window._switchLoginTab = window.switchLoginTab || function(){};
 </script>
