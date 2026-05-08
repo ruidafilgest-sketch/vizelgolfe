@@ -1334,7 +1334,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <!-- INVENTÁRIO & EMPRÉSTIMOS -->
     <div id="page-inventario" class="page">
       <div class="toolbar">
-        <button class="btn-primary" onclick="abrirModalArtigo()">+ Novo Artigo</button>
+        <button class="btn-primary" onclick="abrirModalArtigo()">&#43; Novo Artigo</button>
         <button class="btn-secondary" onclick="abrirModalEmprestimo()">📤 Registar Empréstimo</button>
         <select id="inv-filtro-cat" onchange="renderInventario()" style="margin-left:8px;">
           <option value="">Todas as categorias</option>
@@ -1412,13 +1412,13 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     </div>
 
     <!-- MODAL ARTIGO -->
-    <div id="modal-artigo" class="modal" style="display:none;">
-      <div class="modal-content">
+    <div class="modal-overlay" id="modal-artigo">
+      <div class="modal" style="max-width:600px;width:95%">
         <div class="modal-header">
           <h3 id="modal-artigo-titulo">Novo Artigo</h3>
           <button class="modal-close" onclick="closeModal('modal-artigo')">✕</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="padding:20px 24px;">
           <div class="form-grid">
             <div class="form-group">
               <label>Nome do artigo *</label>
@@ -1466,21 +1466,21 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </div>
           <input type="hidden" id="art-id">
         </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" onclick="closeModal('modal-artigo')">Cancelar</button>
-          <button class="btn-primary" onclick="guardarArtigo()">Guardar</button>
+        <div class="modal-footer" style="padding:16px 24px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border2);">
+          <button class="btn-sec" onclick="closeModal('modal-artigo')">Cancelar</button>
+          <button class="btn-prim" onclick="guardarArtigo()">Guardar</button>
         </div>
       </div>
     </div>
 
     <!-- MODAL EMPRÉSTIMO -->
-    <div id="modal-emprestimo" class="modal" style="display:none;">
-      <div class="modal-content">
+    <div class="modal-overlay" id="modal-emprestimo">
+      <div class="modal" style="max-width:600px;width:95%">
         <div class="modal-header">
           <h3>Registar Empréstimo</h3>
           <button class="modal-close" onclick="closeModal('modal-emprestimo')">✕</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="padding:20px 24px;">
           <div class="form-grid">
             <div class="form-group">
               <label>Artigo *</label>
@@ -1514,21 +1514,21 @@ tr:hover td { background: rgba(255,255,255,0.02); }
             <textarea id="emp-obs" rows="2" placeholder="Motivo do empréstimo, condição do artigo à saída..."></textarea>
           </div>
         </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" onclick="closeModal('modal-emprestimo')">Cancelar</button>
-          <button class="btn-primary" onclick="guardarEmprestimo()">Registar saída</button>
+        <div class="modal-footer" style="padding:16px 24px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border2);">
+          <button class="btn-sec" onclick="closeModal('modal-emprestimo')">Cancelar</button>
+          <button class="btn-prim" onclick="guardarEmprestimo()">Registar saída</button>
         </div>
       </div>
     </div>
 
     <!-- MODAL DEVOLUÇÃO -->
-    <div id="modal-devolucao" class="modal" style="display:none;">
-      <div class="modal-content" style="max-width:480px;">
+    <div class="modal-overlay" id="modal-devolucao">
+      <div class="modal" style="max-width:480px;width:95%">
         <div class="modal-header">
           <h3>Registar Devolução</h3>
           <button class="modal-close" onclick="closeModal('modal-devolucao')">✕</button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="padding:20px 24px;">
           <div id="dev-info" style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;"></div>
           <div class="form-grid">
             <div class="form-group">
@@ -1550,9 +1550,9 @@ tr:hover td { background: rgba(255,255,255,0.02); }
           </div>
           <input type="hidden" id="dev-emp-id">
         </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" onclick="closeModal('modal-devolucao')">Cancelar</button>
-          <button class="btn-primary" onclick="registarDevolucao()">Confirmar devolução</button>
+        <div class="modal-footer" style="padding:16px 24px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border2);">
+          <button class="btn-sec" onclick="closeModal('modal-devolucao')">Cancelar</button>
+          <button class="btn-prim" onclick="registarDevolucao()">Confirmar devolução</button>
         </div>
       </div>
     </div>
@@ -1641,7 +1641,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <h3 id="modal-aviso-title">Novo Aviso</h3>
       <button class="modal-close" onclick="closeModal('modal-aviso')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:20px 24px;">
       <div class="form-group" style="margin-bottom:16px">
         <label style="display:block;margin-bottom:6px;font-size:13px;color:var(--text2)">Título *</label>
         <input id="aviso-titulo" type="text" placeholder="Ex: Convocatória para Assembleia Geral" style="width:100%;padding:10px 14px;background:var(--input);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:14px">
@@ -1679,7 +1679,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <h3 id="modal-socio-title">Novo Sócio</h3>
       <button class="modal-close" onclick="closeModal('modal-socio')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:20px 24px;">
       <div class="form-grid">
         <div class="form-group"><label>Número de Sócio</label><input id="s-num" type="text" placeholder="Ex: 208" /></div>
         <div class="form-group"><label>Categoria</label>
@@ -1725,7 +1725,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <h3 id="modal-quota-title">Registar Pagamento</h3>
       <button class="modal-close" onclick="closeModal('modal-quota')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:20px 24px;">
       <div class="form-grid">
         <div class="form-group full"><label>Sócio</label><input id="q-socio-nome" type="text" readonly style="opacity:.7" /></div>
         <div class="form-group"><label>Ano</label><input id="q-ano" type="number" value="2026" /></div>
@@ -1763,7 +1763,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <h3>Recibo</h3>
       <button class="modal-close" onclick="closeModal('modal-recibo')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:20px 24px;">
       <div class="recibo-preview" id="recibo-content"></div>
     </div>
     <div class="modal-footer">
@@ -1782,7 +1782,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <h3 id="modal-receita-title">Nova Receita</h3>
       <button class="modal-close" onclick="closeModal('modal-receita')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:20px 24px;">
       <div class="form-grid">
         <div class="form-group"><label>Data</label><input id="r-data" type="date" /></div>
         <div class="form-group"><label>Valor (€)</label><input id="r-valor" type="number" step="0.01" placeholder="0.00" /></div>
@@ -1842,7 +1842,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <h3 id="modal-despesa-title">Nova Despesa</h3>
       <button class="modal-close" onclick="closeModal('modal-despesa')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:20px 24px;">
       <div class="form-grid">
         <div class="form-group"><label>Data</label><input id="d-data" type="date" /></div>
         <div class="form-group"><label>Valor (€)</label><input id="d-valor" type="number" step="0.01" placeholder="0.00" /></div>
@@ -1940,7 +1940,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <h3 id="modal-acerto-title">⇄ Acerto Caixa / Banco</h3>
       <button class="modal-close" onclick="closeModal('modal-acerto')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:20px 24px;">
       <div style="background:var(--bg2);border-radius:10px;padding:16px;margin-bottom:16px;font-size:13px;color:var(--text2)">
         💡 Regista uma transferência entre Caixa e Banco. O resultado total não é afetado.
       </div>
@@ -1985,7 +1985,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <h3 id="modal-torneio-title">Novo Torneio</h3>
       <button class="modal-close" onclick="closeModal('modal-torneio')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:20px 24px;">
       <div class="form-grid">
         <div class="form-group full"><label>Nome do Torneio / Competição</label>
           <input id="t-nome" type="text" placeholder="Ex: Campeonato de Vizela 2026" />
@@ -2051,7 +2051,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <h3 id="modal-inscricao-title">Inscrição</h3>
       <button class="modal-close" onclick="closeModal('modal-inscricao')">✕</button>
     </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding:20px 24px;">
       <div id="modal-inscricao-info" style="background:var(--bg2);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px"></div>
       <div class="form-grid">
         <div class="form-group full"><label>Categoria em que participa</label>
@@ -7507,6 +7507,10 @@ window.enviarAvisoEmail = async function(key) {
     .bottom{background:#f4f7fb;padding:14px 28px;font-size:10px;color:#999;text-align:center;border-top:1px solid #e0e8f0}
   
 /* ── INVENTÁRIO ── */
+.btn-prim{background:var(--accent);color:#fff;border:none;padding:8px 20px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:600;transition:opacity .15s;}
+.btn-prim:hover{opacity:.85;}
+.btn-sec{background:var(--card2);color:var(--text);border:1px solid var(--border2);padding:8px 20px;border-radius:7px;cursor:pointer;font-size:13px;transition:all .15s;}
+.btn-sec:hover{background:var(--card);}
 .btn-tab-inv{background:var(--card2);border:1px solid var(--card2);color:var(--muted);padding:7px 16px;border-radius:7px;cursor:pointer;font-size:13px;transition:all .15s;}
 .btn-tab-inv.active{background:var(--accent);color:#fff;border-color:var(--accent);}
 .btn-tab-inv:hover:not(.active){background:var(--card);color:var(--text);}
@@ -8578,7 +8582,7 @@ function abrirModalArtigo(key) {
   document.getElementById('art-data').value = a.dataAquisicao||new Date().toISOString().split('T')[0];
   document.getElementById('art-desc').value = a.desc||'';
   document.getElementById('modal-artigo-titulo').textContent = key?'Editar Artigo':'Novo Artigo';
-  document.getElementById('modal-artigo').style.display = 'flex';
+  document.getElementById('modal-artigo').classList.add('open');
 }
 
 function abrirEditArtigo(key){ abrirModalArtigo(key); }
@@ -8623,7 +8627,7 @@ function abrirModalEmprestimo() {
   document.getElementById('emp-saida').value=new Date().toISOString().split('T')[0];
   document.getElementById('emp-devolucao').value='';
   document.getElementById('emp-obs').value='';
-  document.getElementById('modal-emprestimo').style.display='flex';
+  document.getElementById('modal-emprestimo').classList.add('open');
 }
 
 function abrirEmpArtigo(key) {
@@ -8691,7 +8695,7 @@ function abrirModalDev(key) {
     Emprestado a: <strong>${e.socio}</strong><br>
     Saída: ${e.dataSaida||'—'} &nbsp;·&nbsp; Devolução prevista: ${e.dataDev||'—'}
   `;
-  document.getElementById('modal-devolucao').style.display='flex';
+  document.getElementById('modal-devolucao').classList.add('open');
 }
 
 async function registarDevolucao() {
