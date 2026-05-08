@@ -7628,7 +7628,7 @@ async function gerarEGuardarPdfRgpd(socioData, consentimento, key) {
   const dt     = c.timestamp ? new Date(c.timestamp).toLocaleString('pt-PT') : '—';
   const ip     = c.ip || '—';
   const W = 210; let y = 0;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const doc = new window.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
   // Cabeçalho
   doc.setFillColor(15, 17, 23); doc.rect(0, 0, W, 38, 'F');
@@ -8230,7 +8230,7 @@ window.imprimirListaInscritos = async function() {
   }
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const doc = new window.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
   const W = 210;
   const cfg = configuracoes || {};
   const nomeClube = cfg.nome || 'Vizelgolfe — Associacao de Minigolfe de Vizela';
@@ -8735,7 +8735,7 @@ async function exportarInventarioPDF() {
   if (!window.jspdf) { toast('Erro ao carregar PDF', 'error'); return; }
   const { jsPDF } = window.jspdf;
 
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const doc = new window.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const W = 297; const H = 210;
   const hoje = new Date().toLocaleDateString('pt-PT');
   const empQtd = getEmpQtd();
@@ -8955,5 +8955,29 @@ async function exportarInventarioPDF() {
 
 
 window.exportarInventarioPDF = exportarInventarioPDF;
+
+// ── INVENTÁRIO — window exports ──
+window.abrirModalArtigo = abrirModalArtigo;
+window.abrirEditArtigo = abrirEditArtigo;
+window.guardarArtigo = guardarArtigo;
+window.confirmarApagarArtigo = confirmarApagarArtigo;
+window.abrirModalEmprestimo = abrirModalEmprestimo;
+window.abrirEmpArtigo = abrirEmpArtigo;
+window.guardarEmprestimo = guardarEmprestimo;
+window.populateEmpSelect = populateEmpSelect;
+window.abrirModalDev = abrirModalDev;
+window.registarDevolucao = registarDevolucao;
+window.confirmarApagarEmp = confirmarApagarEmp;
+window.switchInvTab = switchInvTab;
+window.renderEmpHistorico = renderEmpHistorico;
+
+// Intercepção showPage para inventário
+const _origSP = window.showPage;
+if(_origSP) {
+  window.showPage = function(page) {
+    _origSP(page);
+    if(page === 'inventario') { loadInventario(); renderInvStock(); }
+  };
+}
 
 </script>
