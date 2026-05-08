@@ -8381,204 +8381,212 @@ window.toast = function(msg, type='success') {
 };
 
 // ══════════════════════════════════════════════════════
-// INVENTÁRIO & EMPRÉSTIMOS
+// INVENTÁRIO & EMPRÉSTIMOS — Vizelgolfe
 // ══════════════════════════════════════════════════════
 
-let _inventario = {};
-let _emprestimos = {};
+let _inv = {};
+let _emp = {};
+let _invLoaded = false;
 
-// Carregar dados
 function loadInventario() {
-  window._onValue(window._dbRef('inventario'), snap => {
-    _inventario = snap.val() || {};
-    renderInventario();
-    updateEmpQtdMax();
-    renderInventarioKPIs();
+  if(_invLoaded) return;
+  _invLoaded = true;
+  onValue(ref(db,'/portal/inventario'), snap => {
+    _inv = snap.val() || {};
+    renderInvStock();
+    renderInvKPIs();
+    populateEmpSelect();
   });
-  window._onValue(window._dbRef('emprestimos'), snap => {
-    _emprestimos = snap.val() || {};
-    renderEmprestimos();
-    renderHistorico();
-    renderInventarioKPIs();
+  onValue(ref(db,'/portal/emprestimos'), snap => {
+    _emp = snap.val() || {};
+    renderInvStock();
+    renderEmpAtivos();
+    renderEmpHistorico();
+    renderInvKPIs();
   });
 }
 
-function renderInventarioKPIs() {
-  const arts = Object.values(_inventario);
-  const emps = Object.values(_emprestimos).filter(e => !e.devolvido);
+function renderInvKPIs() {
+  const arts = Object.values(_inv);
   const hoje = new Date().toISOString().split('T')[0];
-  const atrasados = emps.filter(e => e.dataDevolucao < hoje);
-
+  const empAtivos = Object.values(_emp).filter(e=>!e.devolvido);
   const empQtd = {};
-  emps.forEach(e => { empQtd[e.artigoId] = (empQtd[e.artigoId]||0) + Number(e.qtd||1); });
+  empAtivos.forEach(e=>{ empQtd[e.artigoId]=(empQtd[e.artigoId]||0)+Number(e.qtd||1); });
+  const atrasados = empAtivos.filter(e=>e.dataDev < hoje);
 
-  document.getElementById('inv-total').textContent = arts.length;
-  document.getElementById('inv-bom').textContent = arts.filter(a=>a.estado==='Bom').length;
-  document.getElementById('inv-emp').textContent = emps.length;
-  document.getElementById('inv-atr').textContent = atrasados.length;
+  const el = (id,v) => { const el=document.getElementById(id); if(el)el.textContent=v; };
+  el('inv-total', arts.length);
+  el('inv-bom', arts.filter(a=>a.estado==='Bom').length);
+  el('inv-emp', empAtivos.length);
+  el('inv-atr', atrasados.length);
 
-  // Alertas de empréstimos em atraso
+  // Alertas atraso
   const alertEl = document.getElementById('inv-alertas');
-  if(alertEl && atrasados.length > 0) {
-    alertEl.innerHTML = atrasados.map(e => {
-      const art = _inventario[e.artigoId];
-      const dias = Math.ceil((new Date() - new Date(e.dataDevolucao)) / 86400000);
-      return `<div style="background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.3);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
-        <span>⚠️ <strong>${art?.nome||'Artigo'}</strong> emprestado a <strong>${e.socio}</strong> — em atraso <strong>${dias} dia${dias!==1?'s':''}</strong></span>
-        <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="abrirDevolucao('${e._key}')">Registar devolução</button>
-      </div>`;
+  if(!alertEl) return;
+  if(!atrasados.length){ alertEl.innerHTML=''; return; }
+  alertEl.innerHTML = atrasados.map(function(e){
+      const art = _inv[e.artigoId];
+      const dias = Math.ceil((new Date()-new Date(e.dataDev))/86400000);
+      const key = Object.keys(_emp).find(function(k){return _emp[k]===e;})||'';
+      return '<div style="background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.3);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;">'
+        +'<span>&#9888;&#65039; <strong>'+(art?art.nome:'Artigo')+'</strong> &mdash; emprestado a <strong>'+e.socio+'</strong> &mdash; <strong>'+dias+' dia'+(dias!==1?'s':'')+' de atraso</strong></span>'
+        +'<button onclick="abrirModalDev(&quot;'+key+'&quot;)" style="background:var(--accent);border:none;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap;">Devolver</button>'
+        +'</div>';
     }).join('');
-  } else if(alertEl) {
-    alertEl.innerHTML = '';
-  }
 }
 
-function renderInventario() {
+function getEmpQtd() {
+  const empQtd = {};
+  Object.values(_emp).filter(e=>!e.devolvido).forEach(e=>{
+    empQtd[e.artigoId]=(empQtd[e.artigoId]||0)+Number(e.qtd||1);
+  });
+  return empQtd;
+}
+
+function renderInvStock() {
   const tbody = document.getElementById('inv-tbody');
   if(!tbody) return;
-  const filtCat = document.getElementById('inv-filtro-cat')?.value || '';
-  const filtEst = document.getElementById('inv-filtro-estado')?.value || '';
+  const filtCat = document.getElementById('inv-filtro-cat')?.value||'';
+  const filtEst = document.getElementById('inv-filtro-estado')?.value||'';
+  const empQtd = getEmpQtd();
 
+  // Re-renderizar alertas
   const hoje = new Date().toISOString().split('T')[0];
-  const empQtd = {};
-  Object.values(_emprestimos).filter(e=>!e.devolvido).forEach(e => {
-    empQtd[e.artigoId] = (empQtd[e.artigoId]||0) + Number(e.qtd||1);
-  });
+  const empAtivos = Object.values(_emp).filter(e=>!e.devolvido);
+  const atrasados = empAtivos.filter(e=>e.dataDev < hoje);
+  const alertEl = document.getElementById('inv-alertas');
+  if(alertEl) {
+    alertEl.innerHTML = atrasados.map(e=>{
+      const art = _inv[e.artigoId];
+      const dias = Math.ceil((new Date()-new Date(e.dataDev))/86400000);
+      const key = Object.keys(_emp).find(k=>_emp[k]===e)||'';
+      return `<div style="background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.3);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <span>⚠️ <strong>${art?.nome||'Artigo'}</strong> — <strong>${e.socio}</strong> — <strong>${dias} dia${dias!==1?'s':''} de atraso</strong></span>
+        <button onclick="abrirModalDev('${key}')" style="background:var(--accent);border:none;color:#fff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;white-space:nowrap;">✅ Devolver</button>
+      </div>`;
+    }).join('');
+  }
 
-  const arts = Object.entries(_inventario)
-    .filter(([,a]) => (!filtCat || a.categoria===filtCat) && (!filtEst || a.estado===filtEst))
-    .sort((a,b) => (a[1].nome||'').localeCompare(b[1].nome||''));
+  const arts = Object.entries(_inv)
+    .filter(([,a])=>(!filtCat||a.categoria===filtCat)&&(!filtEst||a.estado===filtEst))
+    .sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||''));
 
-  if(!arts.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Sem artigos registados</td></tr>';
+  if(!arts.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Sem artigos. Clica em "+ Novo Artigo" para começar.</td></tr>';
     return;
   }
 
-  const estadoCls = {Bom:'inv-bom',Usado:'inv-usado',Danificado:'inv-danif',Abatido:'inv-abat'};
-  tbody.innerHTML = arts.map(([key,a]) => {
-    const emp = empQtd[key] || 0;
-    const disp = Number(a.qtd||0) - emp;
+  const eC={'Bom':'background:rgba(46,204,113,.15);color:#2ecc71','Usado':'background:rgba(241,196,15,.15);color:#f1c40f','Danificado':'background:rgba(231,76,60,.15);color:#e74c3c','Abatido':'background:rgba(150,150,150,.15);color:#999'};
+  tbody.innerHTML = arts.map(([key,a])=>{
+    const emp = empQtd[key]||0;
+    const disp = Number(a.qtd||0)-emp;
     return `<tr>
-      <td><strong>${a.nome||''}</strong>${a.desc?`<br><small style="color:var(--muted)">${a.desc}</small>`:''}</td>
-      <td><span style="font-size:12px;color:var(--muted)">${a.categoria||''}</span></td>
-      <td style="text-align:center">${a.qtd||0}</td>
-      <td style="text-align:center"><span class="${disp>0?'inv-disp':'inv-zero'}">${disp}</span>${emp>0?` <small style="color:var(--accent)">(${emp} emp.)</small>`:''}</td>
-      <td><span class="inv-badge ${estadoCls[a.estado]||''}">${a.estado||'—'}</span></td>
-      <td>${a.valor?`${Number(a.valor).toFixed(2)} €`:'—'}</td>
-      <td>
-        <button class="btn-icon" onclick="editarArtigo('${key}')" title="Editar">✏️</button>
-        <button class="btn-icon" onclick="empArtigo('${key}')" title="Emprestar" ${disp<=0?'disabled style="opacity:.4"':''}>📤</button>
-        <button class="btn-icon btn-danger" onclick="apagarArtigo('${key}')" title="Apagar">🗑️</button>
+      <td><strong>${a.nome||''}</strong>${a.desc?`<br><small style="color:var(--muted);font-size:11px">${a.desc}</small>`:''}</td>
+      <td><small style="color:var(--muted)">${a.categoria||''}</small></td>
+      <td style="text-align:center;font-weight:600">${a.qtd||0}</td>
+      <td style="text-align:center;font-weight:600;color:${disp>0?'#2ecc71':'#e74c3c'}">${disp}${emp>0?` <small style="color:var(--accent);font-weight:normal">(${emp} emp.)</small>`:''}</td>
+      <td><span style="font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;${eC[a.estado]||''}">${a.estado||'—'}</span></td>
+      <td style="font-size:12px">${a.valor?Number(a.valor).toFixed(2)+' €':'—'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-icon" onclick="abrirEditArtigo('${key}')" title="Editar">✏️</button>
+        <button class="btn-icon" onclick="abrirEmpArtigo('${key}')" title="Emprestar" ${disp<=0?'disabled style="opacity:.3"':''}>📤</button>
+        <button class="btn-icon" onclick="confirmarApagarArtigo('${key}')" title="Apagar">🗑️</button>
       </td>
     </tr>`;
   }).join('');
 }
 
-function renderEmprestimos() {
+function renderEmpAtivos() {
   const tbody = document.getElementById('emp-tbody');
   if(!tbody) return;
   const hoje = new Date().toISOString().split('T')[0];
-  const ativos = Object.entries(_emprestimos)
-    .filter(([,e]) => !e.devolvido)
-    .sort((a,b) => a[1].dataDevolucao?.localeCompare(b[1].dataDevolucao||''));
+  const ativos = Object.entries(_emp).filter(([,e])=>!e.devolvido)
+    .sort((a,b)=>(a[1].dataDev||'').localeCompare(b[1].dataDev||''));
 
-  if(!ativos.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Sem empréstimos activos</td></tr>';
+  if(!ativos.length){
+    tbody.innerHTML='<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Sem empréstimos activos</td></tr>';
     return;
   }
 
-  tbody.innerHTML = ativos.map(([key,e]) => {
-    const art = _inventario[e.artigoId];
-    const atrasado = e.dataDevolucao < hoje;
-    const dias = atrasado ? Math.ceil((new Date()-new Date(e.dataDevolucao))/86400000) : null;
-    return `<tr style="${atrasado?'background:rgba(231,76,60,.05)':''}">
+  tbody.innerHTML = ativos.map(([key,e])=>{
+    const art = _inv[e.artigoId];
+    const atr = e.dataDev < hoje;
+    const dias = atr ? Math.ceil((new Date()-new Date(e.dataDev))/86400000) : null;
+    return `<tr style="${atr?'background:rgba(231,76,60,.05)':''}">
       <td><strong>${art?.nome||'—'}</strong></td>
       <td style="text-align:center">${e.qtd||1}</td>
       <td>${e.socio||'—'}<br><small style="color:var(--muted)">${e.contacto||''}</small></td>
-      <td>${e.dataSaida||'—'}</td>
-      <td>${e.dataDevolucao||'—'}</td>
-      <td><span class="inv-badge ${atrasado?'inv-emp-atr':'inv-emp-ativo'}">${atrasado?`⚠️ Atrasado ${dias}d`:'Activo'}</span></td>
-      <td>
-        <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="abrirDevolucao('${key}')">✅ Devolvido</button>
-        <button class="btn-icon btn-danger" onclick="apagarEmprestimo('${key}')">🗑️</button>
+      <td style="font-size:12px">${e.dataSaida||'—'}</td>
+      <td style="font-size:12px;${atr?'color:#e74c3c;font-weight:600':''}">${e.dataDev||'—'}${atr?` ⚠️ +${dias}d`:''}</td>
+      <td><span style="font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;${atr?'background:rgba(231,76,60,.2);color:#e74c3c':'background:rgba(212,130,10,.15);color:var(--accent)'}">${atr?'Atrasado':'Activo'}</span></td>
+      <td style="white-space:nowrap">
+        <button onclick="abrirModalDev('${key}')" style="background:rgba(46,204,113,.15);border:1px solid rgba(46,204,113,.3);color:#2ecc71;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;">✅ Devolver</button>
+        <button class="btn-icon" onclick="confirmarApagarEmp('${key}')" title="Apagar">🗑️</button>
       </td>
     </tr>`;
   }).join('');
 }
 
-function renderHistorico() {
+function renderEmpHistorico() {
   const tbody = document.getElementById('hist-tbody');
   if(!tbody) return;
-  const q = document.getElementById('hist-search')?.value?.toLowerCase()||'';
-  const hist = Object.entries(_emprestimos)
-    .filter(([,e]) => e.devolvido)
-    .filter(([,e]) => !q || (e.socio||'').toLowerCase().includes(q) || (_inventario[e.artigoId]?.nome||'').toLowerCase().includes(q))
-    .sort((a,b) => (b[1].dataDevReal||b[1].dataDevolucao||'').localeCompare(a[1].dataDevReal||a[1].dataDevolucao||''));
+  const q = (document.getElementById('hist-search')?.value||'').toLowerCase();
+  const hist = Object.entries(_emp)
+    .filter(([,e])=>e.devolvido)
+    .filter(([,e])=>!q||(e.socio||'').toLowerCase().includes(q)||(_inv[e.artigoId]?.nome||'').toLowerCase().includes(q))
+    .sort((a,b)=>(b[1].dataDevReal||'').localeCompare(a[1].dataDevReal||''));
 
-  if(!hist.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">Sem histórico de devoluções</td></tr>';
+  if(!hist.length){
+    tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">Sem histórico de devoluções</td></tr>';
     return;
   }
-
-  const estadoCls = {Bom:'inv-bom',Usado:'inv-usado',Danificado:'inv-danif'};
-  tbody.innerHTML = hist.map(([,e]) => {
-    const art = _inventario[e.artigoId];
+  const eC={'Bom':'color:#2ecc71','Usado':'color:#f1c40f','Danificado':'color:#e74c3c'};
+  tbody.innerHTML = hist.map(([,e])=>{
+    const art=_inv[e.artigoId];
     return `<tr>
-      <td>${e.dataDevReal||e.dataDevolucao||'—'}</td>
+      <td style="font-size:12px">${e.dataDevReal||'—'}</td>
       <td>${art?.nome||'—'}</td>
       <td style="text-align:center">${e.qtd||1}</td>
       <td>${e.socio||'—'}</td>
-      <td>${e.dataSaida||'—'}</td>
-      <td>${e.dataDevReal||'—'}</td>
-      <td><span class="inv-badge ${estadoCls[e.estadoDev]||''}">${e.estadoDev||'—'}</span></td>
-      <td style="font-size:12px;color:var(--muted)">${e.obsDiv||''}</td>
+      <td style="font-size:12px">${e.dataSaida||'—'}</td>
+      <td style="font-size:12px">${e.dataDev||'—'}</td>
+      <td><span style="font-size:11px;font-weight:600;${eC[e.estadoDev]||''}">${e.estadoDev||'—'}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${e.obsDev||''}</td>
     </tr>`;
   }).join('');
 }
 
 function switchInvTab(tab, btn) {
-  ['stock','emprestimos','historico'].forEach(t => {
-    document.getElementById(`inv-tab-${t}`).style.display = t===tab ? '' : 'none';
-  });
-  document.querySelectorAll('.btn-tab-inv').forEach(b => b.classList.remove('active'));
+  document.getElementById('inv-tab-stock').style.display = tab==='stock'?'':'none';
+  document.getElementById('inv-tab-emprestimos').style.display = tab==='emprestimos'?'':'none';
+  document.getElementById('inv-tab-historico').style.display = tab==='historico'?'':'none';
+  document.querySelectorAll('.btn-tab-inv').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if(tab==='emprestimos') renderEmprestimos();
-  if(tab==='historico') renderHistorico();
 }
 
-function abrirModalArtigo() {
-  document.getElementById('art-id').value = '';
-  document.getElementById('art-nome').value = '';
-  document.getElementById('art-cat').value = 'Tacos';
-  document.getElementById('art-qtd').value = 1;
-  document.getElementById('art-estado').value = 'Bom';
-  document.getElementById('art-valor').value = '';
-  document.getElementById('art-data').value = new Date().toISOString().split('T')[0];
-  document.getElementById('art-desc').value = '';
-  document.getElementById('modal-artigo-titulo').textContent = 'Novo Artigo';
-  document.getElementById('modal-artigo').style.display = 'flex';
-}
+// ── ARTIGO CRUD ──
+let _editArtigoKey = null;
 
-function editarArtigo(key) {
-  const a = _inventario[key];
-  if(!a) return;
-  document.getElementById('art-id').value = key;
+function abrirModalArtigo(key) {
+  _editArtigoKey = key||null;
+  const a = key ? _inv[key] : {};
   document.getElementById('art-nome').value = a.nome||'';
-  document.getElementById('art-cat').value = a.categoria||'Outros';
+  document.getElementById('art-cat').value = a.categoria||'Tacos';
   document.getElementById('art-qtd').value = a.qtd||1;
   document.getElementById('art-estado').value = a.estado||'Bom';
   document.getElementById('art-valor').value = a.valor||'';
-  document.getElementById('art-data').value = a.dataAquisicao||'';
+  document.getElementById('art-data').value = a.dataAquisicao||new Date().toISOString().split('T')[0];
   document.getElementById('art-desc').value = a.desc||'';
-  document.getElementById('modal-artigo-titulo').textContent = 'Editar Artigo';
+  document.getElementById('modal-artigo-titulo').textContent = key?'Editar Artigo':'Novo Artigo';
   document.getElementById('modal-artigo').style.display = 'flex';
 }
 
+function abrirEditArtigo(key){ abrirModalArtigo(key); }
+
 async function guardarArtigo() {
   const nome = document.getElementById('art-nome').value.trim();
-  if(!nome) { toast('Nome obrigatório', 'error'); return; }
-  const key = document.getElementById('art-id').value;
-  const data = {
+  if(!nome){ toast('Nome do artigo obrigatório','error'); return; }
+  const dados = {
     nome,
     categoria: document.getElementById('art-cat').value,
     qtd: Number(document.getElementById('art-qtd').value)||1,
@@ -8588,52 +8596,53 @@ async function guardarArtigo() {
     desc: document.getElementById('art-desc').value||'',
     ts: Date.now()
   };
-  if(key) {
-    await window._set(window._dbRef(`inventario/${key}`), data);
-  } else {
-    const { push: fbPush } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
-    await fbPush(window._dbRef('inventario'), data);
-  }
-  closeModal('modal-artigo');
-  toast('Artigo guardado ✅');
+  try {
+    if(_editArtigoKey) {
+      await update(ref(db,`/portal/inventario/${_editArtigoKey}`), dados);
+      toast('Artigo actualizado ✅');
+    } else {
+      await push(ref(db,'/portal/inventario'), dados);
+      toast('Artigo adicionado ✅');
+    }
+    closeModal('modal-artigo');
+  } catch(e){ toast('Erro ao guardar: '+e.message,'error'); }
 }
 
-async function apagarArtigo(key) {
+function confirmarApagarArtigo(key) {
   if(!confirm('Apagar este artigo do inventário?')) return;
-  await window._set(window._dbRef(`inventario/${key}`), null);
-  toast('Artigo removido');
+  set(ref(db,`/portal/inventario/${key}`),null).then(()=>toast('Artigo removido'));
 }
 
+// ── EMPRÉSTIMO ──
 function abrirModalEmprestimo() {
-  // Preencher select de artigos disponíveis
-  updateEmpQtdMax();
-  document.getElementById('emp-socio').value = '';
-  document.getElementById('emp-contacto').value = '';
-  document.getElementById('emp-saida').value = new Date().toISOString().split('T')[0];
-  document.getElementById('emp-devolucao').value = '';
-  document.getElementById('emp-obs').value = '';
-  document.getElementById('modal-emprestimo').style.display = 'flex';
+  populateEmpSelect();
+  document.getElementById('emp-artigo').value='';
+  document.getElementById('emp-qtd').value=1;
+  document.getElementById('emp-socio').value='';
+  document.getElementById('emp-contacto').value='';
+  document.getElementById('emp-saida').value=new Date().toISOString().split('T')[0];
+  document.getElementById('emp-devolucao').value='';
+  document.getElementById('emp-obs').value='';
+  document.getElementById('modal-emprestimo').style.display='flex';
 }
 
-function empArtigo(key) {
-  document.getElementById('emp-artigo').value = key;
+function abrirEmpArtigo(key) {
   abrirModalEmprestimo();
+  setTimeout(()=>{ document.getElementById('emp-artigo').value=key; },50);
 }
 
-function updateEmpQtdMax() {
+function populateEmpSelect() {
   const sel = document.getElementById('emp-artigo');
   if(!sel) return;
-  const empQtd = {};
-  Object.values(_emprestimos).filter(e=>!e.devolvido).forEach(e => {
-    empQtd[e.artigoId] = (empQtd[e.artigoId]||0) + Number(e.qtd||1);
-  });
+  const empQtd = getEmpQtd();
   const prev = sel.value;
   sel.innerHTML = '<option value="">Seleccionar artigo...</option>' +
-    Object.entries(_inventario)
-      .filter(([,a]) => a.estado !== 'Abatido')
-      .map(([key,a]) => {
-        const disp = Number(a.qtd||0) - (empQtd[key]||0);
-        return `<option value="${key}" ${disp<=0?'disabled':''} ${key===prev?'selected':''}>${a.nome} (${disp} disponível${disp!==1?'is':''})</option>`;
+    Object.entries(_inv)
+      .filter(([,a])=>a.estado!=='Abatido')
+      .sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||''))
+      .map(([key,a])=>{
+        const disp = Number(a.qtd||0)-(empQtd[key]||0);
+        return `<option value="${key}" ${disp<=0?'disabled':''} ${key===prev?'selected':''}>${a.nome} — ${disp} disponível${disp!==1?'is':''}${disp<=0?' (esgotado)':''}</option>`;
       }).join('');
 }
 
@@ -8641,135 +8650,131 @@ async function guardarEmprestimo() {
   const artigoId = document.getElementById('emp-artigo').value;
   const socio = document.getElementById('emp-socio').value.trim();
   const saida = document.getElementById('emp-saida').value;
-  const devolucao = document.getElementById('emp-devolucao').value;
-  if(!artigoId || !socio || !saida || !devolucao) { toast('Preenche todos os campos obrigatórios', 'error'); return; }
+  const dataDev = document.getElementById('emp-devolucao').value;
+  if(!artigoId){ toast('Selecciona um artigo','error'); return; }
+  if(!socio){ toast('Nome do sócio obrigatório','error'); return; }
+  if(!saida||!dataDev){ toast('Datas obrigatórias','error'); return; }
   const qtd = Number(document.getElementById('emp-qtd').value)||1;
-  const data = {
+  // Verificar disponibilidade
+  const empQtd = getEmpQtd();
+  const disp = Number(_inv[artigoId]?.qtd||0)-(empQtd[artigoId]||0);
+  if(qtd > disp){ toast(`Apenas ${disp} unidade(s) disponível(is)`,'error'); return; }
+  const dados = {
     artigoId, socio, qtd,
     contacto: document.getElementById('emp-contacto').value||'',
     dataSaida: saida,
-    dataDevolucao: devolucao,
+    dataDev,
     obs: document.getElementById('emp-obs').value||'',
     devolvido: false,
     ts: Date.now()
   };
-  const { push: fbPush } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
-  await fbPush(window._dbRef('emprestimos'), data);
-  closeModal('modal-emprestimo');
-  toast('Empréstimo registado ✅');
+  try {
+    await push(ref(db,'/portal/emprestimos'), dados);
+    closeModal('modal-emprestimo');
+    toast('Empréstimo registado ✅');
+  } catch(e){ toast('Erro: '+e.message,'error'); }
 }
 
-function abrirDevolucao(key) {
-  const e = _emprestimos[key];
+// ── DEVOLUÇÃO ──
+let _devEmpKey = null;
+
+function abrirModalDev(key) {
+  _devEmpKey = key;
+  const e = _emp[key];
   if(!e) return;
-  const art = _inventario[e.artigoId];
-  document.getElementById('dev-emp-id').value = key;
+  const art = _inv[e.artigoId];
   document.getElementById('dev-data').value = new Date().toISOString().split('T')[0];
   document.getElementById('dev-estado').value = 'Bom';
   document.getElementById('dev-obs').value = '';
   document.getElementById('dev-info').innerHTML = `
     <strong>${art?.nome||'Artigo'}</strong> · ${e.qtd||1} unidade(s)<br>
     Emprestado a: <strong>${e.socio}</strong><br>
-    Saída: ${e.dataSaida} · Devolução prevista: ${e.dataDevolucao}
+    Saída: ${e.dataSaida||'—'} &nbsp;·&nbsp; Devolução prevista: ${e.dataDev||'—'}
   `;
-  closeModal('modal-emprestimo');
-  document.getElementById('modal-devolucao').style.display = 'flex';
+  document.getElementById('modal-devolucao').style.display='flex';
 }
 
 async function registarDevolucao() {
-  const key = document.getElementById('dev-emp-id').value;
-  const data = {
+  if(!_devEmpKey) return;
+  const e = _emp[_devEmpKey];
+  if(!e) return;
+  const dados = {
+    ...e,
     devolvido: true,
     dataDevReal: document.getElementById('dev-data').value,
     estadoDev: document.getElementById('dev-estado').value,
     obsDev: document.getElementById('dev-obs').value||''
   };
-  const e = _emprestimos[key];
-  if(e) {
-    await window._set(window._dbRef(`emprestimos/${key}`), {...e, ...data});
-  }
-  closeModal('modal-devolucao');
-  toast('Devolução registada ✅');
+  try {
+    await set(ref(db,`/portal/emprestimos/${_devEmpKey}`), dados);
+    closeModal('modal-devolucao');
+    toast('Devolução registada ✅');
+  } catch(e){ toast('Erro: '+e.message,'error'); }
 }
 
-async function apagarEmprestimo(key) {
+function confirmarApagarEmp(key) {
   if(!confirm('Apagar este registo de empréstimo?')) return;
-  await window._set(window._dbRef(`emprestimos/${key}`), null);
-  toast('Registo removido');
+  set(ref(db,`/portal/emprestimos/${key}`),null).then(()=>toast('Registo removido'));
 }
 
+// ── PDF INVENTÁRIO ──
 function exportarInventarioPDF() {
-  if(typeof jspdf === 'undefined' && typeof window.jspdf === 'undefined') {
-    toast('A carregar PDF...','info');
-    setTimeout(exportarInventarioPDF, 1000);
-    return;
-  }
-  const { jsPDF } = window.jspdf;
+  if(!window.jspdf){ toast('A carregar PDF...','info'); setTimeout(exportarInventarioPDF,800); return; }
+  const {jsPDF} = window.jspdf;
   const doc = new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
   const hoje = new Date().toLocaleDateString('pt-PT');
   doc.setFillColor(10,22,40); doc.rect(0,0,297,20,'F');
-  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(212,130,10);
-  doc.text('VIZELGOLFE — Inventário de Equipamento', 148, 13, {align:'center'});
+  doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(212,130,10);
+  doc.text('VIZELGOLFE — Inventário de Equipamento e Material', 148,13,{align:'center'});
   doc.setFontSize(8); doc.setTextColor(150,150,150);
-  doc.text(`Gerado em ${hoje}`, 280, 13, {align:'right'});
-
-  const empQtd = {};
-  Object.values(_emprestimos).filter(e=>!e.devolvido).forEach(e => {
-    empQtd[e.artigoId] = (empQtd[e.artigoId]||0) + Number(e.qtd||1);
-  });
-
-  const rows = Object.entries(_inventario)
+  doc.text(`Gerado em ${hoje}`, 285,13,{align:'right'});
+  const empQtd = getEmpQtd();
+  const rows = Object.entries(_inv)
     .sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||''))
-    .map(([key,a]) => [
-      a.nome||'', a.categoria||'', String(a.qtd||0),
-      String(Number(a.qtd||0)-(empQtd[key]||0)),
-      a.estado||'', a.valor?`${Number(a.valor).toFixed(2)} EUR`:'—',
-      a.dataAquisicao||'—'
+    .map(([key,a])=>[
+      a.nome||'', a.categoria||'',
+      String(a.qtd||0), String(Number(a.qtd||0)-(empQtd[key]||0)),
+      a.estado||'', a.valor?Number(a.valor).toFixed(2)+' €':'—',
+      a.dataAquisicao||'—', a.desc||''
     ]);
-
   doc.autoTable({
-    startY:25,
-    head:[['Artigo','Categoria','Qtd Total','Disponível','Estado','Valor','Data Aquisição']],
-    body:rows,
-    theme:'striped',
-    styles:{fontSize:9,cellPadding:3},
+    startY:25, head:[['Artigo','Categoria','Qtd Total','Disponível','Estado','Valor','Aquisição','Descrição']],
+    body:rows.length?rows:[['Sem artigos','','','','','','','']],
+    theme:'striped', styles:{fontSize:8,cellPadding:2.5},
     headStyles:{fillColor:[10,22,40],textColor:[212,130,10],fontStyle:'bold'},
+    columnStyles:{0:{cellWidth:50},7:{cellWidth:45}},
     margin:{left:5,right:5,bottom:15}
   });
-
-  // Empréstimos activos
-  const ativos = Object.values(_emprestimos).filter(e=>!e.devolvido);
-  if(ativos.length > 0) {
+  // Página 2 — empréstimos activos
+  const ativos = Object.entries(_emp).filter(([,e])=>!e.devolvido);
+  if(ativos.length){
     doc.addPage();
     doc.setFillColor(10,22,40); doc.rect(0,0,297,20,'F');
-    doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(212,130,10);
-    doc.text('Empréstimos Activos', 148, 13, {align:'center'});
+    doc.setFontSize(13); doc.setFont('helvetica','bold'); doc.setTextColor(212,130,10);
+    doc.text('Empréstimos Activos', 148,13,{align:'center'});
     const hoje2 = new Date().toISOString().split('T')[0];
-    const rowsEmp = ativos.map(e => {
-      const art = _inventario[e.artigoId];
-      const atrasado = e.dataDevolucao < hoje2;
-      return [art?.nome||'—', String(e.qtd||1), e.socio||'—', e.dataSaida||'—', e.dataDevolucao||'—', atrasado?'ATRASADO':'Activo'];
+    const rowsE = ativos.map(([,e])=>{
+      const art=_inv[e.artigoId];
+      return [art?.nome||'—', String(e.qtd||1), e.socio||'—', e.contacto||'—', e.dataSaida||'—', e.dataDev||'—', e.dataDev<hoje2?'⚠ ATRASADO':'Activo', e.obs||''];
     });
     doc.autoTable({
-      startY:25,
-      head:[['Artigo','Qtd','Sócio / Atleta','Data Saída','Dev. Prevista','Estado']],
-      body:rowsEmp,
-      theme:'striped',
-      styles:{fontSize:9,cellPadding:3},
+      startY:25, head:[['Artigo','Qtd','Sócio/Atleta','Contacto','Saída','Dev. Prevista','Estado','Obs']],
+      body:rowsE, theme:'striped', styles:{fontSize:8,cellPadding:2.5},
       headStyles:{fillColor:[10,22,40],textColor:[212,130,10],fontStyle:'bold'},
       margin:{left:5,right:5}
     });
   }
-
   doc.save('Vizelgolfe_Inventario.pdf');
   toast('PDF gerado ✅');
 }
 
-// Chamar loadInventario quando página é activada
-const _origShowPage = window.showPage;
-window.showPage = function(page) {
-  _origShowPage(page);
-  if(page === 'inventario') loadInventario();
-};
+// Intercepção do showPage para carregar dados
+const _showPageOrig = window.showPage;
+if(_showPageOrig) {
+  window.showPage = function(page) {
+    _showPageOrig(page);
+    if(page==='inventario') loadInventario();
+  };
+}
 
 </script>
