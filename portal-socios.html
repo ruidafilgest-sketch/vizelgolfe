@@ -495,6 +495,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <button class="nav-tab" onclick="showPage('recibos')">🧾 Recibos</button>
       <button class="nav-tab" onclick="showPage('torneios')">🏆 Torneios</button>
       <button class="nav-tab" onclick="showPage('avisos')">📣 Avisos</button>
+      <button class="nav-tab" onclick="showPage('inventario')">📦 Inventário</button>
     </div>
     <div class="nav-sep"></div>
     <!-- Grupo 2: Financeiro -->
@@ -1328,6 +1329,233 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         </div>
       </div>
     </div><!-- /page-avisos -->
+
+
+    <!-- INVENTÁRIO & EMPRÉSTIMOS -->
+    <div id="page-inventario" class="page">
+      <div class="toolbar">
+        <button class="btn-primary" onclick="abrirModalArtigo()">+ Novo Artigo</button>
+        <button class="btn-secondary" onclick="abrirModalEmprestimo()">📤 Registar Empréstimo</button>
+        <select id="inv-filtro-cat" onchange="renderInventario()" style="margin-left:8px;">
+          <option value="">Todas as categorias</option>
+          <option value="Tacos">Tacos</option>
+          <option value="Bolas">Bolas</option>
+          <option value="Vassouras">Vassouras</option>
+          <option value="Rodos">Rodos</option>
+          <option value="Equipamento Campo">Equipamento Campo</option>
+          <option value="Material Escritório">Material Escritório</option>
+          <option value="Uniformes">Uniformes</option>
+          <option value="Electrónica">Electrónica</option>
+          <option value="Outros">Outros</option>
+        </select>
+        <select id="inv-filtro-estado" onchange="renderInventario()" style="margin-left:8px;">
+          <option value="">Todos os estados</option>
+          <option value="Bom">Bom</option>
+          <option value="Usado">Usado</option>
+          <option value="Danificado">Danificado</option>
+          <option value="Abatido">Abatido</option>
+        </select>
+        <button class="btn-secondary" onclick="exportarInventarioPDF()" style="margin-left:auto;">📄 PDF Inventário</button>
+      </div>
+
+      <!-- KPIs -->
+      <div class="stats-grid" style="margin-bottom:16px;">
+        <div class="stat-card"><div class="stat-label">Total artigos</div><div class="stat-value" id="inv-total">0</div></div>
+        <div class="stat-card"><div class="stat-label">Bom estado</div><div class="stat-value" id="inv-bom" style="color:var(--green)">0</div></div>
+        <div class="stat-card"><div class="stat-label">Emprestados</div><div class="stat-value" id="inv-emp" style="color:var(--accent)">0</div></div>
+        <div class="stat-card"><div class="stat-label">Em atraso</div><div class="stat-value" id="inv-atr" style="color:var(--red)">0</div></div>
+      </div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;border-bottom:1px solid var(--card2);padding-bottom:8px;">
+        <button class="btn-tab-inv active" id="tab-inv-stock" onclick="switchInvTab('stock',this)">📦 Stock</button>
+        <button class="btn-tab-inv" id="tab-inv-emp" onclick="switchInvTab('emprestimos',this)">📤 Empréstimos activos</button>
+        <button class="btn-tab-inv" id="tab-inv-hist" onclick="switchInvTab('historico',this)">📋 Histórico</button>
+      </div>
+
+      <!-- STOCK -->
+      <div id="inv-tab-stock">
+        <div id="inv-alertas" style="margin-bottom:12px;"></div>
+        <table class="data-table">
+          <thead><tr>
+            <th>Artigo</th><th>Categoria</th><th>Qtd Total</th>
+            <th>Disponível</th><th>Estado</th><th>Valor</th><th>Acções</th>
+          </tr></thead>
+          <tbody id="inv-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- EMPRÉSTIMOS ACTIVOS -->
+      <div id="inv-tab-emprestimos" style="display:none;">
+        <table class="data-table">
+          <thead><tr>
+            <th>Artigo</th><th>Qtd</th><th>Sócio / Atleta</th>
+            <th>Saída</th><th>Devolução prevista</th><th>Estado</th><th>Acções</th>
+          </tr></thead>
+          <tbody id="emp-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- HISTÓRICO -->
+      <div id="inv-tab-historico" style="display:none;">
+        <div class="toolbar" style="margin-bottom:12px;">
+          <input type="text" id="hist-search" placeholder="Pesquisar por artigo ou sócio..." oninput="renderHistorico()" style="width:300px;">
+        </div>
+        <table class="data-table">
+          <thead><tr>
+            <th>Data</th><th>Artigo</th><th>Qtd</th><th>Sócio / Atleta</th>
+            <th>Saída</th><th>Devolução</th><th>Estado devolução</th><th>Obs</th>
+          </tr></thead>
+          <tbody id="hist-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MODAL ARTIGO -->
+    <div id="modal-artigo" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modal-artigo-titulo">Novo Artigo</h3>
+          <button class="modal-close" onclick="closeModal('modal-artigo')">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nome do artigo *</label>
+              <input type="text" id="art-nome" placeholder="ex: Taco de minigolfe adulto">
+            </div>
+            <div class="form-group">
+              <label>Categoria *</label>
+              <select id="art-cat">
+                <option value="Tacos">Tacos</option>
+                <option value="Bolas">Bolas</option>
+                <option value="Vassouras">Vassouras</option>
+                <option value="Rodos">Rodos</option>
+                <option value="Equipamento Campo">Equipamento Campo</option>
+                <option value="Material Escritório">Material Escritório</option>
+                <option value="Uniformes">Uniformes</option>
+                <option value="Electrónica">Electrónica</option>
+                <option value="Outros">Outros</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Quantidade total *</label>
+              <input type="number" id="art-qtd" min="1" value="1">
+            </div>
+            <div class="form-group">
+              <label>Estado</label>
+              <select id="art-estado">
+                <option value="Bom">Bom</option>
+                <option value="Usado">Usado</option>
+                <option value="Danificado">Danificado</option>
+                <option value="Abatido">Abatido</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Valor de aquisição (€)</label>
+              <input type="number" id="art-valor" step="0.01" min="0" placeholder="0.00">
+            </div>
+            <div class="form-group">
+              <label>Data de aquisição</label>
+              <input type="date" id="art-data">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Descrição / Observações</label>
+            <textarea id="art-desc" rows="2" placeholder="Marca, modelo, número de série, notas..."></textarea>
+          </div>
+          <input type="hidden" id="art-id">
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeModal('modal-artigo')">Cancelar</button>
+          <button class="btn-primary" onclick="guardarArtigo()">Guardar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL EMPRÉSTIMO -->
+    <div id="modal-emprestimo" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Registar Empréstimo</h3>
+          <button class="modal-close" onclick="closeModal('modal-emprestimo')">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Artigo *</label>
+              <select id="emp-artigo" onchange="updateEmpQtdMax()">
+                <option value="">Seleccionar artigo...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Quantidade *</label>
+              <input type="number" id="emp-qtd" min="1" value="1">
+            </div>
+            <div class="form-group">
+              <label>Sócio / Atleta *</label>
+              <input type="text" id="emp-socio" placeholder="Nome ou número de sócio">
+            </div>
+            <div class="form-group">
+              <label>Contacto</label>
+              <input type="text" id="emp-contacto" placeholder="Telemovel ou email">
+            </div>
+            <div class="form-group">
+              <label>Data de saída *</label>
+              <input type="date" id="emp-saida">
+            </div>
+            <div class="form-group">
+              <label>Devolução prevista *</label>
+              <input type="date" id="emp-devolucao">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Observações</label>
+            <textarea id="emp-obs" rows="2" placeholder="Motivo do empréstimo, condição do artigo à saída..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeModal('modal-emprestimo')">Cancelar</button>
+          <button class="btn-primary" onclick="guardarEmprestimo()">Registar saída</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DEVOLUÇÃO -->
+    <div id="modal-devolucao" class="modal" style="display:none;">
+      <div class="modal-content" style="max-width:480px;">
+        <div class="modal-header">
+          <h3>Registar Devolução</h3>
+          <button class="modal-close" onclick="closeModal('modal-devolucao')">✕</button>
+        </div>
+        <div class="modal-body">
+          <div id="dev-info" style="background:var(--card2);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;"></div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Data de devolução</label>
+              <input type="date" id="dev-data">
+            </div>
+            <div class="form-group">
+              <label>Estado na devolução</label>
+              <select id="dev-estado">
+                <option value="Bom">Bom</option>
+                <option value="Usado">Usado</option>
+                <option value="Danificado">Danificado</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Observações</label>
+            <textarea id="dev-obs" rows="2" placeholder="Estado na devolução, danos, etc..."></textarea>
+          </div>
+          <input type="hidden" id="dev-emp-id">
+        </div>
+        <div class="modal-footer">
+          <button class="btn-secondary" onclick="closeModal('modal-devolucao')">Cancelar</button>
+          <button class="btn-primary" onclick="registarDevolucao()">Confirmar devolução</button>
+        </div>
+      </div>
+    </div>
 
   </main>
 </div>
@@ -7277,7 +7505,21 @@ window.enviarAvisoEmail = async function(key) {
     .pag-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:3px}
     .pag-val{font-family:monospace;font-weight:700;font-size:13px;color:#0f1e35}
     .bottom{background:#f4f7fb;padding:14px 28px;font-size:10px;color:#999;text-align:center;border-top:1px solid #e0e8f0}
-  </style></head><body>
+  
+/* ── INVENTÁRIO ── */
+.btn-tab-inv{background:var(--card2);border:1px solid var(--card2);color:var(--muted);padding:7px 16px;border-radius:7px;cursor:pointer;font-size:13px;transition:all .15s;}
+.btn-tab-inv.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.btn-tab-inv:hover:not(.active){background:var(--card);color:var(--text);}
+.inv-badge{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;font-weight:600;}
+.inv-bom{background:rgba(46,204,113,.15);color:#2ecc71;}
+.inv-usado{background:rgba(241,196,15,.15);color:#f1c40f;}
+.inv-danif{background:rgba(231,76,60,.15);color:#e74c3c;}
+.inv-abat{background:rgba(150,150,150,.15);color:#999;}
+.inv-emp-ativo{background:rgba(212,130,10,.15);color:var(--accent);}
+.inv-emp-atr{background:rgba(231,76,60,.2);color:#e74c3c;animation:pulse 2s infinite;}
+.inv-disp{color:var(--green);font-weight:600;}
+.inv-zero{color:var(--red);}
+</style></head><body>
   <div class="wrap">
     <div class="top">
       <img src="${LOGO_B64}" alt="${nomeAssoc}">
@@ -8137,6 +8379,397 @@ window.toast = function(msg, type='success') {
   t.textContent = msg; t.className = 'show ' + type;
   setTimeout(() => t.className = '', 3000);
 };
+
+// ══════════════════════════════════════════════════════
+// INVENTÁRIO & EMPRÉSTIMOS
+// ══════════════════════════════════════════════════════
+
+let _inventario = {};
+let _emprestimos = {};
+
+// Carregar dados
+function loadInventario() {
+  window._onValue(window._dbRef('inventario'), snap => {
+    _inventario = snap.val() || {};
+    renderInventario();
+    updateEmpQtdMax();
+    renderInventarioKPIs();
+  });
+  window._onValue(window._dbRef('emprestimos'), snap => {
+    _emprestimos = snap.val() || {};
+    renderEmprestimos();
+    renderHistorico();
+    renderInventarioKPIs();
+  });
+}
+
+function renderInventarioKPIs() {
+  const arts = Object.values(_inventario);
+  const emps = Object.values(_emprestimos).filter(e => !e.devolvido);
+  const hoje = new Date().toISOString().split('T')[0];
+  const atrasados = emps.filter(e => e.dataDevolucao < hoje);
+
+  const empQtd = {};
+  emps.forEach(e => { empQtd[e.artigoId] = (empQtd[e.artigoId]||0) + Number(e.qtd||1); });
+
+  document.getElementById('inv-total').textContent = arts.length;
+  document.getElementById('inv-bom').textContent = arts.filter(a=>a.estado==='Bom').length;
+  document.getElementById('inv-emp').textContent = emps.length;
+  document.getElementById('inv-atr').textContent = atrasados.length;
+
+  // Alertas de empréstimos em atraso
+  const alertEl = document.getElementById('inv-alertas');
+  if(alertEl && atrasados.length > 0) {
+    alertEl.innerHTML = atrasados.map(e => {
+      const art = _inventario[e.artigoId];
+      const dias = Math.ceil((new Date() - new Date(e.dataDevolucao)) / 86400000);
+      return `<div style="background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.3);border-radius:8px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+        <span>⚠️ <strong>${art?.nome||'Artigo'}</strong> emprestado a <strong>${e.socio}</strong> — em atraso <strong>${dias} dia${dias!==1?'s':''}</strong></span>
+        <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="abrirDevolucao('${e._key}')">Registar devolução</button>
+      </div>`;
+    }).join('');
+  } else if(alertEl) {
+    alertEl.innerHTML = '';
+  }
+}
+
+function renderInventario() {
+  const tbody = document.getElementById('inv-tbody');
+  if(!tbody) return;
+  const filtCat = document.getElementById('inv-filtro-cat')?.value || '';
+  const filtEst = document.getElementById('inv-filtro-estado')?.value || '';
+
+  const hoje = new Date().toISOString().split('T')[0];
+  const empQtd = {};
+  Object.values(_emprestimos).filter(e=>!e.devolvido).forEach(e => {
+    empQtd[e.artigoId] = (empQtd[e.artigoId]||0) + Number(e.qtd||1);
+  });
+
+  const arts = Object.entries(_inventario)
+    .filter(([,a]) => (!filtCat || a.categoria===filtCat) && (!filtEst || a.estado===filtEst))
+    .sort((a,b) => (a[1].nome||'').localeCompare(b[1].nome||''));
+
+  if(!arts.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Sem artigos registados</td></tr>';
+    return;
+  }
+
+  const estadoCls = {Bom:'inv-bom',Usado:'inv-usado',Danificado:'inv-danif',Abatido:'inv-abat'};
+  tbody.innerHTML = arts.map(([key,a]) => {
+    const emp = empQtd[key] || 0;
+    const disp = Number(a.qtd||0) - emp;
+    return `<tr>
+      <td><strong>${a.nome||''}</strong>${a.desc?`<br><small style="color:var(--muted)">${a.desc}</small>`:''}</td>
+      <td><span style="font-size:12px;color:var(--muted)">${a.categoria||''}</span></td>
+      <td style="text-align:center">${a.qtd||0}</td>
+      <td style="text-align:center"><span class="${disp>0?'inv-disp':'inv-zero'}">${disp}</span>${emp>0?` <small style="color:var(--accent)">(${emp} emp.)</small>`:''}</td>
+      <td><span class="inv-badge ${estadoCls[a.estado]||''}">${a.estado||'—'}</span></td>
+      <td>${a.valor?`${Number(a.valor).toFixed(2)} €`:'—'}</td>
+      <td>
+        <button class="btn-icon" onclick="editarArtigo('${key}')" title="Editar">✏️</button>
+        <button class="btn-icon" onclick="empArtigo('${key}')" title="Emprestar" ${disp<=0?'disabled style="opacity:.4"':''}>📤</button>
+        <button class="btn-icon btn-danger" onclick="apagarArtigo('${key}')" title="Apagar">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderEmprestimos() {
+  const tbody = document.getElementById('emp-tbody');
+  if(!tbody) return;
+  const hoje = new Date().toISOString().split('T')[0];
+  const ativos = Object.entries(_emprestimos)
+    .filter(([,e]) => !e.devolvido)
+    .sort((a,b) => a[1].dataDevolucao?.localeCompare(b[1].dataDevolucao||''));
+
+  if(!ativos.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px;">Sem empréstimos activos</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = ativos.map(([key,e]) => {
+    const art = _inventario[e.artigoId];
+    const atrasado = e.dataDevolucao < hoje;
+    const dias = atrasado ? Math.ceil((new Date()-new Date(e.dataDevolucao))/86400000) : null;
+    return `<tr style="${atrasado?'background:rgba(231,76,60,.05)':''}">
+      <td><strong>${art?.nome||'—'}</strong></td>
+      <td style="text-align:center">${e.qtd||1}</td>
+      <td>${e.socio||'—'}<br><small style="color:var(--muted)">${e.contacto||''}</small></td>
+      <td>${e.dataSaida||'—'}</td>
+      <td>${e.dataDevolucao||'—'}</td>
+      <td><span class="inv-badge ${atrasado?'inv-emp-atr':'inv-emp-ativo'}">${atrasado?`⚠️ Atrasado ${dias}d`:'Activo'}</span></td>
+      <td>
+        <button class="btn-secondary" style="font-size:11px;padding:4px 10px;" onclick="abrirDevolucao('${key}')">✅ Devolvido</button>
+        <button class="btn-icon btn-danger" onclick="apagarEmprestimo('${key}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderHistorico() {
+  const tbody = document.getElementById('hist-tbody');
+  if(!tbody) return;
+  const q = document.getElementById('hist-search')?.value?.toLowerCase()||'';
+  const hist = Object.entries(_emprestimos)
+    .filter(([,e]) => e.devolvido)
+    .filter(([,e]) => !q || (e.socio||'').toLowerCase().includes(q) || (_inventario[e.artigoId]?.nome||'').toLowerCase().includes(q))
+    .sort((a,b) => (b[1].dataDevReal||b[1].dataDevolucao||'').localeCompare(a[1].dataDevReal||a[1].dataDevolucao||''));
+
+  if(!hist.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px;">Sem histórico de devoluções</td></tr>';
+    return;
+  }
+
+  const estadoCls = {Bom:'inv-bom',Usado:'inv-usado',Danificado:'inv-danif'};
+  tbody.innerHTML = hist.map(([,e]) => {
+    const art = _inventario[e.artigoId];
+    return `<tr>
+      <td>${e.dataDevReal||e.dataDevolucao||'—'}</td>
+      <td>${art?.nome||'—'}</td>
+      <td style="text-align:center">${e.qtd||1}</td>
+      <td>${e.socio||'—'}</td>
+      <td>${e.dataSaida||'—'}</td>
+      <td>${e.dataDevReal||'—'}</td>
+      <td><span class="inv-badge ${estadoCls[e.estadoDev]||''}">${e.estadoDev||'—'}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${e.obsDiv||''}</td>
+    </tr>`;
+  }).join('');
+}
+
+function switchInvTab(tab, btn) {
+  ['stock','emprestimos','historico'].forEach(t => {
+    document.getElementById(`inv-tab-${t}`).style.display = t===tab ? '' : 'none';
+  });
+  document.querySelectorAll('.btn-tab-inv').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  if(tab==='emprestimos') renderEmprestimos();
+  if(tab==='historico') renderHistorico();
+}
+
+function abrirModalArtigo() {
+  document.getElementById('art-id').value = '';
+  document.getElementById('art-nome').value = '';
+  document.getElementById('art-cat').value = 'Tacos';
+  document.getElementById('art-qtd').value = 1;
+  document.getElementById('art-estado').value = 'Bom';
+  document.getElementById('art-valor').value = '';
+  document.getElementById('art-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('art-desc').value = '';
+  document.getElementById('modal-artigo-titulo').textContent = 'Novo Artigo';
+  document.getElementById('modal-artigo').style.display = 'flex';
+}
+
+function editarArtigo(key) {
+  const a = _inventario[key];
+  if(!a) return;
+  document.getElementById('art-id').value = key;
+  document.getElementById('art-nome').value = a.nome||'';
+  document.getElementById('art-cat').value = a.categoria||'Outros';
+  document.getElementById('art-qtd').value = a.qtd||1;
+  document.getElementById('art-estado').value = a.estado||'Bom';
+  document.getElementById('art-valor').value = a.valor||'';
+  document.getElementById('art-data').value = a.dataAquisicao||'';
+  document.getElementById('art-desc').value = a.desc||'';
+  document.getElementById('modal-artigo-titulo').textContent = 'Editar Artigo';
+  document.getElementById('modal-artigo').style.display = 'flex';
+}
+
+async function guardarArtigo() {
+  const nome = document.getElementById('art-nome').value.trim();
+  if(!nome) { toast('Nome obrigatório', 'error'); return; }
+  const key = document.getElementById('art-id').value;
+  const data = {
+    nome,
+    categoria: document.getElementById('art-cat').value,
+    qtd: Number(document.getElementById('art-qtd').value)||1,
+    estado: document.getElementById('art-estado').value,
+    valor: document.getElementById('art-valor').value||'',
+    dataAquisicao: document.getElementById('art-data').value||'',
+    desc: document.getElementById('art-desc').value||'',
+    ts: Date.now()
+  };
+  if(key) {
+    await window._set(window._dbRef(`inventario/${key}`), data);
+  } else {
+    const { push: fbPush } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
+    await fbPush(window._dbRef('inventario'), data);
+  }
+  closeModal('modal-artigo');
+  toast('Artigo guardado ✅');
+}
+
+async function apagarArtigo(key) {
+  if(!confirm('Apagar este artigo do inventário?')) return;
+  await window._set(window._dbRef(`inventario/${key}`), null);
+  toast('Artigo removido');
+}
+
+function abrirModalEmprestimo() {
+  // Preencher select de artigos disponíveis
+  updateEmpQtdMax();
+  document.getElementById('emp-socio').value = '';
+  document.getElementById('emp-contacto').value = '';
+  document.getElementById('emp-saida').value = new Date().toISOString().split('T')[0];
+  document.getElementById('emp-devolucao').value = '';
+  document.getElementById('emp-obs').value = '';
+  document.getElementById('modal-emprestimo').style.display = 'flex';
+}
+
+function empArtigo(key) {
+  document.getElementById('emp-artigo').value = key;
+  abrirModalEmprestimo();
+}
+
+function updateEmpQtdMax() {
+  const sel = document.getElementById('emp-artigo');
+  if(!sel) return;
+  const empQtd = {};
+  Object.values(_emprestimos).filter(e=>!e.devolvido).forEach(e => {
+    empQtd[e.artigoId] = (empQtd[e.artigoId]||0) + Number(e.qtd||1);
+  });
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">Seleccionar artigo...</option>' +
+    Object.entries(_inventario)
+      .filter(([,a]) => a.estado !== 'Abatido')
+      .map(([key,a]) => {
+        const disp = Number(a.qtd||0) - (empQtd[key]||0);
+        return `<option value="${key}" ${disp<=0?'disabled':''} ${key===prev?'selected':''}>${a.nome} (${disp} disponível${disp!==1?'is':''})</option>`;
+      }).join('');
+}
+
+async function guardarEmprestimo() {
+  const artigoId = document.getElementById('emp-artigo').value;
+  const socio = document.getElementById('emp-socio').value.trim();
+  const saida = document.getElementById('emp-saida').value;
+  const devolucao = document.getElementById('emp-devolucao').value;
+  if(!artigoId || !socio || !saida || !devolucao) { toast('Preenche todos os campos obrigatórios', 'error'); return; }
+  const qtd = Number(document.getElementById('emp-qtd').value)||1;
+  const data = {
+    artigoId, socio, qtd,
+    contacto: document.getElementById('emp-contacto').value||'',
+    dataSaida: saida,
+    dataDevolucao: devolucao,
+    obs: document.getElementById('emp-obs').value||'',
+    devolvido: false,
+    ts: Date.now()
+  };
+  const { push: fbPush } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
+  await fbPush(window._dbRef('emprestimos'), data);
+  closeModal('modal-emprestimo');
+  toast('Empréstimo registado ✅');
+}
+
+function abrirDevolucao(key) {
+  const e = _emprestimos[key];
+  if(!e) return;
+  const art = _inventario[e.artigoId];
+  document.getElementById('dev-emp-id').value = key;
+  document.getElementById('dev-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('dev-estado').value = 'Bom';
+  document.getElementById('dev-obs').value = '';
+  document.getElementById('dev-info').innerHTML = `
+    <strong>${art?.nome||'Artigo'}</strong> · ${e.qtd||1} unidade(s)<br>
+    Emprestado a: <strong>${e.socio}</strong><br>
+    Saída: ${e.dataSaida} · Devolução prevista: ${e.dataDevolucao}
+  `;
+  closeModal('modal-emprestimo');
+  document.getElementById('modal-devolucao').style.display = 'flex';
+}
+
+async function registarDevolucao() {
+  const key = document.getElementById('dev-emp-id').value;
+  const data = {
+    devolvido: true,
+    dataDevReal: document.getElementById('dev-data').value,
+    estadoDev: document.getElementById('dev-estado').value,
+    obsDev: document.getElementById('dev-obs').value||''
+  };
+  const e = _emprestimos[key];
+  if(e) {
+    await window._set(window._dbRef(`emprestimos/${key}`), {...e, ...data});
+  }
+  closeModal('modal-devolucao');
+  toast('Devolução registada ✅');
+}
+
+async function apagarEmprestimo(key) {
+  if(!confirm('Apagar este registo de empréstimo?')) return;
+  await window._set(window._dbRef(`emprestimos/${key}`), null);
+  toast('Registo removido');
+}
+
+function exportarInventarioPDF() {
+  if(typeof jspdf === 'undefined' && typeof window.jspdf === 'undefined') {
+    toast('A carregar PDF...','info');
+    setTimeout(exportarInventarioPDF, 1000);
+    return;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape',unit:'mm',format:'a4'});
+  const hoje = new Date().toLocaleDateString('pt-PT');
+  doc.setFillColor(10,22,40); doc.rect(0,0,297,20,'F');
+  doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(212,130,10);
+  doc.text('VIZELGOLFE — Inventário de Equipamento', 148, 13, {align:'center'});
+  doc.setFontSize(8); doc.setTextColor(150,150,150);
+  doc.text(`Gerado em ${hoje}`, 280, 13, {align:'right'});
+
+  const empQtd = {};
+  Object.values(_emprestimos).filter(e=>!e.devolvido).forEach(e => {
+    empQtd[e.artigoId] = (empQtd[e.artigoId]||0) + Number(e.qtd||1);
+  });
+
+  const rows = Object.entries(_inventario)
+    .sort((a,b)=>(a[1].nome||'').localeCompare(b[1].nome||''))
+    .map(([key,a]) => [
+      a.nome||'', a.categoria||'', String(a.qtd||0),
+      String(Number(a.qtd||0)-(empQtd[key]||0)),
+      a.estado||'', a.valor?`${Number(a.valor).toFixed(2)} EUR`:'—',
+      a.dataAquisicao||'—'
+    ]);
+
+  doc.autoTable({
+    startY:25,
+    head:[['Artigo','Categoria','Qtd Total','Disponível','Estado','Valor','Data Aquisição']],
+    body:rows,
+    theme:'striped',
+    styles:{fontSize:9,cellPadding:3},
+    headStyles:{fillColor:[10,22,40],textColor:[212,130,10],fontStyle:'bold'},
+    margin:{left:5,right:5,bottom:15}
+  });
+
+  // Empréstimos activos
+  const ativos = Object.values(_emprestimos).filter(e=>!e.devolvido);
+  if(ativos.length > 0) {
+    doc.addPage();
+    doc.setFillColor(10,22,40); doc.rect(0,0,297,20,'F');
+    doc.setFontSize(14); doc.setFont('helvetica','bold'); doc.setTextColor(212,130,10);
+    doc.text('Empréstimos Activos', 148, 13, {align:'center'});
+    const hoje2 = new Date().toISOString().split('T')[0];
+    const rowsEmp = ativos.map(e => {
+      const art = _inventario[e.artigoId];
+      const atrasado = e.dataDevolucao < hoje2;
+      return [art?.nome||'—', String(e.qtd||1), e.socio||'—', e.dataSaida||'—', e.dataDevolucao||'—', atrasado?'ATRASADO':'Activo'];
+    });
+    doc.autoTable({
+      startY:25,
+      head:[['Artigo','Qtd','Sócio / Atleta','Data Saída','Dev. Prevista','Estado']],
+      body:rowsEmp,
+      theme:'striped',
+      styles:{fontSize:9,cellPadding:3},
+      headStyles:{fillColor:[10,22,40],textColor:[212,130,10],fontStyle:'bold'},
+      margin:{left:5,right:5}
+    });
+  }
+
+  doc.save('Vizelgolfe_Inventario.pdf');
+  toast('PDF gerado ✅');
+}
+
+// Chamar loadInventario quando página é activada
+const _origShowPage = window.showPage;
+window.showPage = function(page) {
+  _origShowPage(page);
+  if(page === 'inventario') loadInventario();
+};
+
 </script>
-</body>
-</html>
