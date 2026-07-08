@@ -322,27 +322,27 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 window._mecOnRecibos = (cb) => {
-  onValue(ref(db, 'mecenato/recibos'), (snap) => cb(snap.exists() ? snap.val() : {}));
+  onValue(ref(db, 'portal/mecenato/recibos'), (snap) => cb(snap.exists() ? snap.val() : {}));
 };
 window._mecOnConfig = (cb) => {
-  onValue(ref(db, 'mecenato/config'), (snap) => cb(snap.exists() ? snap.val() : null));
+  onValue(ref(db, 'portal/mecenato/config'), (snap) => cb(snap.exists() ? snap.val() : null));
 };
 window._mecEmit = async (record, counterKey, prefix, year) => {
-  const counterRef = ref(db, 'mecenato/counters/' + counterKey);
+  const counterRef = ref(db, 'portal/mecenato/counters/' + counterKey);
   const result = await runTransaction(counterRef, (cur) => (cur || 0) + 1);
   const seq = result.snapshot.val();
   const numero = prefix + ' ' + year + '/' + String(seq).padStart(3, '0');
-  const newRef = push(ref(db, 'mecenato/recibos'));
+  const newRef = push(ref(db, 'portal/mecenato/recibos'));
   await set(newRef, Object.assign({}, record, { numero }));
   return { id: newRef.key, numero };
 };
-window._mecRemove = (id) => remove(ref(db, 'mecenato/recibos/' + id));
-window._mecSaveConfig = (cfgData) => set(ref(db, 'mecenato/config'), cfgData);
+window._mecRemove = (id) => remove(ref(db, 'portal/mecenato/recibos/' + id));
+window._mecSaveConfig = (cfgData) => set(ref(db, 'portal/mecenato/config'), cfgData);
 window._mecImportBackup = async (recibosArray) => {
   const promises = (recibosArray || []).map(r => {
     const clean = Object.assign({}, r);
     delete clean.id;
-    return set(push(ref(db, 'mecenato/recibos')), clean);
+    return set(push(ref(db, 'portal/mecenato/recibos')), clean);
   });
   await Promise.all(promises);
 };
