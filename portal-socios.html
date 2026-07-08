@@ -505,6 +505,7 @@ function switchLoginTab(t){if(window._switchLoginTab)window._switchLoginTab(t);e
     <!-- Grupo 2: Financeiro -->
     <div class="nav-group">
       <button class="nav-tab" onclick="showPage('contabilidade')">📊 Contabilidade</button>
+      <button class="nav-tab" onclick="showPage('mecenato')">🎗️ Donativos &amp; Patrocínios</button>
       <button class="nav-tab" onclick="showPage('exportar-dados')">📤 Exportar</button>
     </div>
     <div class="nav-sep"></div>
@@ -741,6 +742,13 @@ function switchLoginTab(t){if(window._switchLoginTab)window._switchLoginTab(t);e
           <tbody id="table-recibos"><tr><td colspan="6" class="loading">A carregar...</td></tr></tbody>
         </table>
       </div>
+    </div>
+
+    <!-- DONATIVOS & PATROCÍNIOS (mecenato) -->
+    <div id="page-mecenato" class="page">
+      <iframe src="mecenato.html" title="Donativos e Patrocínios"
+        style="width:100%;height:calc(100vh - 180px);min-height:700px;border:0;border-radius:12px;background:#fbfaf6;"
+        loading="lazy"></iframe>
     </div>
 
     <!-- IMPORTAR -->
