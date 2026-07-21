@@ -787,6 +787,7 @@ function switchLoginTab(t){if(window._switchLoginTab)window._switchLoginTab(t);e
         <button class="nav-tab" id="ctab-drn" onclick="showContabTab('drn')" style="border-radius:8px 8px 0 0">📄 DRN</button>
         <button class="nav-tab" id="ctab-relatorio" onclick="showContabTab('relatorio')" style="border-radius:8px 8px 0 0">📋 Relatório</button>
         <button class="nav-tab" id="ctab-acertos" onclick="showContabTab('acertos')" style="border-radius:8px 8px 0 0">⇄ Acertos C/B</button>
+        <button class="nav-tab" id="ctab-efatura" onclick="showContabTab('efatura')" style="border-radius:8px 8px 0 0">📥 e-Fatura</button>
       </div>
 
       <!-- RECEITAS -->
@@ -948,6 +949,62 @@ function switchLoginTab(t){if(window._switchLoginTab)window._switchLoginTab(t);e
               <th style="text-align:right">Valor</th><th>Ref.</th><th>Ações</th>
             </tr></thead>
             <tbody id="table-acertos"><tr><td colspan="6" class="loading">A carregar...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- IMPORTAR e-FATURA -->
+      <div id="ctab-page-efatura" class="ctab-page" style="display:none">
+
+        <!-- Explicação -->
+        <div style="background:var(--bg2);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:12px 16px;margin-bottom:16px;font-size:13px;color:var(--text2)">
+          <strong style="color:var(--text)">Como funciona:</strong> importa o ficheiro CSV exportado do Portal das Finanças (e-Fatura → Consultar Documentos).
+          Podes importar o ano inteiro repetidamente — os documentos já validados (lançados ou ignorados) nunca voltam a aparecer para revisão,
+          mesmo que reimportes o mesmo período. Só documentos novos (incluindo os comunicados com atraso pela AT) aparecem em "Por validar".
+        </div>
+
+        <div class="import-zone" id="import-zone-efatura" onclick="document.getElementById('file-input-efatura').click()"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="handleDropEfatura(event)">
+          <div class="icon">📥</div>
+          <p><strong>Clique ou arraste o CSV do e-Fatura</strong></p>
+          <p>Colunas esperadas: NIF Emitente, Nome Emitente, Nº Documento, ATCUD, Data, Valor, Valor IVA</p>
+          <input type="file" id="file-input-efatura" accept=".csv" style="display:none" onchange="handleFileEfatura(this.files[0])">
+        </div>
+
+        <!-- Stats rápidos -->
+        <div class="stats-grid" style="margin:20px 0">
+          <div class="stat-card" style="border-left:4px solid #f39c12">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">⏳ Por validar</div>
+            <div class="val" id="efat-count-pendente" style="font-size:26px;color:#f39c12">—</div>
+          </div>
+          <div class="stat-card" style="border-left:4px solid #2ecc71">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">✅ Lançados</div>
+            <div class="val" id="efat-count-lancado" style="font-size:26px;color:#2ecc71">—</div>
+          </div>
+          <div class="stat-card">
+            <div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">🚫 Ignorados</div>
+            <div class="val" id="efat-count-ignorado" style="font-size:26px">—</div>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <select id="filter-estado-efatura" onchange="renderEfatura()">
+            <option value="por_validar">⏳ Por validar</option>
+            <option value="lancado">✅ Lançados</option>
+            <option value="ignorado">🚫 Ignorados</option>
+            <option value="todos">Todos</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th>Data</th><th>Emitente</th><th>Nº Documento</th>
+              <th style="text-align:right">Valor</th><th>Estado</th><th>Ações</th>
+            </tr></thead>
+            <tbody id="table-efatura"><tr><td colspan="6" class="loading">Sem importações ainda</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -3351,6 +3408,154 @@ window.cancelarImport = function() {
   document.getElementById('file-input').value = '';
 };
 
+// ─── IMPORTAR e-FATURA ─────────────────────────────
+let efaturaImportados = {};
+let importDataEfatura = [];
+
+function slugEfatura(s) {
+  return String(s||'').trim().toUpperCase().replace(/[.#$/\[\]\s]/g, '_');
+}
+
+window.handleDropEfatura = function(e) {
+  e.preventDefault();
+  document.getElementById('import-zone-efatura').classList.remove('drag');
+  handleFileEfatura(e.dataTransfer.files[0]);
+};
+
+window.handleFileEfatura = function(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.split('\n').filter(l => l.trim());
+    if (lines.length < 2) { toast('Ficheiro vazio ou inválido', 'error'); return; }
+    const headers = lines[0].split(/[,;]/).map(h => h.trim());
+    const get = (row, ...names) => {
+      for (const n of names) { if (row[n] !== undefined && row[n] !== '') return row[n]; }
+      return '';
+    };
+    const rows = lines.slice(1).map(line => {
+      const cols = line.split(/[,;]/);
+      const obj = {};
+      headers.forEach((h, i) => obj[h] = (cols[i]||'').trim());
+      return obj;
+    }).filter(r => Object.values(r).some(v => v));
+
+    importDataEfatura = rows.map(row => {
+      const nif = get(row,'NIF Emitente','NIF','Nif');
+      const numDoc = get(row,'Nº Documento','Numero Documento','Nº documento','Documento');
+      const atcud = get(row,'ATCUD','Atcud');
+      return {
+        nifEmitente: nif,
+        nomeEmitente: get(row,'Nome Emitente','Nome','Emitente'),
+        numeroDocumento: numDoc,
+        atcud: atcud,
+        dataDocumento: get(row,'Data','Data Emissão','Data emissão'),
+        valorTotal: get(row,'Valor','Valor Total','Valor total'),
+        valorIva: get(row,'Valor IVA','IVA'),
+        docId: slugEfatura(nif) + '__' + slugEfatura(numDoc) + '__' + slugEfatura(atcud)
+      };
+    }).filter(r => r.nifEmitente && r.valorTotal);
+
+    const novos = importDataEfatura.filter(r => !efaturaImportados[r.docId]).length;
+    const jaImportados = importDataEfatura.length - novos;
+    toast(`${importDataEfatura.length} documentos lidos — ${novos} novos, ${jaImportados} já na base`);
+    efaturaConfirmarImport();
+  };
+  reader.readAsText(file, 'UTF-8');
+};
+
+window.efaturaConfirmarImport = async function() {
+  if (!importDataEfatura.length) return;
+  let novos = 0;
+  for (const doc of importDataEfatura) {
+    if (efaturaImportados[doc.docId]) continue; // já existe na base — nunca reescreve
+    const dados = {
+      nifEmitente: doc.nifEmitente,
+      nomeEmitente: doc.nomeEmitente,
+      numeroDocumento: doc.numeroDocumento,
+      atcud: doc.atcud,
+      dataDocumento: doc.dataDocumento,
+      valorTotal: doc.valorTotal,
+      valorIva: doc.valorIva,
+      estado: 'por_validar',
+      importadoEm: new Date().toISOString()
+    };
+    await set(ref(db, `/portal/efatura_importados/${doc.docId}`), dados);
+    efaturaImportados[doc.docId] = dados; // atualiza cache local imediatamente, evita duplicar na mesma sessão
+    novos++;
+  }
+  toast(`${novos} documentos novos adicionados ao mapa mestre ✅`);
+  document.getElementById('file-input-efatura').value = '';
+  renderEfatura();
+};
+
+window.renderEfatura = function() {
+  const tbody = document.getElementById('table-efatura');
+  if (!tbody) return;
+  const filtro = document.getElementById('filter-estado-efatura')?.value || 'por_validar';
+  const entradas = Object.entries(efaturaImportados);
+
+  document.getElementById('efat-count-pendente').textContent = entradas.filter(([,d]) => d.estado === 'por_validar').length;
+  document.getElementById('efat-count-lancado').textContent = entradas.filter(([,d]) => d.estado === 'lancado').length;
+  document.getElementById('efat-count-ignorado').textContent = entradas.filter(([,d]) => d.estado === 'ignorado').length;
+
+  const lista = entradas.filter(([,d]) => filtro === 'todos' || d.estado === filtro)
+    .sort((a,b) => (b[1].dataDocumento||'').localeCompare(a[1].dataDocumento||''));
+
+  if (!lista.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="icon">📥</div><p>Sem documentos neste filtro</p></div></td></tr>';
+    return;
+  }
+
+  const badge = { por_validar: '⏳ Por validar', lancado: '✅ Lançado', ignorado: '🚫 Ignorado' };
+
+  tbody.innerHTML = lista.map(([key,d]) => `
+    <tr>
+      <td>${d.dataDocumento||'—'}</td>
+      <td>${d.nomeEmitente||d.nifEmitente||'—'}</td>
+      <td>${d.numeroDocumento||'—'}</td>
+      <td style="text-align:right">${parseFloat(d.valorTotal||0).toFixed(2)} €</td>
+      <td>${badge[d.estado]||d.estado}</td>
+      <td>
+        ${d.estado === 'por_validar' ? `
+          <button class="btn-icon" title="Já existe — não lançar" onclick="efaturaIgnorar('${key}')">🚫</button>
+          <button class="btn-icon" title="Lançar despesa" onclick="efaturaLancar('${key}')">➕</button>
+        ` : `
+          <button class="btn-icon" title="Repor para validar" onclick="efaturaReverter('${key}')">↩️</button>
+        `}
+      </td>
+    </tr>
+  `).join('');
+};
+
+window.efaturaIgnorar = async function(key) {
+  await update(ref(db, `/portal/efatura_importados/${key}`), { estado: 'ignorado', validadoEm: new Date().toISOString() });
+  toast('Marcado como já existente');
+};
+
+window.efaturaReverter = async function(key) {
+  await update(ref(db, `/portal/efatura_importados/${key}`), { estado: 'por_validar', validadoEm: null, lancamentoId: null });
+  toast('Reposto para validação');
+};
+
+window.efaturaLancar = function(key) {
+  const d = efaturaImportados[key];
+  if (!d) return;
+  editDespesaKey = null;
+  window._efaturaLancarKey = key;
+  document.getElementById('modal-despesa-title').textContent = 'Lançar Despesa (e-Fatura)';
+  document.getElementById('d-data').value = (d.dataDocumento||'').split('/').reverse().join('-') || d.dataDocumento || '';
+  document.getElementById('d-valor').value = d.valorTotal || '';
+  document.getElementById('d-desc').value = d.nomeEmitente || d.nifEmitente || '';
+  document.getElementById('d-cat').value = 'Outros serviços externos';
+  document.getElementById('d-meio').value = 'Transferência';
+  document.getElementById('d-forn').value = d.nomeEmitente || '';
+  document.getElementById('d-ref').value = d.numeroDocumento || '';
+  document.getElementById('d-obs').value = 'Importado automaticamente do e-Fatura (NIF ' + d.nifEmitente + ')';
+  openModal('modal-despesa');
+};
+
 // ─── MODAIS ────────────────────────────────────────
 window.openModal = function(id) { document.getElementById(id).classList.add('open'); };
 window.closeModal = function(id) { document.getElementById(id).classList.remove('open'); };
@@ -3402,6 +3607,10 @@ function carregarContabilidade() {
     acertos = snap.val() || {};
     renderAcertos(); renderBalancete();
   });
+  onValue(ref(db, '/portal/efatura_importados'), snap => {
+    efaturaImportados = snap.val() || {};
+    renderEfatura();
+  });
 }
 
 window.showContabTab = function(tab) {
@@ -3413,6 +3622,7 @@ window.showContabTab = function(tab) {
   if(tab==='drn') renderDRN();
   if(tab==='relatorio') renderRelatorio();
   if(tab==='acertos') renderAcertos();
+  if(tab==='efatura') renderEfatura();
 };
 
 // ── RECEITAS ──
@@ -3530,6 +3740,7 @@ window.renderDespesas = function() {
 
 window.openModalDespesa = function() {
   editDespesaKey = null;
+  window._efaturaLancarKey = null;
   document.getElementById('modal-despesa-title').textContent = 'Nova Despesa';
   ['d-desc','d-forn','d-ref','d-obs'].forEach(id => document.getElementById(id).value='');
   document.getElementById('d-data').value = new Date().toISOString().slice(0,10);
@@ -3539,6 +3750,7 @@ window.openModalDespesa = function() {
 
 window.editarDespesa = function(key) {
   editDespesaKey = key;
+  window._efaturaLancarKey = null;
   const d = despesas[key];
   document.getElementById('modal-despesa-title').textContent = 'Editar Despesa';
   document.getElementById('d-data').value = d.data||'';
@@ -3568,8 +3780,15 @@ window.gravarDespesa = async function() {
   };
   if(!dados.descricao || !dados.valor){ toast('Preenche descrição e valor','error'); return; }
   try {
-    if(editDespesaKey) { await update(ref(db,`/portal/despesas/${editDespesaKey}`),dados); toast('Despesa atualizada ✅'); }
-    else { await push(ref(db,'/portal/despesas'),dados); toast('Despesa adicionada ✅'); }
+    let despesaKey;
+    if(editDespesaKey) { await update(ref(db,`/portal/despesas/${editDespesaKey}`),dados); despesaKey = editDespesaKey; toast('Despesa atualizada ✅'); }
+    else { const r = await push(ref(db,'/portal/despesas'),dados); despesaKey = r.key; toast('Despesa adicionada ✅'); }
+    if(window._efaturaLancarKey) {
+      await update(ref(db,`/portal/efatura_importados/${window._efaturaLancarKey}`), {
+        estado: 'lancado', lancamentoId: despesaKey, validadoEm: new Date().toISOString()
+      });
+      window._efaturaLancarKey = null;
+    }
     closeModal('modal-despesa');
   } catch(e){ toast('Erro: '+e.message,'error'); }
 };
