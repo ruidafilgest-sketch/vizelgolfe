@@ -3416,6 +3416,21 @@ function slugEfatura(s) {
   return String(s||'').trim().toUpperCase().replace(/[.#$/\[\]\s]/g, '_');
 }
 
+// Converte "6.091,58 €" -> 6091.58 (formato PT: milhares '.', decimais ',')
+function parseValorPT(s) {
+  if (!s) return 0;
+  const limpo = String(s).replace(/[€\s]/g, '').replace(/\./g, '').replace(',', '.');
+  const v = parseFloat(limpo);
+  return isNaN(v) ? 0 : v;
+}
+
+// Converte "19-03-2026" -> "2026-03-19"
+function parseDataPT(s) {
+  const m = String(s||'').trim().match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  return String(s||'').trim();
+}
+
 window.handleDropEfatura = function(e) {
   e.preventDefault();
   document.getElementById('import-zone-efatura').classList.remove('drag');
@@ -3426,39 +3441,61 @@ window.handleFileEfatura = function(file) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = function(e) {
-    const text = e.target.result;
-    const lines = text.split('\n').filter(l => l.trim());
+    let text = e.target.result;
+    text = text.replace(/^\uFEFF/, ''); // remove BOM do export da AT
+    const lines = text.split(/\r\n|\r|\n/).filter(l => l.trim());
     if (lines.length < 2) { toast('Ficheiro vazio ou inválido', 'error'); return; }
-    const headers = lines[0].split(/[,;]/).map(h => h.trim());
+    const headers = lines[0].split(';').map(h => h.trim());
     const get = (row, ...names) => {
       for (const n of names) { if (row[n] !== undefined && row[n] !== '') return row[n]; }
       return '';
     };
     const rows = lines.slice(1).map(line => {
-      const cols = line.split(/[,;]/);
+      const cols = line.split(';');
       const obj = {};
       headers.forEach((h, i) => obj[h] = (cols[i]||'').trim());
       return obj;
     }).filter(r => Object.values(r).some(v => v));
 
     importDataEfatura = rows.map(row => {
-      const nif = get(row,'NIF Emitente','NIF','Nif');
-      const numDoc = get(row,'Nº Documento','Numero Documento','Nº documento','Documento');
-      const atcud = get(row,'ATCUD','Atcud');
+      // "510983413 - Cdt Equipamentos Desportivos Lda"
+      const emitente = get(row,'Emitente','NIF Emitente','NIF','Nif');
+      const [nifRaw, ...nomeParts] = emitente.split(' - ');
+      const nif = (nifRaw||'').trim();
+      const nome = nomeParts.join(' - ').trim() || emitente;
+
+      // "FT 2026A1/376 / J66WTZ7R-376"  ->  documento="FT 2026A1/376"  atcud="J66WTZ7R-376"
+      const docAtcud = get(row,'Nº Fatura / ATCUD','Nº Documento','Numero Documento','Documento');
+      const partes = docAtcud.split(' / ');
+      const numDoc = (partes[0]||'').trim();
+      const atcud = (partes[1]||'').trim();
+
+      const tipo = get(row,'Tipo');
+      const dataDocumento = parseDataPT(get(row,'Data Emissão','Data'));
+      const valorTotal = parseValorPT(get(row,'Total','Valor'));
+      const valorIva = parseValorPT(get(row,'IVA','Valor IVA'));
+      const baseTributavel = parseValorPT(get(row,'Base Tributável'));
+
       return {
         nifEmitente: nif,
-        nomeEmitente: get(row,'Nome Emitente','Nome','Emitente'),
+        nomeEmitente: nome,
         numeroDocumento: numDoc,
         atcud: atcud,
-        dataDocumento: get(row,'Data','Data Emissão','Data emissão'),
-        valorTotal: get(row,'Valor','Valor Total','Valor total'),
-        valorIva: get(row,'Valor IVA','IVA'),
+        tipo: tipo,
+        dataDocumento: dataDocumento,
+        valorTotal: valorTotal,
+        valorIva: valorIva,
+        baseTributavel: baseTributavel,
         docId: slugEfatura(nif) + '__' + slugEfatura(numDoc) + '__' + slugEfatura(atcud)
       };
     }).filter(r => r.nifEmitente && r.valorTotal);
 
     const novos = importDataEfatura.filter(r => !efaturaImportados[r.docId]).length;
     const jaImportados = importDataEfatura.length - novos;
+    if (!importDataEfatura.length) {
+      toast('Não consegui reconhecer nenhuma linha — confirma o separador/colunas do ficheiro', 'error');
+      return;
+    }
     toast(`${importDataEfatura.length} documentos lidos — ${novos} novos, ${jaImportados} já na base`);
     efaturaConfirmarImport();
   };
@@ -3475,9 +3512,11 @@ window.efaturaConfirmarImport = async function() {
       nomeEmitente: doc.nomeEmitente,
       numeroDocumento: doc.numeroDocumento,
       atcud: doc.atcud,
+      tipo: doc.tipo || '',
       dataDocumento: doc.dataDocumento,
       valorTotal: doc.valorTotal,
       valorIva: doc.valorIva,
+      baseTributavel: doc.baseTributavel || 0,
       estado: 'por_validar',
       importadoEm: new Date().toISOString()
     };
@@ -3544,15 +3583,17 @@ window.efaturaLancar = function(key) {
   if (!d) return;
   editDespesaKey = null;
   window._efaturaLancarKey = key;
-  document.getElementById('modal-despesa-title').textContent = 'Lançar Despesa (e-Fatura)';
-  document.getElementById('d-data').value = (d.dataDocumento||'').split('/').reverse().join('-') || d.dataDocumento || '';
+  const isNC = /nota de cr[ée]dito/i.test(d.tipo||'');
+  document.getElementById('modal-despesa-title').textContent = 'Lançar Despesa (e-Fatura)' + (isNC ? ' — ⚠️ Nota de Crédito' : '');
+  document.getElementById('d-data').value = d.dataDocumento || '';
   document.getElementById('d-valor').value = d.valorTotal || '';
   document.getElementById('d-desc').value = d.nomeEmitente || d.nifEmitente || '';
   document.getElementById('d-cat').value = 'Outros serviços externos';
   document.getElementById('d-meio').value = 'Transferência';
   document.getElementById('d-forn').value = d.nomeEmitente || '';
   document.getElementById('d-ref').value = d.numeroDocumento || '';
-  document.getElementById('d-obs').value = 'Importado automaticamente do e-Fatura (NIF ' + d.nifEmitente + ')';
+  document.getElementById('d-obs').value = (isNC ? '⚠️ NOTA DE CRÉDITO — confirma se deve ser lançada como valor negativo. ' : '')
+    + 'Importado automaticamente do e-Fatura (NIF ' + d.nifEmitente + ')';
   openModal('modal-despesa');
 };
 
