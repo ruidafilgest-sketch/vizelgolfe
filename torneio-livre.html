@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Torneios Livres — Vizelgolfe</title>
+<style>
+:root{
+  --bg:#0a1628; --bg2:#0f1e35; --bg3:#162444; --card:#1a2a45; --card2:#1f3050;
+  --accent:#d4820a; --accent2:#f0a030; --green:#2ecc71; --red:#e74c3c; --blue:#3498db;
+  --text:#e8f0fe; --text2:#8fa8c8; --border:rgba(212,130,10,0.2); --border2:rgba(255,255,255,0.08);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:60px}
+header{background:var(--bg2);border-bottom:2px solid var(--accent);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-size:20px;font-weight:800;letter-spacing:1px;color:var(--accent)}
+.logo span{color:var(--text2);font-size:13px;font-weight:400;margin-left:8px}
+.container{max-width:1100px;margin:0 auto;padding:20px}
+.btn{background:var(--accent);color:#0a1628;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-size:14px}
+.btn:hover{background:var(--accent2)}
+.btn-outline{background:transparent;border:1px solid var(--border2);color:var(--text)}
+.btn-outline:hover{border-color:var(--accent)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:6px 10px;font-size:12px;border-radius:6px}
+.btn-icon{background:transparent;border:1px solid var(--border2);color:var(--text2);width:32px;height:32px;border-radius:6px;cursor:pointer;font-size:14px}
+.btn-icon:hover{border-color:var(--accent);color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:18px;margin-bottom:16px}
+.card h3{margin-bottom:12px;font-size:16px;color:var(--accent2)}
+.grid-torneios{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.torneio-card{background:var(--card);border:1px solid var(--border2);border-radius:12px;padding:16px;cursor:pointer;transition:.15s}
+.torneio-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.torneio-card h4{font-size:16px;margin-bottom:4px}
+.torneio-card .meta{color:var(--text2);font-size:12px}
+.form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.form-group{flex:1;min-width:160px}
+.form-group label{display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+input,select,textarea{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:9px 11px;border-radius:7px;font-size:14px;font-family:inherit}
+input:focus,select:focus{outline:none;border-color:var(--accent)}
+.chip-list{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chip{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:6px 8px 6px 14px;display:flex;align-items:center;gap:8px;font-size:13px}
+.chip button{background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;line-height:1;width:18px;height:18px}
+.chip button:hover{color:var(--red)}
+.volta-row{display:flex;gap:8px;align-items:center;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:8px;margin-bottom:6px}
+.volta-row select{width:150px}
+.badge-mini{background:rgba(52,152,219,.18);color:var(--blue);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.badge-peter{background:rgba(212,130,10,.18);color:var(--accent2);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.hidden{display:none !important}
+.top-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px}
+.top-actions h2{font-size:20px}
+.top-actions .meta{color:var(--text2);font-size:13px}
+.categoria-block{margin-bottom:22px}
+.categoria-title{display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border2)}
+.categoria-title h3{font-size:15px;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px}
+.categoria-title .count{color:var(--text2);font-size:12px}
+.jogador-card{background:var(--card);border:1px solid var(--border2);border-radius:10px;margin-bottom:8px;overflow:hidden}
+.jogador-head{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer}
+.jogador-head:hover{background:var(--card2)}
+.pos-badge{width:26px;height:26px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--text2);flex-shrink:0}
+.pos-badge.p1{background:#f0a030;color:#000}
+.pos-badge.p2{background:#c0c8d4;color:#000}
+.pos-badge.p3{background:#c98444;color:#000}
+.jogador-nome{flex:1;font-weight:700;font-size:14px}
+.jogador-nome input{border:none;background:none;padding:2px 4px;font-weight:700;font-size:14px;color:var(--text);width:100%}
+.jogador-nome input:focus{background:var(--bg3);border-radius:4px}
+.voltas-mini{display:flex;gap:6px}
+.volta-total-chip{min-width:38px;text-align:center;padding:4px 7px;border-radius:6px;font-size:12px;font-weight:800;background:var(--bg3);color:var(--text2)}
+.total-geral{font-size:16px;font-weight:800;color:var(--accent2);min-width:44px;text-align:right}
+.jogador-body{padding:12px 14px;border-top:1px solid var(--border2);display:none;background:var(--bg2)}
+.jogador-body.open{display:block}
+.volta-block{margin-bottom:14px}
+.volta-block-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.volta-block-head strong{font-size:13px}
+.holes-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:4px}
+.hole-cell{text-align:center}
+.hole-cell label{display:block;font-size:9px;color:var(--text2);margin-bottom:2px}
+.hole-cell input{padding:6px 2px;text-align:center;font-size:13px;font-weight:700;border-radius:5px}
+.hole-c1{background:rgba(46,204,113,.22) !important;color:#2ecc71}
+.hole-c2{background:rgba(231,76,60,.22) !important;color:#e74c3c}
+.hole-c3{background:rgba(0,0,0,.35) !important;color:#c8d4e8}
+.hole-empty{background:var(--bg3) !important}
+.volta-total-badge{padding:3px 10px;border-radius:6px;font-size:12px;font-weight:800}
+.vt-blue{background:rgba(52,152,219,.22);color:var(--blue)}
+.vt-green{background:rgba(46,204,113,.22);color:var(--green)}
+.vt-red{background:rgba(231,76,60,.22);color:var(--red)}
+.vt-black{background:rgba(0,0,0,.4);color:#c8d4e8}
+.vt-neutral{background:var(--bg3);color:var(--text2)}
+.row-actions{display:flex;gap:6px}
+.empty-state{text-align:center;padding:40px;color:var(--text2)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card2);border:1px solid var(--accent);padding:12px 20px;border-radius:8px;opacity:0;pointer-events:none;transition:.25s;z-index:999;font-size:13px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:14px;max-width:520px;width:100%;max-height:88vh;overflow:auto;padding:22px}
+.modal h3{margin-bottom:16px;color:var(--accent2)}
+.modal-footer{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+@media(max-width:640px){.holes-grid{grid-template-columns:repeat(6,1fr)}}
+
+.login-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:500}
+.login-overlay.hidden{display:none}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:36px;width:100%;max-width:340px;text-align:center}
+.login-logo{font-size:40px;margin-bottom:8px}
+.login-box h2{margin-bottom:4px}
+.login-box p{color:var(--text2);font-size:13px;margin-bottom:20px}
+.login-err{color:var(--red);font-size:13px;margin-top:10px;display:none}
+.login-err.show{display:block}
+</style>
+</head>
+<body>
+
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">🏌️</div>
+    <h2>Torneios Livres</h2>
+    <p>Vizelgolfe — acesso restrito</p>
+    <input type="password" id="login-pass" placeholder="Password" autocomplete="off">
+    <button class="btn" style="width:100%;margin-top:10px" onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="login-err">Password incorreta</div>
+  </div>
+</div>
+
+<div id="app-content" class="hidden">
+<header>
+  <div class="logo">🏌️ TORNEIOS LIVRES <span>Vizelgolfe</span></div>
+  <div id="header-actions"></div>
+</header>
+
+<div class="container">
+
+  <!-- ═══ VISTA: LISTA DE TORNEIOS ═══ -->
+  <div id="view-lista">
+    <div class="top-actions">
+      <h2>Torneios</h2>
+      <button class="btn" onclick="abrirModalNovoTorneio()">+ Novo Torneio</button>
+    </div>
+    <div id="grid-torneios" class="grid-torneios">
+      <div class="empty-state">A carregar...</div>
+    </div>
+  </div>
+
+  <!-- ═══ VISTA: TORNEIO ABERTO ═══ -->
+  <div id="view-torneio" class="hidden">
+    <div class="top-actions">
+      <div>
+        <button class="btn-icon" onclick="voltarLista()">←</button>
+        <span id="torneio-nome" style="font-size:20px;font-weight:800;margin-left:8px"></span>
+        <div class="meta" id="torneio-meta"></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-outline btn" onclick="abrirTV()">📺 Abrir TV</button>
+        <button class="btn-outline btn" onclick="toggleConfig()">⚙️ Configurar</button>
+      </div>
+    </div>
+
+    <!-- Config: categorias e voltas -->
+    <div id="config-block" class="card hidden">
+      <h3>Categorias</h3>
+      <div class="chip-list" id="chips-categorias"></div>
+      <div class="form-row">
+        <div class="form-group"><input id="input-nova-categoria" placeholder="Nova categoria (ex: Iniciados)"></div>
+        <button class="btn btn-sm" onclick="adicionarCategoria()">Adicionar</button>
+      </div>
+
+      <h3 style="margin-top:18px">Voltas</h3>
+      <div id="lista-voltas"></div>
+      <div class="form-row">
+        <div class="form-group"><input id="input-nova-volta" placeholder="Nome da volta (ex: Volta 3)"></div>
+        <div class="form-group" style="max-width:160px">
+          <select id="select-tipo-volta"><option value="mini">⛳ Minigolfe</option><option value="peter">🏒 Petergolfe</option></select>
+        </div>
+        <button class="btn btn-sm" onclick="adicionarVolta()">Adicionar Volta</button>
+      </div>
+    </div>
+
+    <!-- Inscrever jogador -->
+    <div class="card">
+      <h3>Inscrever Jogador</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Nome</label><input id="input-nome-jogador" placeholder="Nome do jogador"></div>
+        <div class="form-group"><label>Categoria</label><select id="select-categoria-jogador"></select></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn" onclick="inscreverJogador()">Inscrever</button></div>
+      </div>
+    </div>
+
+    <!-- Lista de jogadores por categoria -->
+    <div id="lista-jogadores"></div>
+  </div>
+
+</div>
+
+<!-- Modal novo torneio -->
+<div class="modal-overlay" id="modal-novo-torneio">
+  <div class="modal">
+    <h3>Novo Torneio</h3>
+    <div class="form-group" style="margin-bottom:10px"><label>Nome do torneio</label><input id="mt-nome" placeholder="Ex: 13º Torneio dos Amigos da Vizelgolfe"></div>
+    <div class="form-group" style="margin-bottom:10px"><label>Data</label><input id="mt-data" type="date"></div>
+
+    <label style="display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px">Categorias iniciais</label>
+    <div class="chip-list" id="mt-chips-categorias"></div>
+    <div class="form-row">
+      <div class="form-group"><input id="mt-input-categoria" placeholder="Ex: Homens"></div>
+      <button class="btn btn-sm" onclick="mtAdicionarCategoria()">+</button>
+    </div>
+
+    <label style="display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px">Voltas iniciais</label>
+    <div id="mt-lista-voltas"></div>
+    <div class="form-row">
+      <div class="form-group"><input id="mt-input-volta" placeholder="Ex: Volta 1"></div>
+      <div class="form-group" style="max-width:150px"><select id="mt-select-tipo"><option value="mini">⛳ Mini</option><option value="peter">🏒 Peter</option></select></div>
+      <button class="btn btn-sm" onclick="mtAdicionarVolta()">+</button>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-outline btn" onclick="fecharModalNovoTorneio()">Cancelar</button>
+      <button class="btn" onclick="criarTorneio()">Criar Torneio</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+</div><!-- /app-content -->
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, update, remove, push, onValue }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",
+  authDomain: "vizelgolfe-portal.firebaseapp.com",
+  databaseURL: "https://vizelgolfe-portal-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "vizelgolfe-portal",
+  storageBucket: "vizelgolfe-portal.firebasestorage.app",
+  messagingSenderId: "651151089287",
+  appId: "1:651151089287:web:d7f044bbb6c64f2e8fa222"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const ROOT = '/torneiosLivres';
+const ADMIN_PASS = "Vizela2026***";
+
+window.toast = function(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2600);
+};
+
+// ─── AUTH ─────────────────────────────────────────
+window.doLogin = function(){
+  const p = document.getElementById('login-pass').value;
+  if (p === ADMIN_PASS){
+    sessionStorage.setItem('torneioLivreAuth','1');
+    document.getElementById('login-overlay').classList.add('hidden');
+    document.getElementById('app-content').classList.remove('hidden');
+  } else {
+    document.getElementById('login-err').classList.add('show');
+  }
+};
+document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') window.doLogin(); });
+if (sessionStorage.getItem('torneioLivreAuth')==='1'){
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('app-content').classList.remove('hidden');
+}
+
+// ─── CORES ────────────────────────────────────────
+// Por buraco (aplica-se a Mini e Peter): 1=verde 2=vermelho 3+=preto
+function corBuraco(v){
+  if (v===''||v===null||v===undefined) return 'hole-empty';
+  const n = parseInt(v);
+  if (isNaN(n) || n<=0) return 'hole-empty';
+  if (n===1) return 'hole-c1';
+  if (n===2) return 'hole-c2';
+  return 'hole-c3';
+}
+// Por volta: limiares diferentes consoante o tipo
+function corVolta(total, tipo){
+  if (!total || total<=0) return 'vt-neutral';
+  if (tipo==='peter'){
+    if (total<=24) return 'vt-blue';
+    if (total<=29) return 'vt-green';
+    if (total<=35) return 'vt-red';
+    return 'vt-black';
+  }
+  // mini (default)
+  if (total<=19) return 'vt-blue';
+  if (total<=24) return 'vt-green';
+  if (total<=29) return 'vt-red';
+  return 'vt-black';
+}
+
+// ─── ESTADO ───────────────────────────────────────
+let torneios = {};
+let torneioAtualId = null;
+let mtCategorias = [];
+let mtVoltas = [];
+let jogadorAberto = null;
+
+onValue(ref(db, ROOT), snap => {
+  torneios = snap.val() || {};
+  if (torneioAtualId) renderTorneio();
+  else renderListaTorneios();
+});
+
+// ─── LISTA DE TORNEIOS ────────────────────────────
+window.renderListaTorneios = function(){
+  const grid = document.getElementById('grid-torneios');
+  const entradas = Object.entries(torneios).sort((a,b)=> (b[1].meta?.criadoEm||'').localeCompare(a[1].meta?.criadoEm||''));
+  if (!entradas.length){
+    grid.innerHTML = '<div class="empty-state">Ainda não há torneios. Cria o primeiro →</div>';
+    return;
+  }
+  grid.innerHTML = entradas.map(([id,t]) => {
+    const m = t.meta||{};
+    const nJog = Object.keys(t.jogadores||{}).length;
+    return `<div class="torneio-card" onclick="abrirTorneio('${id}')">
+      <h4>${m.nome||'(sem nome)'}</h4>
+      <div class="meta">${m.data ? formatarData(m.data) : ''} · ${nJog} jogador${nJog!==1?'es':''} · ${(m.categorias||[]).length} categorias · ${(m.voltas||[]).length} voltas</div>
+    </div>`;
+  }).join('');
+};
+
+function formatarData(iso){
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+// ─── MODAL NOVO TORNEIO ───────────────────────────
+window.abrirModalNovoTorneio = function(){
+  mtCategorias = []; mtVoltas = [];
+  document.getElementById('mt-nome').value = '';
+  document.getElementById('mt-data').value = new Date().toISOString().slice(0,10);
+  mtRenderChips(); mtRenderVoltas();
+  document.getElementById('modal-novo-torneio').classList.add('open');
+};
+window.fecharModalNovoTorneio = function(){
+  document.getElementById('modal-novo-torneio').classList.remove('open');
+};
+window.mtAdicionarCategoria = function(){
+  const inp = document.getElementById('mt-input-categoria');
+  const v = inp.value.trim();
+  if (!v) return;
+  mtCategorias.push(v); inp.value=''; mtRenderChips();
+};
+function mtRenderChips(){
+  document.getElementById('mt-chips-categorias').innerHTML = mtCategorias.map((c,i)=>
+    `<span class="chip">${c}<button onclick="mtRemoverCategoria(${i})">×</button></span>`).join('') || '<span style="color:var(--text2);font-size:12px">Nenhuma ainda</span>';
+}
+window.mtRemoverCategoria = function(i){ mtCategorias.splice(i,1); mtRenderChips(); };
+
+window.mtAdicionarVolta = function(){
+  const inp = document.getElementById('mt-input-volta');
+  const tipo = document.getElementById('mt-select-tipo').value;
+  const v = inp.value.trim();
+  if (!v) return;
+  mtVoltas.push({label:v, tipo}); inp.value=''; mtRenderVoltas();
+};
+function mtRenderVoltas(){
+  document.getElementById('mt-lista-voltas').innerHTML = mtVoltas.map((v,i)=>
+    `<div class="volta-row"><span style="flex:1">${v.label}</span><span class="${v.tipo==='peter'?'badge-peter':'badge-mini'}">${v.tipo==='peter'?'Petergolfe':'Minigolfe'}</span><button class="btn-icon" onclick="mtRemoverVolta(${i})">🗑️</button></div>`
+  ).join('') || '<div style="color:var(--text2);font-size:12px">Nenhuma ainda</div>';
+}
+window.mtRemoverVolta = function(i){ mtVoltas.splice(i,1); mtRenderVoltas(); };
+
+window.criarTorneio = async function(){
+  const nome = document.getElementById('mt-nome').value.trim();
+  const data = document.getElementById('mt-data').value;
+  if (!nome){ toast('Dá um nome ao torneio'); return; }
+  if (!mtCategorias.length){ toast('Adiciona pelo menos uma categoria'); return; }
+  if (!mtVoltas.length){ toast('Adiciona pelo menos uma volta'); return; }
+  const novoRef = push(ref(db, ROOT));
+  await set(novoRef, {
+    meta: { nome, data, categorias: mtCategorias, voltas: mtVoltas, criadoEm: new Date().toISOString() },
+    jogadores: {}
+  });
+  fecharModalNovoTorneio();
+  toast('Torneio criado ✅');
+  abrirTorneio(novoRef.key);
+};
+
+// ─── VISTA TORNEIO ────────────────────────────────
+window.abrirTorneio = function(id){
+  torneioAtualId = id;
+  document.getElementById('view-lista').classList.add('hidden');
+  document.getElementById('view-torneio').classList.remove('hidden');
+  document.getElementById('config-block').classList.add('hidden');
+  renderTorneio();
+};
+window.voltarLista = function(){
+  torneioAtualId = null;
+  document.getElementById('view-torneio').classList.add('hidden');
+  document.getElementById('view-lista').classList.remove('hidden');
+  renderListaTorneios();
+};
+window.toggleConfig = function(){
+  document.getElementById('config-block').classList.toggle('hidden');
+};
+window.abrirTV = function(){
+  window.open('torneio-livre-tv.html?id=' + torneioAtualId, '_blank');
+};
+
+function torneioAtual(){ return torneios[torneioAtualId]; }
+
+window.renderTorneio = function(){
+  const t = torneioAtual();
+  if (!t){ voltarLista(); return; }
+  const m = t.meta||{};
+  document.getElementById('torneio-nome').textContent = m.nome||'';
+  document.getElementById('torneio-meta').textContent = (m.data?formatarData(m.data):'') + ' · ' + (m.categorias||[]).length + ' categorias · ' + (m.voltas||[]).length + ' voltas';
+
+  renderConfigCategorias();
+  renderConfigVoltas();
+  renderSelectCategoriaJogador();
+  renderListaJogadores();
+};
+
+function renderConfigCategorias(){
+  const t = torneioAtual(); const cats = t.meta?.categorias||[];
+  document.getElementById('chips-categorias').innerHTML = cats.map((c,i)=>
+    `<span class="chip">${c}<button onclick="removerCategoria(${i})">×</button></span>`).join('') || '<span style="color:var(--text2);font-size:12px">Nenhuma</span>';
+}
+window.adicionarCategoria = async function(){
+  const inp = document.getElementById('input-nova-categoria');
+  const v = inp.value.trim(); if (!v) return;
+  const t = torneioAtual(); const cats = [...(t.meta?.categorias||[]), v];
+  await update(ref(db, `${ROOT}/${torneioAtualId}/meta`), { categorias: cats });
+  inp.value=''; toast('Categoria adicionada');
+};
+window.removerCategoria = async function(i){
+  const t = torneioAtual(); const cats = [...(t.meta?.categorias||[])];
+  const removida = cats[i];
+  const emUso = Object.values(t.jogadores||{}).some(j => j.categoria===removida);
+  if (emUso && !confirm(`Há jogadores inscritos em "${removida}". Remover a categoria mesmo assim?`)) return;
+  cats.splice(i,1);
+  await update(ref(db, `${ROOT}/${torneioAtualId}/meta`), { categorias: cats });
+};
+
+function renderConfigVoltas(){
+  const t = torneioAtual(); const voltas = t.meta?.voltas||[];
+  document.getElementById('lista-voltas').innerHTML = voltas.map((v,i)=>
+    `<div class="volta-row"><span style="flex:1">${v.label}</span><span class="${v.tipo==='peter'?'badge-peter':'badge-mini'}">${v.tipo==='peter'?'Petergolfe':'Minigolfe'}</span><button class="btn-icon" onclick="removerVolta(${i})">🗑️</button></div>`
+  ).join('') || '<div style="color:var(--text2);font-size:12px">Nenhuma</div>';
+}
+window.adicionarVolta = async function(){
+  const inp = document.getElementById('input-nova-volta');
+  const tipo = document.getElementById('select-tipo-volta').value;
+  const v = inp.value.trim(); if (!v) return;
+  const t = torneioAtual(); const voltas = [...(t.meta?.voltas||[]), {label:v, tipo}];
+  await update(ref(db, `${ROOT}/${torneioAtualId}/meta`), { voltas });
+  inp.value=''; toast('Volta adicionada');
+};
+window.removerVolta = async function(i){
+  const t = torneioAtual(); const voltas = [...(t.meta?.voltas||[])];
+  if (!confirm(`Remover "${voltas[i].label}"? Os resultados já lançados nesta volta ficam órfãos (não são apagados, mas deixam de aparecer).`)) return;
+  voltas.splice(i,1);
+  await update(ref(db, `${ROOT}/${torneioAtualId}/meta`), { voltas });
+};
+
+function renderSelectCategoriaJogador(){
+  const t = torneioAtual(); const cats = t.meta?.categorias||[];
+  document.getElementById('select-categoria-jogador').innerHTML = cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+window.inscreverJogador = async function(){
+  const nome = document.getElementById('input-nome-jogador').value.trim();
+  const categoria = document.getElementById('select-categoria-jogador').value;
+  if (!nome){ toast('Escreve o nome do jogador'); return; }
+  if (!categoria){ toast('Cria uma categoria primeiro'); return; }
+  await push(ref(db, `${ROOT}/${torneioAtualId}/jogadores`), {
+    nome, categoria, resultados: {}, criadoEm: new Date().toISOString()
+  });
+  document.getElementById('input-nome-jogador').value = '';
+  toast('Jogador inscrito ✅');
+};
+
+window.editarNomeJogador = async function(key, novoNome){
+  novoNome = novoNome.trim();
+  if (!novoNome) return;
+  await update(ref(db, `${ROOT}/${torneioAtualId}/jogadores/${key}`), { nome: novoNome });
+};
+window.editarCategoriaJogador = async function(key, novaCategoria){
+  await update(ref(db, `${ROOT}/${torneioAtualId}/jogadores/${key}`), { categoria: novaCategoria });
+};
+window.eliminarJogador = async function(key, nome){
+  if (!confirm(`Eliminar "${nome}" do torneio? Esta ação não pode ser desfeita.`)) return;
+  await remove(ref(db, `${ROOT}/${torneioAtualId}/jogadores/${key}`));
+  toast('Jogador eliminado');
+};
+
+window.toggleJogador = function(key){
+  jogadorAberto = (jogadorAberto===key) ? null : key;
+  renderListaJogadores();
+};
+
+function totalVolta(resultados, voltaIdx){
+  const buracos = (resultados?.[voltaIdx]?.buracos)||[];
+  return buracos.reduce((a,v)=> a + (parseInt(v)||0), 0);
+}
+function totalGeral(resultados, voltas){
+  return voltas.reduce((acc,_,i)=> acc + totalVolta(resultados,i), 0);
+}
+
+window.gravarBuraco = async function(key, voltaIdx, buracoIdx, valor){
+  const t = torneioAtual();
+  const jog = t.jogadores[key];
+  const buracos = [...((jog.resultados?.[voltaIdx]?.buracos)||Array(18).fill(''))];
+  buracos[buracoIdx] = valor;
+  const total = buracos.reduce((a,v)=> a + (parseInt(v)||0), 0);
+  await update(ref(db, `${ROOT}/${torneioAtualId}/jogadores/${key}/resultados/${voltaIdx}`), { buracos, total });
+};
+
+window.renderListaJogadores = function(){
+  const t = torneioAtual();
+  const cats = t.meta?.categorias||[];
+  const voltas = t.meta?.voltas||[];
+  const jogadores = t.jogadores||{};
+  const cont = document.getElementById('lista-jogadores');
+
+  if (!cats.length){ cont.innerHTML = '<div class="empty-state">Cria pelo menos uma categoria em "Configurar" para começares a inscrever jogadores.</div>'; return; }
+
+  cont.innerHTML = cats.map(cat => {
+    const entradas = Object.entries(jogadores).filter(([,j]) => j.categoria===cat);
+    function voltasCompletadas(resultados){ return voltas.filter((v,i)=>totalVolta(resultados,i)>0).length; }
+    entradas.sort((a,b) => {
+      const compA = voltasCompletadas(a[1].resultados), compB = voltasCompletadas(b[1].resultados);
+      if (compA !== compB) return compB - compA; // mais voltas completas primeiro
+      if (compA === 0) return (a[1].criadoEm||'').localeCompare(b[1].criadoEm||'');
+      return totalGeral(a[1].resultados, voltas) - totalGeral(b[1].resultados, voltas);
+    });
+
+    const linhas = entradas.map(([key,j], idx) => {
+      const total = totalGeral(j.resultados, voltas);
+      const posClass = (total>0 && idx===0) ? 'p1' : (total>0 && idx===1) ? 'p2' : (total>0 && idx===2) ? 'p3' : '';
+      const aberto = jogadorAberto===key;
+
+      const chipsVoltas = voltas.map((v,i) => {
+        const tv = totalVolta(j.resultados, i);
+        return `<span class="volta-total-chip" title="${v.label}">${tv||'–'}</span>`;
+      }).join('');
+
+      const corpoVoltas = voltas.map((v,i) => {
+        const buracos = (j.resultados?.[i]?.buracos) || Array(18).fill('');
+        const tv = totalVolta(j.resultados, i);
+        const cor = corVolta(tv, v.tipo);
+        const holes = Array.from({length:18}).map((_,h) => {
+          const val = buracos[h] ?? '';
+          return `<div class="hole-cell"><label>${h+1}</label><input type="number" min="0" max="20" class="${corBuraco(val)}" value="${val}"
+            onchange="gravarBuraco('${key}',${i},${h},this.value)"></div>`;
+        }).join('');
+        return `<div class="volta-block">
+          <div class="volta-block-head">
+            <strong>${v.label} <span class="${v.tipo==='peter'?'badge-peter':'badge-mini'}">${v.tipo==='peter'?'Peter':'Mini'}</span></strong>
+            <span class="volta-total-badge ${cor}">Total: ${tv||0}</span>
+          </div>
+          <div class="holes-grid">${holes}</div>
+        </div>`;
+      }).join('');
+
+      return `<div class="jogador-card">
+        <div class="jogador-head" onclick="toggleJogador('${key}')">
+          <div class="pos-badge ${posClass}">${total>0?idx+1:'–'}</div>
+          <div class="jogador-nome" onclick="event.stopPropagation()">
+            <input value="${j.nome}" onchange="editarNomeJogador('${key}',this.value)">
+          </div>
+          <div class="voltas-mini">${chipsVoltas}</div>
+          <div class="total-geral">${total||'–'}</div>
+          <div class="row-actions" onclick="event.stopPropagation()">
+            <select onchange="editarCategoriaJogador('${key}',this.value)" style="width:auto;padding:5px 8px;font-size:12px">
+              ${cats.map(c=>`<option value="${c}" ${c===cat?'selected':''}>${c}</option>`).join('')}
+            </select>
+            <button class="btn-icon" onclick="eliminarJogador('${key}','${j.nome.replace(/'/g,"\\'")}')" title="Eliminar">🗑️</button>
+          </div>
+        </div>
+        <div class="jogador-body ${aberto?'open':''}">${corpoVoltas || '<div style="color:var(--text2)">Sem voltas configuradas.</div>'}</div>
+      </div>`;
+    }).join('') || '<div style="color:var(--text2);font-size:13px;padding:10px 0">Sem jogadores nesta categoria ainda.</div>';
+
+    return `<div class="categoria-block">
+      <div class="categoria-title"><h3>${cat}</h3><span class="count">${entradas.length} jogador${entradas.length!==1?'es':''}</span></div>
+      ${linhas}
+    </div>`;
+  }).join('');
+};
+</script>
+</body>
+</html>
