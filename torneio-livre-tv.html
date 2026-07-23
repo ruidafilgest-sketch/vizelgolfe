@@ -112,8 +112,7 @@ function corVolta(total, tipo){
   return 'vt-black';
 }
 function totalVolta(resultados, i){
-  const buracos = (resultados?.[i]?.buracos)||[];
-  return buracos.reduce((a,v)=>a+(parseInt(v)||0),0);
+  return parseInt(resultados?.[i]?.total) || 0;
 }
 function totalGeral(resultados, voltas){
   return voltas.reduce((acc,_,i)=>acc+totalVolta(resultados,i),0);
@@ -176,7 +175,7 @@ function render(){
       }).join(' ');
       return `<tr class="linha ${pc}">
         <td><div class="pos ${pc}">${total>0?idx+1:'–'}</div></td>
-        <td class="nome-cell">${j.nome}</td>
+        <td class="nome-cell">${j.nome} <span style="font-size:14px;color:var(--text2);font-weight:700">${j.clube?('· '+j.clube):''}</span></td>
         <td class="num">${chips}</td>
         <td class="total-cell">${total||'–'}</td>
       </tr>`;
