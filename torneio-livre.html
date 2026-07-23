@@ -103,6 +103,10 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .login-box p{color:var(--text2);font-size:13px;margin-bottom:20px}
 .login-err{color:var(--red);font-size:13px;margin-top:10px;display:none}
 .login-err.show{display:block}
+.clube-badge{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;letter-spacing:.5px}
+.modo-toggle{display:flex;background:var(--bg3);border-radius:7px;overflow:hidden;border:1px solid var(--border2)}
+.modo-btn{background:transparent;border:none;color:var(--text2);font-size:11px;padding:5px 9px;cursor:pointer}
+.modo-btn.ativo{background:var(--accent);color:#0a1628;font-weight:700}
 </style>
 </head>
 <body>
@@ -177,6 +181,17 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div class="form-row">
         <div class="form-group"><label>Nome</label><input id="input-nome-jogador" placeholder="Nome do jogador"></div>
         <div class="form-group"><label>Categoria</label><select id="select-categoria-jogador"></select></div>
+        <div class="form-group" style="max-width:130px"><label>Clube</label>
+          <select id="select-clube-jogador">
+            <option value="VZG">VZG</option>
+            <option value="NFC">NFC</option>
+            <option value="CMP">CMP</option>
+            <option value="MCL">MCL</option>
+            <option value="MCP">MCP</option>
+            <option value="IND">IND</option>
+            <option value="INI">INI</option>
+          </select>
+        </div>
         <div style="display:flex;align-items:flex-end"><button class="btn" onclick="inscreverJogador()">Inscrever</button></div>
       </div>
     </div>
@@ -291,6 +306,7 @@ function corVolta(total, tipo){
 }
 
 // ─── ESTADO ───────────────────────────────────────
+const CLUBES = ['VZG','NFC','CMP','MCL','MCP','IND','INI'];
 let torneios = {};
 let torneioAtualId = null;
 let mtCategorias = [];
@@ -473,10 +489,11 @@ function renderSelectCategoriaJogador(){
 window.inscreverJogador = async function(){
   const nome = document.getElementById('input-nome-jogador').value.trim();
   const categoria = document.getElementById('select-categoria-jogador').value;
+  const clube = document.getElementById('select-clube-jogador').value;
   if (!nome){ toast('Escreve o nome do jogador'); return; }
   if (!categoria){ toast('Cria uma categoria primeiro'); return; }
   await push(ref(db, `${ROOT}/${torneioAtualId}/jogadores`), {
-    nome, categoria, resultados: {}, criadoEm: new Date().toISOString()
+    nome, categoria, clube, resultados: {}, criadoEm: new Date().toISOString()
   });
   document.getElementById('input-nome-jogador').value = '';
   toast('Jogador inscrito ✅');
@@ -490,6 +507,9 @@ window.editarNomeJogador = async function(key, novoNome){
 window.editarCategoriaJogador = async function(key, novaCategoria){
   await update(ref(db, `${ROOT}/${torneioAtualId}/jogadores/${key}`), { categoria: novaCategoria });
 };
+window.editarClubeJogador = async function(key, novoClube){
+  await update(ref(db, `${ROOT}/${torneioAtualId}/jogadores/${key}`), { clube: novoClube });
+};
 window.eliminarJogador = async function(key, nome){
   if (!confirm(`Eliminar "${nome}" do torneio? Esta ação não pode ser desfeita.`)) return;
   await remove(ref(db, `${ROOT}/${torneioAtualId}/jogadores/${key}`));
@@ -501,9 +521,28 @@ window.toggleJogador = function(key){
   renderListaJogadores();
 };
 
+// ─── MODO DE INSERÇÃO POR VOLTA (por buraco ou por total) ──
+// Escolha só de interface — o que fica gravado é sempre o campo "total".
+let modoVolta = {};
+function getModoVolta(key, voltaIdx, resultados){
+  const k = `${key}_${voltaIdx}`;
+  if (modoVolta[k]) return modoVolta[k];
+  const guardado = resultados?.[voltaIdx]?.modo;
+  if (guardado) return guardado;
+  return 'buraco';
+}
+window.toggleModoVolta = function(key, voltaIdx, modo){
+  modoVolta[`${key}_${voltaIdx}`] = modo;
+  renderListaJogadores();
+};
+
+window.gravarTotalVolta = async function(key, voltaIdx, valor){
+  const total = parseInt(valor)||0;
+  await update(ref(db, `${ROOT}/${torneioAtualId}/jogadores/${key}/resultados/${voltaIdx}`), { total, modo: 'total', buracos: null });
+};
+
 function totalVolta(resultados, voltaIdx){
-  const buracos = (resultados?.[voltaIdx]?.buracos)||[];
-  return buracos.reduce((a,v)=> a + (parseInt(v)||0), 0);
+  return parseInt(resultados?.[voltaIdx]?.total) || 0;
 }
 function totalGeral(resultados, voltas){
   return voltas.reduce((acc,_,i)=> acc + totalVolta(resultados,i), 0);
@@ -515,7 +554,7 @@ window.gravarBuraco = async function(key, voltaIdx, buracoIdx, valor){
   const buracos = [...((jog.resultados?.[voltaIdx]?.buracos)||Array(18).fill(''))];
   buracos[buracoIdx] = valor;
   const total = buracos.reduce((a,v)=> a + (parseInt(v)||0), 0);
-  await update(ref(db, `${ROOT}/${torneioAtualId}/jogadores/${key}/resultados/${voltaIdx}`), { buracos, total });
+  await update(ref(db, `${ROOT}/${torneioAtualId}/jogadores/${key}/resultados/${voltaIdx}`), { buracos, total, modo: 'buraco' });
 };
 
 window.renderListaJogadores = function(){
@@ -551,17 +590,29 @@ window.renderListaJogadores = function(){
         const buracos = (j.resultados?.[i]?.buracos) || Array(18).fill('');
         const tv = totalVolta(j.resultados, i);
         const cor = corVolta(tv, v.tipo);
+        const modo = getModoVolta(key, i, j.resultados);
         const holes = Array.from({length:18}).map((_,h) => {
           const val = buracos[h] ?? '';
           return `<div class="hole-cell"><label>${h+1}</label><input type="number" min="0" max="20" class="${corBuraco(val)}" value="${val}"
             onchange="gravarBuraco('${key}',${i},${h},this.value)"></div>`;
         }).join('');
+        const totalInput = `<div style="display:flex;align-items:center;gap:10px">
+          <input type="number" min="0" max="200" class="volta-total-badge ${cor}" style="width:80px;text-align:center;font-size:16px"
+            value="${tv||''}" placeholder="Total" onchange="gravarTotalVolta('${key}',${i},this.value)">
+          <span style="color:var(--text2);font-size:12px">pancadas na volta</span>
+        </div>`;
         return `<div class="volta-block">
           <div class="volta-block-head">
             <strong>${v.label} <span class="${v.tipo==='peter'?'badge-peter':'badge-mini'}">${v.tipo==='peter'?'Peter':'Mini'}</span></strong>
-            <span class="volta-total-badge ${cor}">Total: ${tv||0}</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="modo-toggle">
+                <button class="modo-btn ${modo==='buraco'?'ativo':''}" onclick="toggleModoVolta('${key}',${i},'buraco')">⛳ Por buraco</button>
+                <button class="modo-btn ${modo==='total'?'ativo':''}" onclick="toggleModoVolta('${key}',${i},'total')">Σ Por total</button>
+              </div>
+              ${modo==='buraco' ? `<span class="volta-total-badge ${cor}">Total: ${tv||0}</span>` : ''}
+            </div>
           </div>
-          <div class="holes-grid">${holes}</div>
+          ${modo==='buraco' ? `<div class="holes-grid">${holes}</div>` : totalInput}
         </div>`;
       }).join('');
 
@@ -571,11 +622,15 @@ window.renderListaJogadores = function(){
           <div class="jogador-nome" onclick="event.stopPropagation()">
             <input value="${j.nome}" onchange="editarNomeJogador('${key}',this.value)">
           </div>
+          <span class="clube-badge">${j.clube||'—'}</span>
           <div class="voltas-mini">${chipsVoltas}</div>
           <div class="total-geral">${total||'–'}</div>
           <div class="row-actions" onclick="event.stopPropagation()">
             <select onchange="editarCategoriaJogador('${key}',this.value)" style="width:auto;padding:5px 8px;font-size:12px">
               ${cats.map(c=>`<option value="${c}" ${c===cat?'selected':''}>${c}</option>`).join('')}
+            </select>
+            <select onchange="editarClubeJogador('${key}',this.value)" style="width:auto;padding:5px 8px;font-size:12px">
+              ${CLUBES.map(c=>`<option value="${c}" ${c===j.clube?'selected':''}>${c}</option>`).join('')}
             </select>
             <button class="btn-icon" onclick="eliminarJogador('${key}','${j.nome.replace(/'/g,"\\'")}')" title="Eliminar">🗑️</button>
           </div>
