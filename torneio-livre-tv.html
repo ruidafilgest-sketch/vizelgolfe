@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TV — Torneio Vizelgolfe</title>
+<style>
+:root{
+  --bg:#0a1628; --bg2:#0f1e35; --accent:#d4820a; --accent2:#f0a030;
+  --green:#2ecc71; --red:#e74c3c; --blue:#3498db;
+  --text:#e8f0fe; --text2:#8fa8c8; --gold:#f0c030; --silver:#c0c8d4; --bronze:#c98444;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:'DM Sans',Arial,sans-serif;background:radial-gradient(ellipse at top,#122140,var(--bg) 70%);color:var(--text)}
+
+.tv-header{display:flex;align-items:center;justify-content:space-between;padding:22px 46px;border-bottom:3px solid var(--accent)}
+.tv-title{font-size:34px;font-weight:900;letter-spacing:1px;text-transform:uppercase}
+.tv-title span{color:var(--accent2)}
+.tv-sub{color:var(--text2);font-size:16px;margin-top:4px}
+.tv-live{display:flex;align-items:center;gap:20px}
+.live-dot{display:flex;align-items:center;gap:8px;background:rgba(231,76,60,.15);border:1px solid var(--red);padding:6px 16px;border-radius:20px;font-weight:800;font-size:14px;letter-spacing:1px}
+.live-dot .dot{width:10px;height:10px;border-radius:50%;background:var(--red);animation:pulse 1.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.tv-clock{font-size:22px;font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums}
+
+.stage{position:relative;height:calc(100vh - 100px);padding:36px 46px}
+.slide{position:absolute;inset:36px 46px;opacity:0;transform:translateY(24px);transition:opacity .6s ease, transform .6s ease;pointer-events:none}
+.slide.active{opacity:1;transform:translateY(0);pointer-events:auto}
+
+.cat-badge{display:inline-block;background:var(--accent);color:#0a1628;font-size:22px;font-weight:900;padding:8px 24px;border-radius:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:22px}
+
+.tabela{width:100%;border-collapse:collapse}
+.tabela th{text-align:left;padding:10px 14px;color:var(--text2);font-size:14px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid rgba(255,255,255,.1)}
+.tabela th.num, .tabela td.num{text-align:center}
+.tabela tr.linha{border-bottom:1px solid rgba(255,255,255,.06)}
+.tabela td{padding:12px 14px;font-size:20px;font-weight:700}
+.tabela tr.p1{background:linear-gradient(90deg,rgba(240,192,48,.16),transparent)}
+.tabela tr.p2{background:linear-gradient(90deg,rgba(192,200,212,.12),transparent)}
+.tabela tr.p3{background:linear-gradient(90deg,rgba(201,132,68,.12),transparent)}
+.pos{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;background:rgba(255,255,255,.06);color:var(--text2)}
+.pos.p1{background:var(--gold);color:#000}
+.pos.p2{background:var(--silver);color:#000}
+.pos.p3{background:var(--bronze);color:#000}
+.nome-cell{font-size:24px}
+.total-cell{font-size:28px;font-weight:900;color:var(--accent2);text-align:right}
+.volta-chip{display:inline-block;min-width:52px;padding:6px 10px;border-radius:8px;font-size:18px;font-weight:800;text-align:center}
+.vt-blue{background:rgba(52,152,219,.28);color:#6fb8ea}
+.vt-green{background:rgba(46,204,113,.28);color:#5fdb95}
+.vt-red{background:rgba(231,76,60,.28);color:#f08a7d}
+.vt-black{background:rgba(0,0,0,.5);color:#c8d4e8}
+.vt-neutral{background:rgba(255,255,255,.05);color:var(--text2)}
+
+.dots{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+.dots span{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.2)}
+.dots span.active{background:var(--accent)}
+.empty{display:flex;align-items:center;justify-content:center;height:100%;font-size:26px;color:var(--text2)}
+</style>
+</head>
+<body>
+
+<div class="tv-header">
+  <div>
+    <div class="tv-title" id="tv-nome">A carregar...</div>
+    <div class="tv-sub" id="tv-sub"></div>
+  </div>
+  <div class="tv-live">
+    <div class="live-dot"><span class="dot"></span> AO VIVO</div>
+    <div class="tv-clock" id="tv-clock"></div>
+  </div>
+</div>
+
+<div class="stage" id="stage"></div>
+<div class="dots" id="dots"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",
+  authDomain: "vizelgolfe-portal.firebaseapp.com",
+  databaseURL: "https://vizelgolfe-portal-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "vizelgolfe-portal",
+  storageBucket: "vizelgolfe-portal.firebasestorage.app",
+  messagingSenderId: "651151089287",
+  appId: "1:651151089287:web:d7f044bbb6c64f2e8fa222"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const ROOT = '/torneiosLivres';
+
+const params = new URLSearchParams(location.search);
+const torneioId = params.get('id');
+
+const SLIDE_SECONDS = 8;
+let slideIdx = 0;
+let torneio = null;
+
+function corVolta(total, tipo){
+  if (!total || total<=0) return 'vt-neutral';
+  if (tipo==='peter'){
+    if (total<=24) return 'vt-blue';
+    if (total<=29) return 'vt-green';
+    if (total<=35) return 'vt-red';
+    return 'vt-black';
+  }
+  if (total<=19) return 'vt-blue';
+  if (total<=24) return 'vt-green';
+  if (total<=29) return 'vt-red';
+  return 'vt-black';
+}
+function totalVolta(resultados, i){
+  const buracos = (resultados?.[i]?.buracos)||[];
+  return buracos.reduce((a,v)=>a+(parseInt(v)||0),0);
+}
+function totalGeral(resultados, voltas){
+  return voltas.reduce((acc,_,i)=>acc+totalVolta(resultados,i),0);
+}
+
+function tick(){
+  document.getElementById('tv-clock').textContent = new Date().toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(tick,1000); tick();
+
+if (!torneioId){
+  document.getElementById('stage').innerHTML = '<div class="empty">Falta o parâmetro ?id= na URL</div>';
+} else {
+  onValue(ref(db, `${ROOT}/${torneioId}`), snap => {
+    torneio = snap.val();
+    render();
+  });
+}
+
+function render(){
+  if (!torneio){
+    document.getElementById('stage').innerHTML = '<div class="empty">Torneio não encontrado</div>';
+    return;
+  }
+  const m = torneio.meta||{};
+  document.getElementById('tv-nome').innerHTML = m.nome || 'Torneio';
+  document.getElementById('tv-sub').textContent = (m.data? formatarData(m.data)+' · ':'') + 'Vizelgolfe';
+
+  const cats = m.categorias||[];
+  const voltas = m.voltas||[];
+  const jogadores = torneio.jogadores||{};
+  const stage = document.getElementById('stage');
+  const dots = document.getElementById('dots');
+
+  if (!cats.length){
+    stage.innerHTML = '<div class="empty">Sem categorias configuradas</div>';
+    dots.innerHTML = '';
+    return;
+  }
+
+  if (slideIdx >= cats.length) slideIdx = 0;
+
+  stage.innerHTML = cats.map((cat,ci) => {
+    const entradas = Object.entries(jogadores).filter(([,j])=>j.categoria===cat);
+    function voltasCompletadas(resultados){ return voltas.filter((v,i)=>totalVolta(resultados,i)>0).length; }
+    entradas.sort((a,b)=>{
+      const compA = voltasCompletadas(a[1].resultados), compB = voltasCompletadas(b[1].resultados);
+      if (compA !== compB) return compB - compA;
+      if (compA === 0) return 0;
+      return totalGeral(a[1].resultados, voltas) - totalGeral(b[1].resultados, voltas);
+    });
+
+    const linhas = entradas.map(([key,j], idx) => {
+      const total = totalGeral(j.resultados, voltas);
+      const pc = (total>0 && idx===0)?'p1':(total>0 && idx===1)?'p2':(total>0 && idx===2)?'p3':'';
+      const chips = voltas.map(v=>{
+        const i = voltas.indexOf(v);
+        const tv = totalVolta(j.resultados, voltas.indexOf(v));
+        return `<span class="volta-chip ${corVolta(tv,v.tipo)}">${tv||'–'}</span>`;
+      }).join(' ');
+      return `<tr class="linha ${pc}">
+        <td><div class="pos ${pc}">${total>0?idx+1:'–'}</div></td>
+        <td class="nome-cell">${j.nome}</td>
+        <td class="num">${chips}</td>
+        <td class="total-cell">${total||'–'}</td>
+      </tr>`;
+    }).join('') || `<tr><td colspan="4" style="color:var(--text2);padding:20px;font-size:18px">Sem jogadores inscritos</td></tr>`;
+
+    return `<div class="slide ${ci===slideIdx?'active':''}">
+      <div class="cat-badge">${cat}</div>
+      <table class="tabela">
+        <thead><tr><th style="width:60px">#</th><th>Jogador</th><th class="num">${voltas.map(v=>v.label).join(' · ')}</th><th class="num" style="text-align:right">Total</th></tr></thead>
+        <tbody>${linhas}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  dots.innerHTML = cats.map((_,i)=>`<span class="${i===slideIdx?'active':''}"></span>`).join('');
+}
+
+function formatarData(iso){
+  const [y,m,d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+setInterval(()=>{
+  if (!torneio) return;
+  const cats = torneio.meta?.categorias||[];
+  if (cats.length<2) return;
+  slideIdx = (slideIdx+1) % cats.length;
+  render();
+}, SLIDE_SECONDS*1000);
+</script>
+</body>
+</html>
