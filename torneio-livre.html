@@ -209,6 +209,8 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <button class="btn btn-sm" onclick="mtAdicionarVolta()">+</button>
     </div>
 
+    <div id="mt-erro" class="login-err" style="text-align:left;margin-top:14px"></div>
+
     <div class="modal-footer">
       <button class="btn-outline btn" onclick="fecharModalNovoTorneio()">Cancelar</button>
       <button class="btn" onclick="criarTorneio()">Criar Torneio</button>
@@ -329,6 +331,7 @@ window.abrirModalNovoTorneio = function(){
   mtCategorias = []; mtVoltas = [];
   document.getElementById('mt-nome').value = '';
   document.getElementById('mt-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('mt-erro').classList.remove('show');
   mtRenderChips(); mtRenderVoltas();
   document.getElementById('modal-novo-torneio').classList.add('open');
 };
@@ -364,17 +367,24 @@ window.mtRemoverVolta = function(i){ mtVoltas.splice(i,1); mtRenderVoltas(); };
 window.criarTorneio = async function(){
   const nome = document.getElementById('mt-nome').value.trim();
   const data = document.getElementById('mt-data').value;
-  if (!nome){ toast('Dá um nome ao torneio'); return; }
-  if (!mtCategorias.length){ toast('Adiciona pelo menos uma categoria'); return; }
-  if (!mtVoltas.length){ toast('Adiciona pelo menos uma volta'); return; }
-  const novoRef = push(ref(db, ROOT));
-  await set(novoRef, {
-    meta: { nome, data, categorias: mtCategorias, voltas: mtVoltas, criadoEm: new Date().toISOString() },
-    jogadores: {}
-  });
-  fecharModalNovoTorneio();
-  toast('Torneio criado ✅');
-  abrirTorneio(novoRef.key);
+  const erroEl = document.getElementById('mt-erro');
+  erroEl.classList.remove('show');
+  if (!nome){ erroEl.textContent = '⚠️ Falta o nome do torneio.'; erroEl.classList.add('show'); document.getElementById('mt-nome').focus(); return; }
+  if (!mtCategorias.length){ erroEl.textContent = '⚠️ Adiciona pelo menos uma categoria.'; erroEl.classList.add('show'); return; }
+  if (!mtVoltas.length){ erroEl.textContent = '⚠️ Adiciona pelo menos uma volta.'; erroEl.classList.add('show'); return; }
+  try {
+    const novoRef = push(ref(db, ROOT));
+    await set(novoRef, {
+      meta: { nome, data, categorias: mtCategorias, voltas: mtVoltas, criadoEm: new Date().toISOString() },
+      jogadores: {}
+    });
+    fecharModalNovoTorneio();
+    toast('Torneio criado ✅');
+    abrirTorneio(novoRef.key);
+  } catch(e) {
+    erroEl.textContent = '❌ Erro ao gravar: ' + e.message;
+    erroEl.classList.add('show');
+  }
 };
 
 // ─── VISTA TORNEIO ────────────────────────────────
