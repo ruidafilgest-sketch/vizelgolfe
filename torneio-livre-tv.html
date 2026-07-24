@@ -25,7 +25,8 @@ body{font-family:'DM Sans',Arial,sans-serif;background:radial-gradient(ellipse a
 .tv-clock{font-size:22px;font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums}
 
 .stage{position:relative;height:calc(100vh - 100px);padding:36px 46px}
-.slide{position:absolute;inset:36px 46px;opacity:0;transform:translateY(24px);transition:opacity .6s ease, transform .6s ease;pointer-events:none}
+.slide{position:absolute;inset:36px 46px;opacity:0;transform:translateY(24px);transition:opacity .6s ease, transform .6s ease;pointer-events:none;overflow-y:hidden}
+.slide::-webkit-scrollbar{display:none}
 .slide.active{opacity:1;transform:translateY(0);pointer-events:auto}
 
 .cat-badge{display:inline-block;background:var(--accent);color:#0a1628;font-size:22px;font-weight:900;padding:8px 24px;border-radius:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:22px}
@@ -181,7 +182,7 @@ function render(){
       </tr>`;
     }).join('') || `<tr><td colspan="4" style="color:var(--text2);padding:20px;font-size:18px">Sem jogadores inscritos</td></tr>`;
 
-    return `<div class="slide ${ci===slideIdx?'active':''}">
+    return `<div class="slide ${ci===slideIdx?'active':''}" id="slide-${ci}">
       <div class="cat-badge">${cat}</div>
       <table class="tabela">
         <thead><tr><th style="width:60px">#</th><th>Jogador</th><th class="num">${voltas.map(v=>v.label).join(' · ')}</th><th class="num" style="text-align:right">Total</th></tr></thead>
@@ -191,6 +192,7 @@ function render(){
   }).join('');
 
   dots.innerHTML = cats.map((_,i)=>`<span class="${i===slideIdx?'active':''}"></span>`).join('');
+  agendarProximoSlide();
 }
 
 function formatarData(iso){
@@ -198,13 +200,49 @@ function formatarData(iso){
   return `${d}/${m}/${y}`;
 }
 
-setInterval(()=>{
-  if (!torneio) return;
-  const cats = torneio.meta?.categorias||[];
-  if (cats.length<2) return;
+// ─── ROTAÇÃO + SCROLL AO RITMO DE TV DESPORTIVA ────
+const PAUSA_TOPO_MS = 1800;   // tempo parado a mostrar o topo antes de deslizar
+const PAUSA_FUNDO_MS = 1800;  // tempo parado no fundo antes de mudar de categoria
+const VELOCIDADE_PX_SEG = 55; // ritmo do scroll (tipo ticker desportivo)
+let timerSlide = null;
+let rafScroll = null;
+
+function agendarProximoSlide(){
+  clearTimeout(timerSlide);
+  cancelAnimationFrame(rafScroll);
+  const cats = torneio?.meta?.categorias || [];
+  if (cats.length < 1) return;
+
+  const el = document.getElementById(`slide-${slideIdx}`);
+  if (!el){ timerSlide = setTimeout(avancarSlide, SLIDE_SECONDS*1000); return; }
+  el.scrollTop = 0;
+  const overflow = el.scrollHeight - el.clientHeight;
+
+  if (overflow <= 4 || cats.length < 2){
+    timerSlide = setTimeout(avancarSlide, Math.max(SLIDE_SECONDS*1000, PAUSA_TOPO_MS+PAUSA_FUNDO_MS));
+    return;
+  }
+
+  const duracaoScroll = (overflow / VELOCIDADE_PX_SEG) * 1000;
+  setTimeout(() => {
+    const inicio = performance.now();
+    function passo(agora){
+      const p = Math.min(1, (agora - inicio) / duracaoScroll);
+      el.scrollTop = overflow * p;
+      if (p < 1) rafScroll = requestAnimationFrame(passo);
+    }
+    rafScroll = requestAnimationFrame(passo);
+  }, PAUSA_TOPO_MS);
+
+  timerSlide = setTimeout(avancarSlide, PAUSA_TOPO_MS + duracaoScroll + PAUSA_FUNDO_MS);
+}
+
+function avancarSlide(){
+  const cats = torneio?.meta?.categorias || [];
+  if (cats.length < 2) { agendarProximoSlide(); return; }
   slideIdx = (slideIdx+1) % cats.length;
   render();
-}, SLIDE_SECONDS*1000);
+}
 </script>
 </body>
 </html>
