@@ -207,7 +207,7 @@ function render(){
       }).join(' ');
       return `<tr class="linha ${pc}">
         <td><div class="pos ${pc}">${total>0?idx+1:'–'}</div></td>
-        <td class="nome-cell">${j.clube ? `<img class="clube-logo-tv" src="logos/${j.clube.toLowerCase()}.png" alt="" onerror="this.remove()">` : ''}${j.nome} <span style="font-size:14px;color:var(--text2);font-weight:700">${j.clube?('· '+j.clube):''}</span></td>
+        <td class="nome-cell">${j.clube ? `<img class="clube-logo-tv" src="${j.clube.toLowerCase()}.png" alt="" onerror="this.remove()">` : ''}${j.nome} <span style="font-size:14px;color:var(--text2);font-weight:700">${j.clube?('· '+j.clube):''}</span></td>
         <td class="num">${chips}</td>
         <td class="total-cell">${total||'–'}</td>
       </tr>`;
