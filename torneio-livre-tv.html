@@ -44,6 +44,7 @@ body{font-family:'DM Sans',Arial,sans-serif;background:radial-gradient(ellipse a
 .pos.p2{background:var(--silver);color:#000}
 .pos.p3{background:var(--bronze);color:#000}
 .nome-cell{font-size:24px}
+.clube-logo-tv{width:34px;height:34px;border-radius:7px;object-fit:cover;vertical-align:middle;margin-right:4px}
 .total-cell{font-size:28px;font-weight:900;color:var(--accent2);text-align:right}
 .volta-chip{display:inline-block;min-width:52px;padding:6px 10px;border-radius:8px;font-size:18px;font-weight:800;text-align:center}
 .vt-blue{background:rgba(52,152,219,.28);color:#6fb8ea}
@@ -124,11 +125,41 @@ function tick(){
 }
 setInterval(tick,1000); tick();
 
+// ─── MANTER O ECRÃ SEMPRE ACORDADO ──────────────────
+let wakeLock = null;
+async function pedirWakeLock(){
+  try {
+    if ('wakeLock' in navigator) {
+      wakeLock = await navigator.wakeLock.request('screen');
+    }
+  } catch(e) { /* nem todos os browsers/SO suportam — segue sem isso */ }
+}
+pedirWakeLock();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') pedirWakeLock();
+});
+
+// ─── VIGIA DE LIGAÇÃO — recarrega sozinho se ficar preso ─
+let ultimoDadosRecebidos = Date.now();
+const LIMITE_SEM_DADOS_MS = 90 * 1000; // 90s sem nenhuma atualização/heartbeat = recarregar
+setInterval(() => {
+  if (Date.now() - ultimoDadosRecebidos > LIMITE_SEM_DADOS_MS) {
+    location.reload();
+  }
+}, 15000);
+onValue(ref(db, '.info/connected'), snap => {
+  const ligado = snap.val() === true;
+  const dot = document.querySelector('.live-dot');
+  if (dot) dot.style.opacity = ligado ? '1' : '.4';
+  if (ligado) ultimoDadosRecebidos = Date.now();
+});
+
 if (!torneioId){
   document.getElementById('stage').innerHTML = '<div class="empty">Falta o parâmetro ?id= na URL</div>';
 } else {
   onValue(ref(db, `${ROOT}/${torneioId}`), snap => {
     torneio = snap.val();
+    ultimoDadosRecebidos = Date.now();
     render();
   });
 }
@@ -176,7 +207,7 @@ function render(){
       }).join(' ');
       return `<tr class="linha ${pc}">
         <td><div class="pos ${pc}">${total>0?idx+1:'–'}</div></td>
-        <td class="nome-cell">${j.nome} <span style="font-size:14px;color:var(--text2);font-weight:700">${j.clube?('· '+j.clube):''}</span></td>
+        <td class="nome-cell">${j.clube ? `<img class="clube-logo-tv" src="logos/${j.clube.toLowerCase()}.png" alt="" onerror="this.remove()">` : ''}${j.nome} <span style="font-size:14px;color:var(--text2);font-weight:700">${j.clube?('· '+j.clube):''}</span></td>
         <td class="num">${chips}</td>
         <td class="total-cell">${total||'–'}</td>
       </tr>`;
