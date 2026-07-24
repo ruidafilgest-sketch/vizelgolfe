@@ -103,7 +103,8 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
 .login-box p{color:var(--text2);font-size:13px;margin-bottom:20px}
 .login-err{color:var(--red);font-size:13px;margin-top:10px;display:none}
 .login-err.show{display:block}
-.clube-badge{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;letter-spacing:.5px}
+.clube-badge{background:var(--bg3);border:1px solid var(--border2);color:var(--text2);font-size:11px;font-weight:800;padding:3px 8px;border-radius:6px;letter-spacing:.5px;display:inline-flex;align-items:center;gap:5px}
+.clube-badge img{width:18px;height:18px;border-radius:4px;object-fit:cover;flex-shrink:0}
 .modo-toggle{display:flex;background:var(--bg3);border-radius:7px;overflow:hidden;border:1px solid var(--border2)}
 .modo-btn{background:transparent;border:none;color:var(--text2);font-size:11px;padding:5px 9px;cursor:pointer}
 .modo-btn.ativo{background:var(--accent);color:#0a1628;font-weight:700}
@@ -189,7 +190,6 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
             <option value="MCL">MCL</option>
             <option value="MCP">MCP</option>
             <option value="IND">IND</option>
-            <option value="INI">INI</option>
           </select>
         </div>
         <div style="display:flex;align-items:flex-end"><button class="btn" onclick="inscreverJogador()">Inscrever</button></div>
@@ -319,7 +319,7 @@ function corVolta(total, tipo){
 }
 
 // ─── ESTADO ───────────────────────────────────────
-const CLUBES = ['VZG','NFC','CMP','MCL','MCP','IND','INI'];
+const CLUBES = ['VZG','NFC','CMP','MCL','MCP','IND'];
 let torneios = {};
 let torneioAtualId = null;
 let mtCategorias = [];
@@ -686,7 +686,7 @@ window.renderListaJogadores = function(){
           <div class="jogador-nome" onclick="event.stopPropagation()">
             <input value="${j.nome}" onchange="editarNomeJogador('${key}',this.value)">
           </div>
-          <span class="clube-badge">${j.clube||'—'}</span>
+          <span class="clube-badge">${j.clube ? `<img src="logos/${j.clube.toLowerCase()}.png" alt="" onerror="this.remove()">${j.clube}` : '—'}</span>
           <div class="voltas-mini">${chipsVoltas}</div>
           <div class="total-geral">${total||'–'}</div>
           <div class="row-actions" onclick="event.stopPropagation()">
