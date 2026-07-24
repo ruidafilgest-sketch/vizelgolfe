@@ -686,7 +686,7 @@ window.renderListaJogadores = function(){
           <div class="jogador-nome" onclick="event.stopPropagation()">
             <input value="${j.nome}" onchange="editarNomeJogador('${key}',this.value)">
           </div>
-          <span class="clube-badge">${j.clube ? `<img src="logos/${j.clube.toLowerCase()}.png" alt="" onerror="this.remove()">${j.clube}` : '—'}</span>
+          <span class="clube-badge">${j.clube ? `<img src="${j.clube.toLowerCase()}.png" alt="" onerror="this.remove()">${j.clube}` : '—'}</span>
           <div class="voltas-mini">${chipsVoltas}</div>
           <div class="total-geral">${total||'–'}</div>
           <div class="row-actions" onclick="event.stopPropagation()">
