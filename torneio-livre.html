@@ -194,6 +194,19 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
         </div>
         <div style="display:flex;align-items:flex-end"><button class="btn" onclick="inscreverJogador()">Inscrever</button></div>
       </div>
+      <div style="margin-top:10px">
+        <button class="btn-outline btn btn-sm" onclick="toggleImportLote()">📋 Importar Lista (vários de uma vez)</button>
+      </div>
+      <div id="bloco-import-lote" class="hidden" style="margin-top:14px;border-top:1px solid var(--border2);padding-top:14px">
+        <label style="display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">
+          Uma linha por jogador — Nome;Categoria;Clube
+        </label>
+        <textarea id="input-lote" rows="6" placeholder="Rui Oliveira;Homens;NFC&#10;Sofia Santos;Senhoras;CMP&#10;..."></textarea>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn btn-sm" onclick="preverImportLote()">Pré-visualizar</button>
+        </div>
+        <div id="preview-lote" style="margin-top:12px"></div>
+      </div>
     </div>
 
     <!-- Lista de jogadores por categoria -->
@@ -497,6 +510,57 @@ window.inscreverJogador = async function(){
   });
   document.getElementById('input-nome-jogador').value = '';
   toast('Jogador inscrito ✅');
+};
+
+// ─── IMPORTAÇÃO EM LOTE ────────────────────────────
+window.toggleImportLote = function(){
+  document.getElementById('bloco-import-lote').classList.toggle('hidden');
+};
+
+let loteValidado = [];
+
+window.preverImportLote = function(){
+  const t = torneioAtual();
+  const cats = t.meta?.categorias||[];
+  const texto = document.getElementById('input-lote').value.trim();
+  const linhas = texto.split('\n').map(l=>l.trim()).filter(l=>l);
+  loteValidado = linhas.map(linha => {
+    const partes = linha.split(';').map(p=>p.trim());
+    const nome = partes[0]||'';
+    const categoria = partes[1]||'';
+    const clube = (partes[2]||'').toUpperCase();
+    const catOk = cats.includes(categoria);
+    const clubeOk = CLUBES.includes(clube);
+    return { nome, categoria, clube, valido: !!nome && catOk && clubeOk, erro: !nome ? 'sem nome' : !catOk ? `categoria "${categoria}" não existe neste torneio` : !clubeOk ? `clube "${clube}" inválido` : '' };
+  });
+
+  const nOk = loteValidado.filter(l=>l.valido).length;
+  const nErro = loteValidado.length - nOk;
+
+  document.getElementById('preview-lote').innerHTML = `
+    <div style="font-size:13px;margin-bottom:8px">${nOk} prontos a importar${nErro?`, ${nErro} com problema (não serão importados)`:''}</div>
+    <div class="table-wrap" style="max-height:280px;overflow:auto">
+      <table><thead><tr><th>Nome</th><th>Categoria</th><th>Clube</th><th>Estado</th></tr></thead>
+      <tbody>${loteValidado.map(l=>`<tr>
+        <td>${l.nome||'—'}</td><td>${l.categoria||'—'}</td><td>${l.clube||'—'}</td>
+        <td>${l.valido?'✅':'⚠️ '+l.erro}</td>
+      </tr>`).join('')}</tbody></table>
+    </div>
+    ${nOk ? `<button class="btn" style="margin-top:10px" onclick="confirmarImportLote()">Importar ${nOk} jogador${nOk!==1?'es':''}</button>` : ''}
+  `;
+};
+
+window.confirmarImportLote = async function(){
+  const validos = loteValidado.filter(l=>l.valido);
+  for (const l of validos) {
+    await push(ref(db, `${ROOT}/${torneioAtualId}/jogadores`), {
+      nome: l.nome, categoria: l.categoria, clube: l.clube, resultados: {}, criadoEm: new Date().toISOString()
+    });
+  }
+  toast(`${validos.length} jogadores importados ✅`);
+  document.getElementById('input-lote').value = '';
+  document.getElementById('preview-lote').innerHTML = '';
+  loteValidado = [];
 };
 
 window.editarNomeJogador = async function(key, novoNome){
