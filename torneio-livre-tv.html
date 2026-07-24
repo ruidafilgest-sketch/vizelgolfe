@@ -31,11 +31,11 @@ body{font-family:'DM Sans',Arial,sans-serif;background:radial-gradient(ellipse a
 
 .cat-badge{display:inline-block;background:var(--accent);color:#0a1628;font-size:22px;font-weight:900;padding:8px 24px;border-radius:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:22px}
 
-.tabela{width:100%;border-collapse:collapse}
+.tabela{width:100%;border-collapse:collapse;table-layout:fixed}
 .tabela th{text-align:left;padding:10px 14px;color:var(--text2);font-size:14px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid rgba(255,255,255,.1)}
-.tabela th.num, .tabela td.num{text-align:center}
+.tabela th.num, .tabela td.num{text-align:left;padding-left:6px}
 .tabela tr.linha{border-bottom:1px solid rgba(255,255,255,.06)}
-.tabela td{padding:12px 14px;font-size:20px;font-weight:700}
+.tabela td{padding:12px 10px;font-size:20px;font-weight:700}
 .tabela tr.p1{background:linear-gradient(90deg,rgba(240,192,48,.16),transparent)}
 .tabela tr.p2{background:linear-gradient(90deg,rgba(192,200,212,.12),transparent)}
 .tabela tr.p3{background:linear-gradient(90deg,rgba(201,132,68,.12),transparent)}
@@ -43,10 +43,10 @@ body{font-family:'DM Sans',Arial,sans-serif;background:radial-gradient(ellipse a
 .pos.p1{background:var(--gold);color:#000}
 .pos.p2{background:var(--silver);color:#000}
 .pos.p3{background:var(--bronze);color:#000}
-.nome-cell{font-size:24px}
+.nome-cell{font-size:27px}
 .clube-logo-tv{width:34px;height:34px;border-radius:7px;object-fit:cover;vertical-align:middle;margin-right:4px}
-.total-cell{font-size:28px;font-weight:900;color:var(--accent2);text-align:right}
-.volta-chip{display:inline-block;min-width:52px;padding:6px 10px;border-radius:8px;font-size:18px;font-weight:800;text-align:center}
+.total-cell{font-size:28px;font-weight:900;color:var(--accent2);text-align:right;padding-right:6px !important}
+.volta-chip{display:inline-block;min-width:52px;padding:6px 10px;border-radius:8px;font-size:18px;font-weight:800;text-align:center;margin-right:6px}
 .vt-blue{background:rgba(52,152,219,.28);color:#6fb8ea}
 .vt-green{background:rgba(46,204,113,.28);color:#5fdb95}
 .vt-red{background:rgba(231,76,60,.28);color:#f08a7d}
@@ -216,7 +216,7 @@ function render(){
     return `<div class="slide ${ci===slideIdx?'active':''}" id="slide-${ci}">
       <div class="cat-badge">${cat}</div>
       <table class="tabela">
-        <thead><tr><th style="width:60px">#</th><th>Jogador</th><th class="num">${voltas.map(v=>v.label).join(' · ')}</th><th class="num" style="text-align:right">Total</th></tr></thead>
+        <thead><tr><th style="width:56px">#</th><th style="width:40%">Jogador</th><th class="num" style="width:38%">${voltas.map(v=>v.label).join(' · ')}</th><th class="num" style="text-align:right;width:16%">Total</th></tr></thead>
         <tbody>${linhas}</tbody>
       </table>
     </div>`;
