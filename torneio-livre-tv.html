@@ -210,13 +210,20 @@ function render(){
         <td class="nome-cell">${j.clube ? `<img class="clube-logo-tv" src="${j.clube.toLowerCase()}.png" alt="" onerror="this.remove()">` : ''}${j.nome} <span style="font-size:14px;color:var(--text2);font-weight:700">${j.clube?('· '+j.clube):''}</span></td>
         <td class="num">${chips}</td>
         <td class="total-cell">${total||'–'}</td>
+        <td></td>
       </tr>`;
-    }).join('') || `<tr><td colspan="4" style="color:var(--text2);padding:20px;font-size:18px">Sem jogadores inscritos</td></tr>`;
+    }).join('') || `<tr><td colspan="5" style="color:var(--text2);padding:20px;font-size:18px">Sem jogadores inscritos</td></tr>`;
 
     return `<div class="slide ${ci===slideIdx?'active':''}" id="slide-${ci}">
       <div class="cat-badge">${cat}</div>
       <table class="tabela">
-        <thead><tr><th style="width:56px">#</th><th style="width:40%">Jogador</th><th class="num" style="width:38%">${voltas.map(v=>v.label).join(' · ')}</th><th class="num" style="text-align:right;width:16%">Total</th></tr></thead>
+        <thead><tr>
+          <th style="width:56px">#</th>
+          <th style="width:400px">Jogador</th>
+          <th class="num" style="width:${voltas.length*80}px">${voltas.map(v=>v.label).join(' · ')}</th>
+          <th class="num" style="text-align:right;width:120px">Total</th>
+          <th></th>
+        </tr></thead>
         <tbody>${linhas}</tbody>
       </table>
     </div>`;
