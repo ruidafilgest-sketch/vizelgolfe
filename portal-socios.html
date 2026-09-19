@@ -2446,10 +2446,10 @@ function renderAreaSocio() {
       tbR.innerHTML = '<div style="font-size:12px;color:var(--text2);text-align:center;padding:20px">Sem recibos emitidos</div>';
     } else {
       tbR.innerHTML = meusRecibos.sort((a,b)=>(b[1].data||'').localeCompare(a[1].data||'')).map(([k,r]) => `
-        <div class="s-recibo-item">
-          <div class="s-recibo-num">${r.numero||'—'}</div>
+        <div class="s-recibo-item" style="${r.anulado?'opacity:.5':''}">
+          <div class="s-recibo-num">${r.numero||'—'}${r.anulado?' <span style="background:#c82828;color:#fff;font-size:8px;padding:1px 4px;border-radius:3px;">ANULADO</span>':''}</div>
           <div class="s-recibo-desc">
-            <div style="font-weight:500;font-size:13px">${r.descricao||'—'}</div>
+            <div style="font-weight:500;font-size:13px;${r.anulado?'text-decoration:line-through':''}">${r.descricao||'—'}</div>
             <div style="font-size:11px;color:var(--text2)">${r.data||'—'}</div>
           </div>
           <div class="s-recibo-val">+${Number(r.valor||0).toFixed(2)} €</div>
@@ -3142,15 +3142,16 @@ window.renderRecibos = function() {
 
   if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty"><div class="icon">🧾</div><p>Sem recibos</p></div></td></tr>'; return; }
 
-  tbody.innerHTML = lista.map(([k,r]) => `<tr>
-    <td style="font-family:'DM Mono';color:var(--accent)">${r.numero}</td>
-    <td><strong>${r.socioNome||'—'}</strong></td>
+  tbody.innerHTML = lista.map(([k,r]) => `<tr style="${r.anulado?'opacity:.55':''}">
+    <td style="font-family:'DM Mono';color:var(--accent)">${r.numero}${r.anulado?' <span style="background:#c82828;color:#fff;font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px">ANULADO</span>':''}</td>
+    <td><strong style="${r.anulado?'text-decoration:line-through':''}">${r.socioNome||'—'}</strong>${r.anulado&&r.motivoAnulacao?`<div style="font-size:10px;color:var(--text2);margin-top:2px">${r.motivoAnulacao}</div>`:''}</td>
     <td style="color:var(--text2)">${r.descricao||'—'}</td>
-    <td style="color:var(--green);font-weight:600">${parseFloat(r.valor||0).toFixed(2)}€</td>
+    <td style="color:${r.anulado?'var(--text2)':'var(--green)'};font-weight:600;${r.anulado?'text-decoration:line-through':''}">${parseFloat(r.valor||0).toFixed(2)}€</td>
     <td style="color:var(--text2)">${r.data||'—'}</td>
     <td>
       <button class="btn btn-outline btn-sm" onclick="emitirRecibo('${k}','direct')">🧾 Ver</button>
-      <button class="btn btn-danger btn-sm" onclick="apagarRecibo('${k}')">🗑️</button>
+      ${r.anulado?'':`<button class="btn btn-outline btn-sm" onclick="anularRecibo('${k}')" title="Anular (mantém histórico)">🚫 Anular</button>`}
+      <button class="btn btn-danger btn-sm" onclick="apagarRecibo('${k}')" title="Apagar definitivamente">🗑️</button>
     </td>
   </tr>`).join('');
 };
@@ -3194,7 +3195,8 @@ function htmlRecibo(r, s, paraImprimir) {
   const css = `
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'DM Sans',sans-serif;color:#0f1e35;background:#fff;font-size:13px;line-height:1.5}
-    .rec-wrap{max-width:600px;margin:0 auto;padding:${paraImprimir?'36px 40px':'20px'}}
+    .rec-wrap{max-width:600px;margin:0 auto;padding:${paraImprimir?'36px 40px':'20px'};position:relative}
+    .rec-anulado-stamp{position:absolute;top:40%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-family:'Bebas Neue',sans-serif;font-size:64px;color:rgba(200,40,40,.35);border:5px solid rgba(200,40,40,.35);padding:4px 22px;letter-spacing:6px;pointer-events:none;z-index:5}
     .rec-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding-bottom:20px;border-bottom:3px solid #1a3a6b;margin-bottom:24px}
     .rec-logo{width:60px;height:60px;object-fit:contain;flex-shrink:0}
     .rec-org{flex:1}
@@ -3233,6 +3235,7 @@ function htmlRecibo(r, s, paraImprimir) {
 
   const bodyHTML = `
     <div class="rec-wrap">
+      ${r.anulado?'<div class="rec-anulado-stamp">ANULADO</div>':''}
       <div class="rec-header">
         <img class="rec-logo" src="${LOGO_B64}" alt="${nomeAssoc}">
         <div class="rec-org">
@@ -3333,22 +3336,166 @@ window.emitirRecibo = function(key, mode='direct') {
   openModal('modal-recibo');
 };
 
+// ── Versão compacta do recibo (meia folha A4) — usada só na impressão/PDF, Original + Duplicado ──
+function valorExtenso(v) {
+  const inteiro = Math.floor(v);
+  const cents   = Math.round((v - inteiro) * 100);
+  const unidades = ['','um','dois','três','quatro','cinco','seis','sete','oito','nove','dez',
+    'onze','doze','treze','catorze','quinze','dezasseis','dezassete','dezoito','dezanove'];
+  const dezenas  = ['','','vinte','trinta','quarenta','cinquenta','sessenta','setenta','oitenta','noventa'];
+  const centenas = ['','cem','duzentos','trezentos','quatrocentos','quinhentos','seiscentos','setecentos','oitocentos','novecentos'];
+  function conv(n) {
+    if (n === 0) return 'zero';
+    if (n < 20) return unidades[n];
+    if (n < 100) return dezenas[Math.floor(n/10)] + (n%10 ? ' e ' + unidades[n%10] : '');
+    if (n === 100) return 'cem';
+    if (n < 200) return 'cento e ' + conv(n-100);
+    return centenas[Math.floor(n/100)] + (n%100 ? ' e ' + conv(n%100) : '');
+  }
+  let txt = conv(inteiro) + (inteiro === 1 ? ' euro' : ' euros');
+  if (cents > 0) txt += ' e ' + conv(cents) + (cents === 1 ? ' cêntimo' : ' cêntimos');
+  return txt.charAt(0).toUpperCase() + txt.slice(1);
+}
+
+function htmlReciboMeiaFolha(r, s, etiqueta){
+  const cfg=configuracoes||{};
+  const nomeAssoc=cfg.nome||'Vizelgolfe — Associação de Minigolfe de Vizela';
+  const nifAssoc=cfg.nif||'509 227 902';
+  const iban=cfg.iban||'PT50 0045 1401 4037 3110 4744 6';
+  const banco=cfg.banco||'';
+  const mbway=cfg.mbway||'';
+  const moradaAssoc=cfg.morada||'';
+  const numRecibo=r.numero||'—';
+  const valor=parseFloat(r.valor||0);
+  const hoje=r.data||new Date().toISOString().slice(0,10);
+  const meioLabel={banco:'Transferência bancária',caixa:'Numerário (caixa)',mbway:'MBWay',cheque:'Cheque',cartao:'Cartão'}[r.meio||'banco']||(r.meio||'');
+  const corEtiqueta=etiqueta==='DUPLICADO'?'#6b7280':'#1a3a6b';
+  const anuladoStamp=r.anulado?`<div class="rc-anulado">ANULADO</div>`:'';
+
+  return `
+    <div class="rc-wrap">
+      ${anuladoStamp}
+      <div class="rc-etiqueta" style="background:${corEtiqueta}">${etiqueta}${etiqueta==='DUPLICADO'?' — 2.ª via':''}</div>
+      <div class="rc-header">
+        <img class="rc-logo" src="${LOGO_B64}" alt="${nomeAssoc}">
+        <div class="rc-org">
+          <h1>${nomeAssoc}</h1>
+          <p>NIF ${nifAssoc}${moradaAssoc?' · '+moradaAssoc:''}</p>
+        </div>
+        <div class="rc-num-block">
+          <div class="rc-num-label">Recibo</div>
+          <div class="rc-num">${numRecibo}</div>
+          <div class="rc-data">${hoje}</div>
+        </div>
+      </div>
+
+      <div class="rc-destinatario">
+        <div class="rc-dest-label">Recebido de</div>
+        <div class="rc-dest-nome">${r.socioNome||s.nome||'—'}</div>
+        <div class="rc-dest-meta">Sócio Nº ${s.numero||'—'} · ${s.categoria||'—'}${s.nif?' · NIF '+s.nif:''}</div>
+      </div>
+
+      <table class="rc-tabela">
+        <thead><tr><th>Descrição</th><th style="text-align:right;width:80px">Valor (€)</th></tr></thead>
+        <tbody><tr>
+          <td>${r.descricao||'—'}${r.referencia?' · Ref: '+r.referencia:''} · ${meioLabel}</td>
+          <td style="text-align:right;font-weight:700">${valor.toFixed(2)}</td>
+        </tr></tbody>
+        <tfoot><tr><td>TOTAL</td><td style="text-align:right">${valor.toFixed(2)} €</td></tr></tfoot>
+      </table>
+      <div class="rc-extenso">${valorExtenso(valor)}</div>
+
+      <div class="rc-pagamento">
+        <span class="rc-pag-label">IBAN</span> <span class="rc-pag-val">${iban}</span>
+        ${banco?`<span class="rc-pag-label" style="margin-left:10px">Banco</span> <span class="rc-pag-val">${banco}</span>`:''}
+        ${mbway?`<span class="rc-pag-label" style="margin-left:10px">MBWay</span> <span class="rc-pag-val">${mbway}</span>`:''}
+      </div>
+
+      <div class="rc-footer">
+        <div class="rc-declaracao">A ${nomeAssoc} declara ter recebido do sócio acima identificado a quantia descrita, referente ao pagamento indicado.</div>
+        <div class="rc-assinatura">
+          <div class="rc-assinatura-linha">Pela ${nomeAssoc.split('—')[0].trim()} — O Tesoureiro / Direção</div>
+        </div>
+      </div>
+      <div class="rc-nota">Documento emitido eletronicamente · ${nomeAssoc} · NIF ${nifAssoc} · ${hoje}</div>
+    </div>
+  `;
+}
+
 window.imprimirRecibo = function() {
   const r = currentReciboData;
   if (!r) return;
   const s = socios[r.socioKey] || {};
-  const { css, bodyHTML } = htmlRecibo(r, s, true);
+
+  const css = `
+    *{box-sizing:border-box;margin:0;padding:0}
+    @page{size:A4;margin:8mm}
+    body{font-family:'DM Sans',sans-serif;color:#0f1e35;background:#fff}
+    .rc-pagina{width:100%;}
+    .rc-metade{height:136mm;padding:6mm 4mm;position:relative;overflow:hidden}
+    .rc-corte{border-top:1px dashed #999;text-align:center;position:relative;height:0;}
+    .rc-corte span{position:relative;top:-7px;background:#fff;padding:0 8px;font-size:9px;color:#999;letter-spacing:1px;}
+    .rc-wrap{max-width:100%;position:relative}
+    .rc-anulado{position:absolute;top:35%;left:50%;transform:translate(-50%,-50%) rotate(-18deg);font-family:'Bebas Neue',sans-serif;font-size:42px;color:rgba(200,40,40,.35);border:4px solid rgba(200,40,40,.35);padding:2px 16px;letter-spacing:4px;pointer-events:none;z-index:5}
+    .rc-etiqueta{display:inline-block;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:2px;padding:2px 10px;border-radius:3px;margin-bottom:6px}
+    .rc-header{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding-bottom:6px;border-bottom:2px solid #1a3a6b;margin-bottom:8px}
+    .rc-logo{width:34px;height:34px;object-fit:contain;flex-shrink:0}
+    .rc-org{flex:1}
+    .rc-org h1{font-family:'Bebas Neue',sans-serif;font-size:13px;color:#1a3a6b;letter-spacing:1px;text-transform:uppercase;line-height:1.1}
+    .rc-org p{font-size:7.5px;color:#666;margin-top:2px}
+    .rc-num-block{text-align:right;flex-shrink:0}
+    .rc-num-label{font-size:6.5px;text-transform:uppercase;letter-spacing:1.5px;color:#999;font-weight:700}
+    .rc-num{font-family:'Bebas Neue',sans-serif;font-size:19px;color:#d4820a;letter-spacing:1px;line-height:1.1}
+    .rc-data{font-size:8px;color:#666}
+    .rc-destinatario{background:#f4f7fb;border-left:3px solid #1a3a6b;border-radius:0 5px 5px 0;padding:6px 9px;margin-bottom:8px}
+    .rc-dest-label{font-size:6.5px;text-transform:uppercase;letter-spacing:1px;color:#666;font-weight:700}
+    .rc-dest-nome{font-size:11px;font-weight:700;color:#0f1e35}
+    .rc-dest-meta{font-size:8px;color:#555}
+    .rc-tabela{width:100%;border-collapse:collapse;margin-bottom:3px;font-size:9px}
+    .rc-tabela th{background:#e8eef6;color:#1a3a6b;font-size:7px;text-transform:uppercase;padding:4px 6px;font-weight:800;border-bottom:1.5px solid #1a3a6b;text-align:left}
+    .rc-tabela td{padding:4px 6px;border-bottom:1px solid #dde4ee}
+    .rc-tabela tfoot td{background:#0f1e35;color:#fff;font-weight:800;font-size:10px;padding:4px 6px}
+    .rc-extenso{font-size:7.5px;color:#555;font-style:italic;text-align:right;margin-bottom:8px}
+    .rc-pagamento{border:1px solid #c8d4e8;border-radius:5px;padding:6px 9px;margin-bottom:8px;font-size:8px}
+    .rc-pag-label{font-size:6.5px;text-transform:uppercase;color:#999}
+    .rc-pag-val{font-family:monospace;font-weight:700;color:#0f1e35}
+    .rc-footer{border-top:1px solid #dde4ee;padding-top:6px;display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+    .rc-declaracao{font-size:7.5px;color:#555;max-width:60%;line-height:1.4}
+    .rc-assinatura-linha{border-top:1px solid #666;padding-top:3px;margin-top:14px;font-size:7.5px;color:#333;white-space:nowrap}
+    .rc-nota{font-size:6px;color:#aaa;text-align:center;margin-top:6px}
+    @media print{button{display:none!important}}
+  `;
+  const original = htmlReciboMeiaFolha(r, s, 'ORIGINAL');
+  const duplicado = htmlReciboMeiaFolha(r, s, 'DUPLICADO');
+  const bodyHTML = `<div class="rc-pagina"><div class="rc-metade">${original}</div><div class="rc-corte"><span>✂ · corte aqui · ✂</span></div><div class="rc-metade">${duplicado}</div></div>`;
+
   const w = window.open('','_blank');
   w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;600;700&display=swap" rel="stylesheet"><style>' + css + '</style></head><body>' + bodyHTML + '</body></html>');
   w.document.close();
   setTimeout(()=>w.print(), 800);
 };
 
+window.anularRecibo = async function(key) {
+  const r = recibos[key];
+  if (!r) return;
+  if (r.anulado) { toast('Este recibo já está anulado', 'error'); return; }
+  const motivo = prompt('Motivo da anulação (ex: IBAN incorreto — substituído pelo recibo SWC2026-PAT-0001):');
+  if (motivo === null) return;
+  if (!motivo.trim()) { toast('Indica o motivo da anulação', 'error'); return; }
+  await update(ref(db, `/portal/recibos/${key}`), {
+    anulado: true,
+    motivoAnulacao: motivo.trim(),
+    dataAnulacao: new Date().toISOString().slice(0,10)
+  });
+  toast('Recibo anulado — mantido no histórico para auditoria');
+};
+
 window.apagarRecibo = async function(key) {
-  if (!confirm('Apagar este recibo?')) return;
+  if (!confirm('Apagar definitivamente este recibo? Prefere-se normalmente "Anular" em vez de apagar, para manter rasto contabilístico. Só apaga se for um registo de teste sem qualquer efeito financeiro real.')) return;
   await remove(ref(db, `/portal/recibos/${key}`));
   toast('Recibo removido');
 };
+
 
 // ─── IMPORTAR ──────────────────────────────────────
 window.handleDrop = function(e) {
