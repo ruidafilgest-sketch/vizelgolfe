@@ -78,6 +78,16 @@ body{background:#060e1c;min-height:100vh;display:flex;flex-direction:column;alig
 <div id="loading">⏳ A carregar cartão...</div>
 <div id="erro">❌ Cartão não encontrado.<br><span style="font-size:12px;color:rgba(200,220,255,.4);margin-top:8px;display:block">Verifica o link ou contacta a secretaria.</span></div>
 
+<div id="login-cartao" style="display:none;width:100%;max-width:340px;text-align:center">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;color:#d4820a">VIZELGOLFE</div>
+  <p style="color:rgba(200,220,255,.6);font-size:13px;margin:6px 0 18px">Confirma a tua identidade para ver o cartão</p>
+  <input id="lc-num" type="text" inputmode="numeric" placeholder="Número de sócio" autocomplete="off" style="width:100%;padding:12px 14px;margin-bottom:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:9px;color:#e8f0fe;font-size:15px;font-family:inherit">
+  <p style="color:rgba(200,220,255,.5);font-size:11px;text-align:left;margin:4px 0">Data de nascimento</p>
+  <input id="lc-nasc" type="date" style="width:100%;padding:12px 14px;margin-bottom:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:9px;color:#e8f0fe;font-size:15px;font-family:inherit">
+  <button class="btn btn-dl" id="lc-btn" onclick="entrarCartao()" style="width:100%">Ver cartão</button>
+  <p id="lc-err" style="color:#e74c3c;font-size:12px;margin-top:10px;display:none"></p>
+</div>
+
 <div class="scene" id="cartao" onclick="flip()" title="Clica para ver o verso">
   <div class="inner" id="inner">
     <div class="face frente">
@@ -141,7 +151,8 @@ body{background:#060e1c;min-height:100vh;display:flex;flex-direction:column;alig
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getDatabase, ref, get } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getDatabase, ref, get, query, orderByChild, equalTo } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getAuth, signInWithCustomToken, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",
@@ -155,6 +166,9 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
+const auth = getAuth(app);
+const AUTH_WORKER_URL = 'https://vizelgolfe-auth.rui-dafilgest.workers.dev';
+const ADMIN_UID = 'pId7gclO7OUpwwIjSr2cXOZvhq43'; // identificador público do admin (não é segredo)
 
 function flip() {
   document.getElementById('cartao').classList.toggle('flipped');
@@ -163,7 +177,7 @@ window.flip = flip;
 
 // Ler parâmetro ?s=CHAVE do URL
 const params = new URLSearchParams(window.location.search);
-const socioKey = params.get('s');
+let socioKey = params.get('s');
 
 async function carregar() {
   if (!socioKey) {
@@ -175,7 +189,7 @@ async function carregar() {
   try {
     const [socioSnap, quotasSnap] = await Promise.all([
       get(ref(db, `/portal/socios/${socioKey}`)),
-      get(ref(db, '/portal/quotas'))
+      get(query(ref(db, '/portal/quotas'), orderByChild('socioKey'), equalTo(socioKey)))
     ]);
 
     if (!socioSnap.exists()) {
@@ -240,11 +254,65 @@ async function carregar() {
     document.getElementById('info-bottom').style.display = 'block';
 
   } catch(e) {
-    document.getElementById('loading').textContent = '❌ Erro ao carregar: ' + e.message;
+    const semAcesso = /permission/i.test(String(e && (e.code || e.message)));
+    document.getElementById('loading').textContent = semAcesso
+      ? '❌ Sem acesso a este cartão. Contacta a secretaria.'
+      : '❌ Erro ao carregar: ' + e.message;
   }
 }
 
-carregar();
+// ── Acesso: o sócio confirma número + data de nascimento (validado no servidor) ──
+function mostrarLogin(msg) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('erro').style.display = 'none';
+  document.getElementById('login-cartao').style.display = 'block';
+  const e = document.getElementById('lc-err');
+  e.textContent = msg || '';
+  e.style.display = msg ? 'block' : 'none';
+}
+
+window.entrarCartao = async function () {
+  const num = document.getElementById('lc-num').value.trim();
+  const nasc = document.getElementById('lc-nasc').value;
+  const btn = document.getElementById('lc-btn');
+  if (!num || !nasc) { mostrarLogin('Preenche o número de sócio e a data de nascimento.'); return; }
+  btn.disabled = true;
+  try {
+    const resp = await fetch(AUTH_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numero: num, nascimento: nasc })
+    });
+    if (resp.status === 429) { mostrarLogin('Demasiadas tentativas. Tenta novamente daqui a 15 minutos.'); return; }
+    if (!resp.ok) { mostrarLogin('Sócio não encontrado ou dados incorretos.'); return; }
+    const { token, key } = await resp.json();
+    if (socioKey && key !== socioKey) { mostrarLogin('Este cartão pertence a outro sócio.'); return; }
+    await signInWithCustomToken(auth, token);
+    socioKey = key;
+    document.getElementById('login-cartao').style.display = 'none';
+    document.getElementById('loading').style.display = 'block';
+    await carregar();
+  } catch (e) {
+    mostrarLogin('Erro ao entrar. Tenta novamente.');
+  } finally {
+    btn.disabled = false;
+  }
+};
+
+let _estadoLido = false;
+onAuthStateChanged(auth, async (user) => {
+  if (_estadoLido) return;
+  _estadoLido = true;
+  if (user && user.uid === ADMIN_UID) {
+    if (socioKey) await carregar(); else mostrarLogin();
+  } else if (user && (!socioKey || user.uid === socioKey)) {
+    socioKey = user.uid;
+    await carregar();
+  } else {
+    if (user) { try { await signOut(auth); } catch (e) {} }
+    mostrarLogin();
+  }
+});
 </script>
 </body>
 </html>

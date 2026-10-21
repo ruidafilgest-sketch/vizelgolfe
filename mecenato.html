@@ -307,6 +307,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, get, remove, push, onValue, runTransaction }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getAuth, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",
@@ -320,12 +322,24 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
+const auth = getAuth(app);
+const ADMIN_UID = "pId7gclO7OUpwwIjSr2cXOZvhq43"; // identificador público do admin (não é segredo)
+
+// Esta ferramenta é só para o administrador: usa a sessão aberta no portal (mesmo domínio)
+const quandoAdmin = new Promise((resolve) => {
+  onAuthStateChanged(auth, (user) => {
+    if (user && user.uid === ADMIN_UID) { resolve(true); return; }
+    resolve(false);
+    const app = document.querySelector('.app');
+    if (app) app.innerHTML = '<div style="color:#fff;text-align:center;padding:60px 20px;font-family:sans-serif">🔒 Acesso reservado ao administrador.<br><span style="font-size:13px;opacity:.7">Abre o Portal de Sócios e entra como administrador.</span></div>';
+  });
+});
 
 window._mecOnRecibos = (cb) => {
-  onValue(ref(db, 'portal/mecenato/recibos'), (snap) => cb(snap.exists() ? snap.val() : {}));
+  quandoAdmin.then((ok) => { if (ok) onValue(ref(db, 'portal/mecenato/recibos'), (snap) => cb(snap.exists() ? snap.val() : {})); });
 };
 window._mecOnConfig = (cb) => {
-  onValue(ref(db, 'portal/mecenato/config'), (snap) => cb(snap.exists() ? snap.val() : null));
+  quandoAdmin.then((ok) => { if (ok) onValue(ref(db, 'portal/mecenato/config'), (snap) => cb(snap.exists() ? snap.val() : null)); });
 };
 window._mecEmit = async (record, counterKey, prefix, year) => {
   const counterRef = ref(db, 'portal/mecenato/counters/' + counterKey);

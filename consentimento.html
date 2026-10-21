@@ -335,6 +335,7 @@
 <script type="module">
 import { initializeApp }        from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getDatabase, ref, get, set, push } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { getAuth, signInWithCustomToken, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",
@@ -347,6 +348,8 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const db  = getDatabase(app);
+const auth = getAuth(app);
+const AUTH_WORKER_URL = 'https://vizelgolfe-auth.rui-dafilgest.workers.dev';
 
 // ─── Utilitários de UI ─────────────────────────
 function mostrar(id) {
@@ -367,34 +370,8 @@ let socioKey = null;
 let socioData = null;
 
 async function inicializar() {
-  if (!socioParam) { mostrar('step-form'); return; }
-
-  try {
-    // Procurar sócio por número para obter a chave Firebase correta
-    const snapSocios = await get(ref(db, 'portal/socios'));
-    if (snapSocios.exists()) {
-      for (const [k, s] of Object.entries(snapSocios.val())) {
-        const num = String(s.numero || s.Número || s['Número'] || k).trim();
-        if (num === socioParam || k === socioParam) {
-          socioKey  = k;
-          socioData = s;
-          break;
-        }
-      }
-    }
-
-    if (!socioKey) { mostrar('step-form'); return; }
-
-    // Verificar se já tem consentimento
-    const snapC = await get(ref(db, `portal/consentimentos/${socioKey}`));
-    if (snapC.exists()) {
-      mostrarJaRegistado(snapC.val());
-    } else {
-      mostrar('step-form');
-    }
-  } catch(e) {
-    mostrar('step-form');
-  }
+  // A identificação (número + data de nascimento) é validada no servidor ao submeter.
+  mostrar('step-form');
 }
 
 inicializar();
@@ -471,39 +448,29 @@ window.submeter = async function() {
   btn.textContent = '⏳ A verificar...';
 
   try {
-    // Buscar sócio no Firebase
-    const snap = await get(ref(db, `portal/socios`));
-    if (!snap.exists()) throw new Error('Base de dados indisponível');
-
-    const socios = snap.val();
-
-    // Procurar por número de sócio
-    let foundKey = null;
-    let foundSocio = null;
-    for (const [key, s] of Object.entries(socios)) {
-      const num = String(s.numero || s.Número || s['Número'] || key).trim();
-      if (num === numStr || key === numStr) {
-        foundKey   = key;
-        foundSocio = s;
-        break;
-      }
-    }
-
-    if (!foundKey) {
-      document.getElementById('err-numero').textContent = 'Número de sócio não encontrado. Confirma com a secretaria.';
+    // Validar número + data de nascimento no servidor (só sócios ativos)
+    const resp = await fetch(AUTH_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ numero: numStr, nascimento: nascStr })
+    });
+    if (resp.status === 429) {
+      document.getElementById('err-numero').textContent = 'Demasiadas tentativas. Tenta novamente daqui a 15 minutos.';
       document.getElementById('err-numero').style.display = 'block';
       btn.disabled = false; btn.textContent = '✅ Confirmar Consentimento';
       return;
     }
-
-    // Validar data de nascimento
-    const nascDB = (foundSocio['Data Nascimento'] || foundSocio.data_nascimento || foundSocio.nascimento || '').slice(0,10);
-    if (nascDB && nascStr !== nascDB) {
-      document.getElementById('err-nasc').textContent = 'Data de nascimento não corresponde ao registo. Contacta a secretaria se precisares de ajuda.';
-      document.getElementById('err-nasc').style.display = 'block';
+    if (!resp.ok) {
+      document.getElementById('err-numero').textContent = 'Número de sócio ou data de nascimento incorretos. Contacta a secretaria se precisares de ajuda.';
+      document.getElementById('err-numero').style.display = 'block';
       btn.disabled = false; btn.textContent = '✅ Confirmar Consentimento';
       return;
     }
+    const { token, key: foundKey } = await resp.json();
+    await signInWithCustomToken(auth, token);
+    const snapSocio = await get(ref(db, `portal/socios/${foundKey}`));
+    const foundSocio = snapSocio.val();
+    if (!foundSocio) throw new Error('Registo de sócio indisponível');
 
     socioKey  = foundKey;
     socioData = foundSocio;
@@ -535,6 +502,7 @@ window.submeter = async function() {
     }
 
     mostrarSucesso(foundSocio, consentimento);
+    try { await signOut(auth); } catch(_) {}   // não deixar a sessão aberta neste dispositivo
 
   } catch(e) {
     document.getElementById('txt-erro').textContent = 'Erro: ' + e.message;
