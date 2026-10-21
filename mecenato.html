@@ -305,7 +305,7 @@
 
 <script type="module" data-cfasync="false">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, get, remove, push, onValue, runTransaction }
+import { getDatabase, ref, set, get, update, remove, push, onValue, runTransaction }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getAuth, onAuthStateChanged }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -341,21 +341,56 @@ window._mecOnRecibos = (cb) => {
 window._mecOnConfig = (cb) => {
   quandoAdmin.then((ok) => { if (ok) onValue(ref(db, 'portal/mecenato/config'), (snap) => cb(snap.exists() ? snap.val() : null)); });
 };
+// Meio de pagamento do recibo -> "meio" usado pela Contabilidade (Caixa = 1101, restantes = Bancos 1201)
+const MEIO_CONTA = { 'Numerário':'Caixa', 'Transferência bancária':'Transferência', 'Cheque':'Cheque', 'MB Way':'MBWay', 'Outro':'Transferência' };
+
+// Lançamento de receita (mesmo formato das receitas da Contabilidade)
+function montarReceita(record, numero, reciboKey) {
+  const don = record.tipo === 'D';
+  return {
+    data: record.data,
+    valor: Math.round(parseFloat(record.valor) * 100) / 100,
+    descricao: (don ? 'Donativo ' : 'Patrocínio ') + numero + ' — ' + record.nome + (record.designacao ? ' (' + record.designacao + ')' : ''),
+    categoria: don ? 'Donativos' : 'Patrocínio dinheiro',
+    conta: don ? '781' : '731',
+    meio: MEIO_CONTA[record.pagamento] || 'Transferência',
+    referencia: numero,
+    obs: record.designacao || '',
+    ano: String(record.data).slice(0, 4),
+    ref: 'MEC-' + reciboKey,
+    origem: 'mecenato',
+    criadoEm: new Date().toISOString()
+  };
+}
+
 window._mecEmit = async (record, counterKey, prefix, year) => {
   const counterRef = ref(db, 'portal/mecenato/counters/' + counterKey);
   const result = await runTransaction(counterRef, (cur) => (cur || 0) + 1);
   const seq = result.snapshot.val();
   const numero = prefix + ' ' + year + '/' + String(seq).padStart(3, '0');
-  const newRef = push(ref(db, 'portal/mecenato/recibos'));
-  await set(newRef, Object.assign({}, record, { numero }));
-  return { id: newRef.key, numero };
+  const reciboRef = push(ref(db, 'portal/mecenato/recibos'));
+  const receitaRef = push(ref(db, 'portal/receitas'));
+  // Uma só gravação: ou ficam o recibo e o lançamento, ou não fica nenhum
+  const gravar = {};
+  gravar['portal/mecenato/recibos/' + reciboRef.key] = Object.assign({}, record, { numero, receitaKey: receitaRef.key });
+  gravar['portal/receitas/' + receitaRef.key] = montarReceita(record, numero, reciboRef.key);
+  await update(ref(db), gravar);
+  return { id: reciboRef.key, numero, lancado: true };
 };
-window._mecRemove = (id) => remove(ref(db, 'portal/mecenato/recibos/' + id));
+window._mecRemove = async (id) => {
+  const snap = await get(ref(db, 'portal/mecenato/recibos/' + id));
+  const rk = snap.exists() ? snap.val().receitaKey : null;
+  const apagar = {};
+  apagar['portal/mecenato/recibos/' + id] = null;
+  if (rk) apagar['portal/receitas/' + rk] = null;   // apaga também o lançamento na Contabilidade
+  await update(ref(db), apagar);
+};
 window._mecSaveConfig = (cfgData) => set(ref(db, 'portal/mecenato/config'), cfgData);
 window._mecImportBackup = async (recibosArray) => {
   const promises = (recibosArray || []).map(r => {
     const clean = Object.assign({}, r);
     delete clean.id;
+    delete clean.receitaKey;   // backups não criam lançamentos novos
     return set(push(ref(db, 'portal/mecenato/recibos')), clean);
   });
   await Promise.all(promises);
@@ -525,7 +560,7 @@ document.getElementById('btnEmitir').addEventListener('click', async ()=>{
     const record = Object.assign({}, d, { criadoEm: new Date().toISOString() });
     const result = await window._mecEmit(record, counterKey, prefix, year);
     renderPreview(result.numero);
-    toast(`Recibo ${result.numero} guardado no registo.`);
+    toast(`Recibo ${result.numero} guardado e lançado na Contabilidade.`);
   }catch(err){
     console.error(err);
     toast('Erro ao gravar. Verifica a ligação e tenta novamente.');
@@ -551,7 +586,7 @@ function renderTable(filter){
   document.getElementById('regEmpty').style.display = rows.length ? 'none':'block';
   body.innerHTML = rows.map(r=>`
     <tr>
-      <td style="font-family:var(--mono)">${r.numero}</td>
+      <td style="font-family:var(--mono)">${r.numero}${r.receitaKey ? ' <span title="Lançado na Contabilidade">📒</span>' : ''}</td>
       <td><span class="pill pill-${r.tipo}">${typeLabels[r.tipo]}</span></td>
       <td>${fmtDate(r.data)}</td>
       <td>${escapeHtml(r.nome)}</td>
@@ -585,7 +620,7 @@ function reprint(id){
 }
 
 function removeRecibo(id){
-  if(!confirm('Eliminar este recibo do registo? Esta ação não pode ser desfeita.')) return;
+  if(!confirm('Eliminar este recibo? Se estiver lançado na Contabilidade (📒), o lançamento também é apagado. Esta ação não pode ser desfeita.')) return;
   window._mecRemove(id).catch(()=>toast('Erro ao eliminar. Tenta novamente.'));
 }
 
