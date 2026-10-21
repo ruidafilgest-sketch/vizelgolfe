@@ -248,7 +248,7 @@
         <table id="regTable">
           <thead>
             <tr>
-              <th>Nº</th><th>Tipo</th><th>Data</th><th>Doador</th><th>NIF</th><th>Valor</th><th></th>
+              <th>Nº</th><th>Tipo</th><th>Data</th><th>Doador</th><th>NIF</th><th>Valor</th><th>Contabilidade</th><th></th>
             </tr>
           </thead>
           <tbody id="regBody"></tbody>
@@ -384,6 +384,29 @@ window._mecRemove = async (id) => {
   apagar['portal/mecenato/recibos/' + id] = null;
   if (rk) apagar['portal/receitas/' + rk] = null;   // apaga também o lançamento na Contabilidade
   await update(ref(db), apagar);
+};
+window._mecLancar = async (id) => {
+  const snap = await get(ref(db, 'portal/mecenato/recibos/' + id));
+  if (!snap.exists()) throw new Error('Recibo não encontrado');
+  const rec = snap.val();
+  if (rec.receitaKey) throw new Error('Este recibo já está lançado');
+  const receitaRef = push(ref(db, 'portal/receitas'));
+  const gravar = {};
+  gravar['portal/mecenato/recibos/' + id + '/receitaKey'] = receitaRef.key;
+  gravar['portal/receitas/' + receitaRef.key] = montarReceita(rec, rec.numero, id);
+  await update(ref(db), gravar);
+};
+// Lançamentos já existentes com o mesmo valor e data (para não duplicar um lançamento feito à mão)
+window._mecPossiveisDuplicados = async (id) => {
+  const snap = await get(ref(db, 'portal/mecenato/recibos/' + id));
+  if (!snap.exists()) return [];
+  const rec = snap.val();
+  const rs = await get(ref(db, 'portal/receitas'));
+  const todas = rs.exists() ? Object.values(rs.val()) : [];
+  const valor = Math.round(parseFloat(rec.valor) * 100);
+  return todas
+    .filter(r => r.data === rec.data && Math.round(parseFloat(r.valor || 0) * 100) === valor)
+    .map(r => (r.descricao || 'sem descrição') + ' — ' + (r.conta || ''));
 };
 window._mecSaveConfig = (cfgData) => set(ref(db, 'portal/mecenato/config'), cfgData);
 window._mecImportBackup = async (recibosArray) => {
@@ -586,12 +609,15 @@ function renderTable(filter){
   document.getElementById('regEmpty').style.display = rows.length ? 'none':'block';
   body.innerHTML = rows.map(r=>`
     <tr>
-      <td style="font-family:var(--mono)">${r.numero}${r.receitaKey ? ' <span title="Lançado na Contabilidade">📒</span>' : ''}</td>
+      <td style="font-family:var(--mono)">${r.numero}</td>
       <td><span class="pill pill-${r.tipo}">${typeLabels[r.tipo]}</span></td>
       <td>${fmtDate(r.data)}</td>
       <td>${escapeHtml(r.nome)}</td>
       <td style="font-family:var(--mono)">${escapeHtml(r.nif)}</td>
       <td>${euros(r.valor)}</td>
+      <td>${r.receitaKey
+        ? '<span title="Já está nas Receitas da Contabilidade" style="color:#1f7a45;font-weight:700">📒 Lançado</span>'
+        : `<span style="color:#a1352b;font-weight:700">Por lançar</span> <button class="icon-btn" title="Lançar na Contabilidade" onclick="lancarRecibo('${r.id}')">➕ Lançar</button>`}</td>
       <td class="row-actions">
         <button class="icon-btn" title="Reimprimir" onclick="reprint('${r.id}')">↻</button>
         <button class="icon-btn danger" title="Eliminar" onclick="removeRecibo('${r.id}')">✕</button>
@@ -599,6 +625,27 @@ function renderTable(filter){
     </tr>
   `).join('');
 }
+
+async function lancarRecibo(id){
+  const r = state.recibos.find(x=>x.id===id);
+  if(!r || r.receitaKey) return;
+  try{
+    const dup = await window._mecPossiveisDuplicados(id);
+    let msg = `Lançar o recibo ${r.numero} (${euros(r.valor)}) nas Receitas da Contabilidade?`;
+    if(dup.length){
+      msg += `\n\n⚠️ Já existe um lançamento com o mesmo valor e data:\n- ${dup.join('\n- ')}\n\nSe for o mesmo, NÃO lances (ficava duplicado).`;
+    } else {
+      msg += `\n\nConfirma que este valor ainda não foi lançado à mão em Receitas.`;
+    }
+    if(!confirm(msg)) return;
+    await window._mecLancar(id);
+    toast(`Recibo ${r.numero} lançado na Contabilidade.`);
+  }catch(err){
+    console.error(err);
+    toast('Não foi possível lançar: ' + (err.message || 'erro'));
+  }
+}
+window.lancarRecibo = lancarRecibo;
 
 function reprint(id){
   const r = state.recibos.find(x=>x.id===id);
