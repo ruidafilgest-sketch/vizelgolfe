@@ -1957,6 +1957,7 @@ function renderFormInserir(prova, jornada) {
   if (isCViz) {
     html += `<button class="btn btn-secondary" onclick="recalcBonusJornada(${prova.id},${jornada})" style="padding:8px 16px">⚡ Recalcular Bónus J${jornada}</button>`;
   }
+  html += _impBotoes(prova, jornada);
   html += `<span id="inserir-msg" style="font-size:0.82rem;color:var(--green)"></span>`;
   html += `</div>`;
 
@@ -2036,6 +2037,7 @@ function renderFormInserir(prova, jornada) {
   if (isCViz) {
     html += `<button class="btn btn-secondary" onclick="recalcBonusJornada(${prova.id},${jornada})" style="padding:8px 16px">⚡ Recalcular Bónus J${jornada}</button>`;
   }
+  html += _impBotoes(prova, jornada);
   html += `</div></div>`;
 
   div.innerHTML = html;
@@ -2144,6 +2146,179 @@ window.guardarResultados = async function(provaId, jornada) {
     if (msg) { msg.style.color='#cc2222'; msg.textContent='❌ Erro: '+e.message; }
     mostrarNotif('❌ Erro ao guardar!', true);
   }
+};
+
+// ── IMPORTAR DE UM TORNEIO LIVRE PARA UMA JORNADA ──────────────────────────
+// Copia os resultados de um torneio livre para uma jornada vazia, pelos mesmos passos do «Guardar Resultados».
+const _TL_URL = 'https://vizelgolfe-portal-default-rtdb.europe-west1.firebasedatabase.app/portal/torneiosLivres';
+const _impEsc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const _impNorm = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+const _impIdDe = s => { s = (s || '').trim(); const m = s.match(/[?&]id=([^&#\s]+)/); const id = m ? decodeURIComponent(m[1]) : s; return (!id || /[.#$\[\]\/:\s]/.test(id)) ? '' : id; };
+let _imp = null;
+
+function _impCampos(prova, jornada) {
+  return prova.jornadaEspecial?.[jornada]?.tipo === 'peter4voltas' ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
+}
+function _impTemResultados(prova, jornada) {
+  const j = prova.resultados?.[jornada]; if (!j) return false;
+  return Object.values(j).some(r => r && ['mV1','mV2','pV1','pV2','pV3','pV4'].some(c => { const v = Number(r[c]); return v > 0 && v !== 126; }));
+}
+function _impBotoes(prova, jornada) {
+  const o = prova.origemJornada?.[jornada];
+  let h = `<button class="btn btn-secondary" onclick="abrirImportarTorneio(${prova.id},${jornada})" style="padding:8px 16px">📥 Importar de torneio livre</button>`;
+  if (o) h += `<span style="font-size:0.78rem;color:var(--dim)">Importado de «${_impEsc(o.torneio)}» em ${_impEsc(new Date(o.importadoEm).toLocaleString('pt-PT'))}</span>`
+            + `<button class="btn btn-secondary" onclick="anularImportacao(${prova.id},${jornada})" style="padding:6px 12px;font-size:0.78rem">↩ Anular importação</button>`;
+  return h;
+}
+function _impModal(titulo, meta, corpo) {
+  document.getElementById('modal-nome').textContent = titulo;
+  document.getElementById('modal-meta').textContent = meta || '';
+  document.getElementById('modal-body').innerHTML = corpo;
+  document.getElementById('modal-overlay').classList.add('on');
+}
+function _impFechar() { document.getElementById('modal-overlay').classList.remove('on'); }
+function _impProva() { return (dadosInt.provas || []).find(p => p.id == _imp.provaId); }
+
+window.abrirImportarTorneio = async function(provaId, jornada) {
+  if (!dadosInt || !modoAdmin) { mostrarNotif('Só o administrador pode importar.', true); return; }
+  const prova = (dadosInt.provas || []).find(p => p.id == provaId); if (!prova) return;
+  if (_impTemResultados(prova, jornada)) {
+    _impModal('📥 Importar de torneio livre', prova.nome + ' · Jornada ' + jornada,
+      `<p style="line-height:1.6">Esta jornada <b>já tem resultados</b>. Para não misturar, a importação só funciona numa jornada vazia.</p>
+       <p style="line-height:1.6;color:var(--dim);margin-top:8px">Escolhe outra jornada, ou, se esta foi importada por engano, usa «↩ Anular importação».</p>
+       <div class="btn-row"><button class="btn btn-secondary" onclick="document.getElementById('modal-overlay').classList.remove('on')">Fechar</button></div>`);
+    return;
+  }
+  _imp = { provaId: prova.id, jornada, id: null, torneio: null };
+  let pubs = [];
+  try { const s = await getDoc(doc(db, 'vizelgolfe', 'tv_controlo')); if (s.exists()) pubs = s.data().publicados || []; } catch (e) {}
+  _impModal('📥 Importar de torneio livre', prova.nome + ' · Jornada ' + jornada,
+    `<p style="line-height:1.6;margin-bottom:10px">Escolhe o torneio cujos resultados queres copiar para esta jornada. O torneio <b>não é alterado</b>.</p>
+     ${pubs.length ? '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">' + pubs.map(p => `<button class="btn btn-secondary" style="text-align:left" onclick="impLer('${_impEsc(p.id)}')">${_impEsc(p.nome)}${p.data ? ' · ' + _impEsc(String(p.data).split('-').reverse().join('/')) : ''}</button>`).join('') + '</div>' : '<p style="color:var(--dim);margin-bottom:10px">Ainda não há torneios publicados.</p>'}
+     <div class="form-group"><label>Ou cola o link da TV do torneio (…?id=…)</label>
+       <div style="display:flex;gap:8px"><input type="text" id="imp-id" placeholder="link ou ID do torneio" style="flex:1"><button class="btn btn-primary" onclick="impLer(document.getElementById('imp-id').value)">Ler</button></div></div>
+     <div class="btn-row"><button class="btn btn-secondary" onclick="document.getElementById('modal-overlay').classList.remove('on')">Cancelar</button></div>`);
+};
+
+window.impLer = async function(txt) {
+  const id = _impIdDe(txt);
+  if (!id) { mostrarNotif('Isto não é o link/ID de um torneio.', true); return; }
+  let t = null;
+  try { const r = await fetch(`${_TL_URL}/${encodeURIComponent(id)}.json`); t = await r.json(); }
+  catch (e) { mostrarNotif('Não foi possível ler o torneio.', true); return; }
+  if (!t || !t.meta) { mostrarNotif('Torneio não encontrado.', true); return; }
+  _imp.id = id; _imp.torneio = t; _impPasso2();
+};
+
+function _impCorresponder(nome, atletas) {
+  const n = _impNorm(nome); if (!n) return { id: null };
+  const exato = atletas.find(a => _impNorm(a.nome) === n); if (exato) return { id: exato.id, exato: true };
+  const tk = n.split(' ');
+  const cand = atletas.filter(a => { const an = _impNorm(a.nome).split(' '); const [c, l] = tk.length <= an.length ? [tk, an] : [an, tk]; return c.length >= 2 && c.every(x => l.includes(x)); });
+  return cand.length === 1 ? { id: cand[0].id, exato: false } : { id: null };
+}
+
+function _impPasso2() {
+  const prova = _impProva(), j = _imp.jornada, t = _imp.torneio;
+  const voltas = t.meta.voltas || [], campos = _impCampos(prova, j), p4 = campos[0] === 'pV1' && campos.length === 4;
+  const minis = voltas.map((v, i) => ({ v, i })).filter(x => x.v.tipo === 'mini');
+  const pets  = voltas.map((v, i) => ({ v, i })).filter(x => x.v.tipo === 'peter');
+  const sug = {};
+  if (p4) campos.forEach((c, k) => { sug[c] = pets[k] ? pets[k].i : ''; });
+  else { sug.mV1 = minis[0] ? minis[0].i : ''; sug.mV2 = minis[1] ? minis[1].i : ''; sug.pV1 = pets[0] ? pets[0].i : ''; sug.pV2 = pets[1] ? pets[1].i : ''; }
+  const nomeSlot = { mV1:'Mini 1', mV2:'Mini 2', pV1:'Peter 1', pV2:'Peter 2', pV3:'Peter 3', pV4:'Peter 4' };
+  let slots = '';
+  campos.forEach(c => {
+    slots += `<tr><td style="padding:4px 8px;white-space:nowrap">${nomeSlot[c]} da jornada</td><td style="padding:4px 8px"><select id="imp-slot-${c}" style="width:100%">
+      <option value="">— não se jogou (volta inativa) —</option>
+      ${voltas.map((v, i) => `<option value="${i}" ${sug[c] === i ? 'selected' : ''}>${_impEsc(v.label)} (${_impEsc(v.tipo)})</option>`).join('')}
+    </select></td></tr>`;
+  });
+  const atl = (dadosInt.atletas || []).slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
+  const jog = Object.entries(t.jogadores || {}).map(([key, g]) => ({ key, g, m: _impCorresponder(g.nome, atl) }));
+  jog.sort((a, b) => (b.m.id ? 1 : 0) - (a.m.id ? 1 : 0) || String(a.g.nome).localeCompare(String(b.g.nome), 'pt'));
+  const nOk = jog.filter(x => x.m.id).length;
+  let linhas = '';
+  jog.forEach(x => {
+    const vals = voltas.map((v, i) => { const n = Number(x.g.resultados?.[i]?.total); return n > 0 ? n : '–'; }).join(' · ');
+    linhas += `<tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:5px 8px">${_impEsc(x.g.nome)}<div style="font-size:0.7rem;color:var(--dim)">${_impEsc(x.g.categoria || '')} · ${_impEsc(x.g.clube || '')} · ${vals}</div></td>
+      <td style="padding:5px 8px"><select id="imp-j-${_impEsc(x.key)}" style="width:100%"><option value="">— ignorar —</option>
+        ${atl.map(a => `<option value="${a.id}" ${x.m.id === a.id ? 'selected' : ''}>${_impEsc(a.nome)}</option>`).join('')}</select>
+        ${x.m.id && !x.m.exato ? '<div style="font-size:0.7rem;color:#b36b00">⚠ nome aproximado: confirma</div>' : ''}</td></tr>`;
+  });
+  _impModal('📥 ' + _impEsc(t.meta.nome || 'Torneio'), prova.nome + ' · Jornada ' + j + (p4 ? ' · 4 voltas Peter' : ''),
+    `<div style="font-size:0.85rem;line-height:1.6;margin-bottom:8px"><b>1.</b> Liga as voltas do torneio às voltas da jornada. Onde escolheres «não se jogou», a volta fica inativa (como no ecrã normal).</div>
+     <table style="width:100%;font-size:0.85rem;margin-bottom:12px">${slots}</table>
+     <div style="font-size:0.85rem;line-height:1.6;margin-bottom:6px"><b>2.</b> Confirma os jogadores. <b>${nOk}</b> de ${jog.length} foram reconhecidos; quem fica em «ignorar» não é importado.</div>
+     <div style="max-height:34vh;overflow:auto;border:1px solid rgba(0,0,0,.12);border-radius:8px"><table style="width:100%;font-size:0.85rem">${linhas}</table></div>
+     <div class="btn-row" style="margin-top:12px"><button class="btn btn-primary" onclick="impConfirmar()">✅ Importar para a Jornada ${j}</button>
+       <button class="btn btn-secondary" onclick="document.getElementById('modal-overlay').classList.remove('on')">Cancelar</button></div>`);
+}
+
+window.impConfirmar = async function() {
+  if (!_imp || !dadosInt || !modoAdmin) return;
+  const prova = _impProva(), j = _imp.jornada, t = _imp.torneio, campos = _impCampos(prova, j);
+  const mapa = {};
+  campos.forEach(c => { const v = document.getElementById('imp-slot-' + c).value; mapa[c] = v === '' ? null : parseInt(v); });
+  const usados = Object.values(mapa).filter(v => v !== null);
+  if (!usados.length) { mostrarNotif('Liga pelo menos uma volta do torneio.', true); return; }
+  if (new Set(usados).size !== usados.length) { mostrarNotif('A mesma volta do torneio está ligada a duas voltas da jornada.', true); return; }
+  const escolha = {}, vistos = new Set(); let repetido = false;
+  Object.entries(t.jogadores || {}).forEach(([key, g]) => {
+    const sel = document.getElementById('imp-j-' + key); if (!sel || sel.value === '') return;
+    if (vistos.has(sel.value)) { repetido = true; return; } vistos.add(sel.value);
+    const vals = {}; campos.forEach(c => { const idx = mapa[c]; if (idx === null) return; const v = Number(g.resultados?.[idx]?.total); if (v > 0) vals[c] = v; });
+    escolha[sel.value] = vals;
+  });
+  if (repetido) { mostrarNotif('Dois jogadores do torneio estão ligados ao mesmo atleta.', true); return; }
+  const nImp = Object.keys(escolha).length;
+  if (!nImp) { mostrarNotif('Nenhum jogador foi ligado a um atleta.', true); return; }
+  if (!confirm(`Importar ${nImp} jogador(es) de «${t.meta.nome || 'Torneio'}» para ${prova.nome}, Jornada ${j}?\n\nOs resultados do torneio não são alterados.\n\nJá fizeste a cópia de segurança de hoje? (Gestão → 💾 Cópia)`)) return;
+
+  // — mesmos passos do «Guardar Resultados» —
+  if (!prova.jornadaEspecial) prova.jornadaEspecial = {};
+  if (!prova.jornadaEspecial[j]) prova.jornadaEspecial[j] = {};
+  const esp = prova.jornadaEspecial[j];
+  const antes = [...(esp.voltasInativas || [])];
+  const inat = [...new Set([...antes.filter(c => !campos.includes(c)), ...campos.filter(c => mapa[c] === null)])];
+  if (inat.length) esp.voltasInativas = inat; else delete esp.voltasInativas;
+  if (!Object.keys(esp).length) delete prova.jornadaEspecial[j];
+  if (!prova.resultados) prova.resultados = {};
+  if (!prova.resultados[j]) prova.resultados[j] = {};
+  const jRes = prova.resultados[j], atletas = dadosInt.atletas || [];
+  atletas.forEach(a => {
+    const vals = {}; let temAlgum = false;
+    campos.forEach(c => {
+      if (inat.includes(c)) { vals[c] = 126; temAlgum = true; return; }
+      const v = escolha[String(a.id)]?.[c]; if (v > 0) { vals[c] = v; temAlgum = true; }
+    });
+    if (temAlgum) { const existing = jRes[String(a.id)] || jRes[a.id] || {}; jRes[String(a.id)] = { ...existing, ...vals }; }
+    else { delete jRes[String(a.id)]; delete jRes[a.id]; }
+  });
+  if (_isCampVizela(prova)) aplicarBonusNosResultados(prova, j, calcularBonusAuto(prova, j, atletas));
+  if (!prova.origemJornada) prova.origemJornada = {};
+  prova.origemJornada[j] = { torneio: t.meta.nome || 'Torneio', id: _imp.id, importadoEm: new Date().toISOString(), jogadores: nImp, inativasAntes: antes };
+  try {
+    await setDoc(doc(db, 'vizelgolfe', 'dados'), { ...dadosInt, _vzgKey: 'VZG-2026-SEC-K9x' });
+    guardarRankingCalculado().catch(e => console.warn('Ranking portal não guardado:', e));
+    _impFechar(); renderFormInserir(prova, j);
+    mostrarNotif(`✅ ${nImp} resultados importados para a Jornada ${j}!`);
+  } catch (e) { mostrarNotif('❌ Erro ao guardar: ' + e.message, true); }
+};
+
+window.anularImportacao = async function(provaId, jornada) {
+  if (!dadosInt || !modoAdmin) return;
+  const prova = (dadosInt.provas || []).find(p => p.id == provaId); const o = prova?.origemJornada?.[jornada]; if (!o) return;
+  if (!confirm(`Anular a importação de «${o.torneio}» na Jornada ${jornada}?\n\nIsto apaga TODOS os resultados desta jornada.`)) return;
+  if (prova.resultados) delete prova.resultados[jornada];
+  const esp = prova.jornadaEspecial?.[jornada];
+  if (esp) { if (o.inativasAntes && o.inativasAntes.length) esp.voltasInativas = [...o.inativasAntes]; else delete esp.voltasInativas; if (!Object.keys(esp).length) delete prova.jornadaEspecial[jornada]; }
+  delete prova.origemJornada[jornada]; if (!Object.keys(prova.origemJornada).length) delete prova.origemJornada;
+  try {
+    await setDoc(doc(db, 'vizelgolfe', 'dados'), { ...dadosInt, _vzgKey: 'VZG-2026-SEC-K9x' });
+    guardarRankingCalculado().catch(e => console.warn('Ranking portal não guardado:', e));
+    renderFormInserir(prova, jornada); mostrarNotif('↩ Importação anulada.');
+  } catch (e) { mostrarNotif('❌ Erro: ' + e.message, true); }
 };
 
 window.recalcBonusJornada = async function(provaId, jornada) {
