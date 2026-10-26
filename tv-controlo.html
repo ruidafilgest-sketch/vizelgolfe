@@ -100,14 +100,15 @@ const ordenar=(cats,ordem)=>[...cats].sort((a,b)=>{const ia=ordem.indexOf(a),ib=
 $('hlogo').src=LOGO;
 
 let FS=null,RT=null,fsDb=null,rtDb=null;
-let ATUAL={fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},categoria:'',publicados:[]};
-let R={fonte:'camp',prova:'__anual__',vista:'geral',livreId:'',categoria:''};   // rascunho
-let RANK=null,NAC=null,LIVRE={};
+let ATUAL={fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},nac:{chave:'atual'},categoria:'',publicados:[]};
+let R={fonte:'camp',prova:'__anual__',vista:'geral',nac:'atual',tsel:'',categoria:''};   // rascunho
+let RANK=null,NAC=null,PROVAS_DADOS=[],LIVRE={};
 let carregado=false;
 
 function msg(id,tipo,txt){const e=$(id);e.className='msg '+(tipo||'');e.textContent=txt||'';if(!tipo)e.style.display='none'}
-const lerCtrl=c=>({fonte:c?.fonte||'camp',camp:{prova:c?.camp?.prova||'__anual__',vista:String(c?.camp?.vista||'geral')},livre:{id:c?.livre?.id||''},categoria:c?.categoria||'',publicados:Array.isArray(c?.publicados)?c.publicados:[]});
-function rascunhoDe(c){R={fonte:c.fonte,prova:c.camp.prova,vista:c.camp.vista,livreId:c.livre.id,categoria:c.categoria}}
+const lerCtrl=c=>({fonte:c?.fonte||'camp',camp:{prova:c?.camp?.prova||'__anual__',vista:String(c?.camp?.vista||'geral')},livre:{id:c?.livre?.id||''},nac:{chave:c?.nacional?.chave||'atual'},categoria:c?.categoria||'',publicados:Array.isArray(c?.publicados)?c.publicados:[]});
+function rascunhoDe(c){const f=c.fonte;
+  R={fonte:(f==='livre'||f==='prova')?'torneios':f,prova:c.camp.prova,vista:c.camp.vista,nac:c.nac.chave,tsel:f==='livre'?'livre:'+c.livre.id:(f==='prova'?'prova:'+c.camp.prova:''),categoria:c.categoria}}
 
 /* ---------- login ---------- */
 function entrar(){
@@ -124,6 +125,7 @@ async function init(){
     FS=f;RT=d;fsDb=f.getFirestore(appEc);rtDb=d.getDatabase(appPo);
   }catch(e){$('agora').textContent='Sem ligação ao Firebase. Verifica a internet e recarrega a página.';return}
   FS.getDoc(FS.doc(fsDb,'vizelgolfe','ranking_portal')).then(s=>{RANK=s.exists()?s.data().ranking:null;desenhar()}).catch(()=>{});
+  FS.getDoc(FS.doc(fsDb,'vizelgolfe','dados')).then(s=>{PROVAS_DADOS=s.exists()?(s.data().provas||[]):[];desenhar()}).catch(()=>{});
   FS.getDoc(FS.doc(fsDb,'vizelgolfe','nacional')).then(s=>{NAC=s.exists()?s.data():null;desenhar()}).catch(()=>{});
   FS.onSnapshot(FS.doc(fsDb,'vizelgolfe','tv_controlo'),s=>{
     ATUAL=lerCtrl(s.exists()?s.data():null);
@@ -132,50 +134,85 @@ async function init(){
     ATUAL.publicados.forEach(p=>carregarLivre(p.id));
     desenhar();
   },e=>{$('agora').textContent='Não foi possível ler o estado da TV ('+(e.code||e.message)+').'});
-  montarPreview();montarLinks();
+  montarPreview();
 }
 function carregarLivre(id){if(!id||LIVRE[id]!==undefined||!RT)return;LIVRE[id]=null;
   RT.get(RT.ref(rtDb,ROOT+'/'+id)).then(s=>{LIVRE[id]=s.exists()?s.val():false;desenhar()}).catch(()=>{LIVRE[id]=false})}
 
 /* ---------- dados de apoio ---------- */
-function provas(){const m=new Map();Object.values(RANK||{}).forEach(r=>(r.participacoes||[]).forEach(p=>{
-  if(!m.has(p.prova))m.set(p.prova,{nome:p.prova,js:new Set(),ult:''});const e=m.get(p.prova);e.js.add(Number(p.jornada));if((p.data||'')>e.ult)e.ult=p.data||''}));
-  return[...m.values()].map(e=>({nome:e.nome,js:[...e.js].sort((a,b)=>a-b),ult:e.ult})).sort((a,b)=>b.ult.localeCompare(a.ult))}
-function categoriasDe(f){
-  if(f==='camp'){const s=new Set();const pv=R.prova;Object.values(RANK||{}).forEach(r=>{if(pv==='__anual__'||(r.participacoes||[]).some(p=>p.prova===pv))s.add(r.categoria)});return ordenar(s,CAT_CAMP)}
-  if(f==='nacional')return ordenar(Object.keys(NAC?.categorias||{}).filter(c=>(NAC.categorias[c]||[]).length),CAT_NAC);
-  if(f==='livre'){const t=LIVRE[R.livreId];return t&&t.meta?(t.meta.categorias||[]):[]}
+const ORD_EST={ativo:0,concluido:1,'':1,agendado:2};
+const EST_ROT={ativo:'🟢',concluido:'✅',agendado:'📅'};
+function listaProvas(){
+  const map=new Map();
+  (PROVAS_DADOS||[]).forEach(p=>map.set(p.nome,{nome:p.nome,tipo:p.tipo||'torneio',estado:p.estado||'',data:p.data||'',njor:Math.max(Number(p.jornadas)||1,1),cats:new Set()}));
+  Object.values(RANK||{}).forEach(r=>(r.participacoes||[]).forEach(p=>{
+    let m=map.get(p.prova);if(!m){m={nome:p.prova,tipo:p.tipo||'torneio',estado:'',data:p.data||'',njor:1,cats:new Set()};map.set(p.prova,m)}
+    m.njor=Math.max(m.njor,Number(p.jornada)||1);m.cats.add(r.categoria)}));
+  return[...map.values()].sort((a,b)=>{const ea=ORD_EST[a.estado]??1,eb=ORD_EST[b.estado]??1;if(ea!==eb)return ea-eb;
+    return ea===2?(a.data||'9').localeCompare(b.data||'9'):(b.data||'').localeCompare(a.data||'')})}
+const ehCamp=p=>p.tipo==='campeonato';
+function nacOpcoes(){const d=NAC||{},out=[];
+  if(d.bangolfe)out.push({chave:'atual',nome:'Atual · '+(d.bangolfe.nome||'Prova Nacional')});
+  Object.entries(d.historico||{}).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([k,h])=>{
+    if(d.bangolfe&&h.nome===d.bangolfe.nome&&String(h.ano)===String(d.bangolfe.ano))return;out.push({chave:k,nome:h.nome||k})});
+  return out}
+function nacDados(chave){const d=NAC;if(!d)return null;
+  if(!chave||chave==='atual')return d.bangolfe||Object.values(d.historico||{})[0]||null;return d.historico?.[chave]||d.bangolfe||null}
+function categoriasDe(){
+  if(R.fonte==='camp'){const s=new Set(),pv=R.prova;Object.values(RANK||{}).forEach(r=>{if(pv==='__anual__'||(r.participacoes||[]).some(p=>p.prova===pv))s.add(r.categoria)});return ordenar(s,CAT_CAMP)}
+  if(R.fonte==='nacional'){const d=nacDados(R.nac);return ordenar(Object.keys(d?.categorias||{}).filter(c=>(d.categorias[c]||[]).length),CAT_NAC)}
+  if(R.fonte==='torneios'){
+    if(R.tsel.startsWith('livre:')){const t=LIVRE[R.tsel.slice(6)];return t&&t.meta?(t.meta.categorias||[]):[]}
+    const p=listaProvas().find(x=>x.nome===R.tsel.slice(6));return p?ordenar(p.cats,CAT_CAMP):[]}
   return[]}
+function payload(){
+  let fonte=R.fonte,prova=R.prova,vista=String(R.vista),livreId='';
+  if(R.fonte==='torneios'){if(R.tsel.startsWith('livre:')){fonte='livre';livreId=R.tsel.slice(6)}else{fonte='prova';prova=R.tsel.slice(6);vista='geral'}}
+  return{fonte,camp:{prova,vista},livre:{id:livreId},nacional:{chave:R.nac||'atual'},categoria:R.categoria,publicados:ATUAL.publicados}}
 function descrever(c){
-  let s;if(c.fonte==='nacional')s='Nacional';
+  let s;
+  if(c.fonte==='nacional'){const d=nacDados(c.nac.chave);s='Nacional · '+(d?.nome||'Prova Nacional')}
   else if(c.fonte==='livre'){const p=c.publicados.find(x=>x.id===c.livre.id);s='Torneio livre · '+(p?p.nome:(c.livre.id?'(torneio não publicado)':'(nenhum escolhido)'))}
+  else if(c.fonte==='prova')s='Torneio · '+c.camp.prova;
   else s=c.camp.prova==='__anual__'?'Campeonato de Vizela · Ranking anual':c.camp.prova+' · '+(c.camp.vista==='geral'?'Classificação geral':'Jornada '+c.camp.vista);
   return s+' · '+(c.categoria?'Só '+c.categoria:'A rodar todas as categorias')}
-const igual=()=>{const a=ATUAL;return R.fonte===a.fonte&&R.prova===a.camp.prova&&String(R.vista)===String(a.camp.vista)&&R.livreId===a.livre.id&&R.categoria===a.categoria};
+function igual(){const p=payload(),a=ATUAL;if(p.fonte!==a.fonte||p.categoria!==a.categoria)return false;
+  if(p.fonte==='camp')return p.camp.prova===a.camp.prova&&p.camp.vista===a.camp.vista;
+  if(p.fonte==='prova')return p.camp.prova===a.camp.prova;
+  if(p.fonte==='livre')return p.livre.id===a.livre.id;
+  return p.nacional.chave===a.nac.chave}
 
 /* ---------- ecrã ---------- */
 function desenhar(){
   $('agora').textContent=descrever(ATUAL);
-  $('fontes').innerHTML=[['camp','Campeonato'],['nacional','Nacional'],['livre','Torneio livre']].map(([k,n])=>'<button class="'+(R.fonte===k?'on':'')+'" data-f="'+k+'">'+n+'</button>').join('');
-  $('fontes').querySelectorAll('button').forEach(b=>b.onclick=()=>{R.fonte=b.dataset.f;R.categoria='';if(R.fonte==='livre'&&!R.livreId&&ATUAL.publicados[0])R.livreId=ATUAL.publicados[0].id;desenhar()});
-  let h='';
-  if(R.fonte==='camp'){const pv=provas();
-    h+='<label>Prova<select id="selP"><option value="__anual__">Ranking anual</option>'+pv.map(p=>'<option value="'+esc(p.nome)+'"'+(p.nome===R.prova?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+'</select></label><div style="height:.5rem"></div>';
-    const p=pv.find(x=>x.nome===R.prova);
-    if(p)h+='<label>Vista<select id="selV"><option value="geral">Classificação geral</option>'+p.js.map(j=>'<option value="'+j+'"'+(String(j)===String(R.vista)?' selected':'')+'>Jornada '+j+'</option>').join('')+'</select></label><div style="height:.5rem"></div>';
+  $('fontes').innerHTML=[['camp','Campeonato'],['nacional','Nacional'],['torneios','Torneios']].map(([k,n])=>'<button class="'+(R.fonte===k?'on':'')+'" data-f="'+k+'">'+n+'</button>').join('');
+  $('fontes').querySelectorAll('button').forEach(b=>b.onclick=()=>{R.fonte=b.dataset.f;R.categoria='';desenhar()});
+  const ps=listaProvas();let h='';
+  if(R.fonte==='camp'){const cp=ps.filter(ehCamp);
+    h+='<label>Prova<select id="selP"><option value="__anual__">Ranking anual</option>'+cp.map(p=>'<option value="'+esc(p.nome)+'"'+(p.nome===R.prova?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+'</select></label><div style="height:.5rem"></div>';
+    const p=cp.find(x=>x.nome===R.prova);
+    if(p&&p.njor>1)h+='<label>Vista<select id="selV"><option value="geral">Classificação geral</option>'+Array.from({length:p.njor},(_,i)=>i+1).map(j=>'<option value="'+j+'"'+(String(j)===String(R.vista)?' selected':'')+'>Jornada '+j+'</option>').join('')+'</select></label><div style="height:.5rem"></div>';
     if(!RANK)h+='<div class="mut">A ler as provas do Campeonato…</div>'}
-  if(R.fonte==='livre'){
-    if(!ATUAL.publicados.length)h+='<div class="msg av">Ainda não há torneios publicados. Publica um na secção 2.</div>';
-    else h+='<label>Torneio<select id="selL">'+ATUAL.publicados.map(p=>'<option value="'+esc(p.id)+'"'+(p.id===R.livreId?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+'</select></label><div style="height:.5rem"></div>'}
-  if(R.fonte==='nacional'&&!NAC)h+='<div class="mut">A ler o Nacional…</div>';
+  if(R.fonte==='nacional'){const op=nacOpcoes();
+    if(!NAC)h+='<div class="mut">A ler o Nacional…</div>';
+    else if(!op.length)h+='<div class="msg av">Ainda não há provas do Nacional.</div>';
+    else h+='<label>Prova nacional<select id="selN">'+op.map(o=>'<option value="'+esc(o.chave)+'"'+(o.chave===R.nac?' selected':'')+'>'+esc(o.nome)+'</option>').join('')+'</select></label><div style="height:.5rem"></div>'}
+  if(R.fonte==='torneios'){const tc=ps.filter(p=>!ehCamp(p)),pub=ATUAL.publicados;
+    const valores=[...pub.map(p=>'livre:'+p.id),...tc.map(p=>'prova:'+p.nome)];
+    if(!valores.length)h+='<div class="msg av">Ainda não há torneios. Publica um torneio livre na secção 2.</div>';
+    else{if(!valores.includes(R.tsel))R.tsel=valores[0];
+      h+='<label>Torneio<select id="selT">'+(pub.length?'<optgroup label="Torneios livres publicados">'+pub.map(p=>'<option value="livre:'+esc(p.id)+'"'+(R.tsel==='livre:'+p.id?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+'</optgroup>':'')+
+        (tc.length?'<optgroup label="Torneios do clube">'+tc.map(p=>'<option value="prova:'+esc(p.nome)+'"'+(R.tsel==='prova:'+p.nome?' selected':'')+'>'+(EST_ROT[p.estado]||'')+' '+esc(p.nome)+'</option>').join('')+'</optgroup>':'')+'</select></label><div style="height:.5rem"></div>'}}
   $('opcoes').innerHTML=h;
   const sp=$('selP');if(sp)sp.onchange=()=>{R.prova=sp.value;R.vista='geral';R.categoria='';desenhar()};
   const sv=$('selV');if(sv)sv.onchange=()=>{R.vista=sv.value;desenhar()};
-  const sl=$('selL');if(sl)sl.onchange=()=>{R.livreId=sl.value;R.categoria='';carregarLivre(R.livreId);desenhar()};
-  const cats=categoriasDe(R.fonte);
+  const sn=$('selN');if(sn)sn.onchange=()=>{R.nac=sn.value;R.categoria='';desenhar()};
+  const st=$('selT');if(st)st.onchange=()=>{R.tsel=st.value;R.categoria='';if(R.tsel.startsWith('livre:'))carregarLivre(R.tsel.slice(6));desenhar()};
+  if(R.fonte==='torneios'&&R.tsel.startsWith('livre:'))carregarLivre(R.tsel.slice(6));
+  const cats=categoriasDe();
   $('selCat').innerHTML='<option value="">A rodar todas as categorias</option>'+cats.map(c=>'<option value="'+esc(c)+'"'+(c===R.categoria?' selected':'')+'>Só '+esc(c)+'</option>').join('');
   $('selCat').onchange=()=>{R.categoria=$('selCat').value;desenhar()};
-  const pode=!(R.fonte==='livre'&&!R.livreId);
+  const pode=!(R.fonte==='torneios'&&!R.tsel);
   $('enviar').disabled=igual()||!pode;
   $('enviar').textContent=igual()?'A TV já mostra isto':'Enviar para a TV';
   desenharPubs();montarLinks();
@@ -196,15 +233,14 @@ async function gravar(parcial){
 }
 $('enviar').onclick=async()=>{
   msg('msgEnviar','');$('enviar').disabled=true;
-  try{await gravar({fonte:R.fonte,camp:{prova:R.prova,vista:String(R.vista)},livre:{id:R.livreId},categoria:R.categoria,publicados:ATUAL.publicados});
-    msg('msgEnviar','ok','Enviado. A TV muda em poucos segundos.')}
+  try{await gravar(payload());msg('msgEnviar','ok','Enviado. A TV muda em poucos segundos.')}
   catch(e){msg('msgEnviar','err',ajuda(e))}
   desenhar();
 };
 $('repor').onclick=async()=>{
   if(!confirm('Repor a TV para o ranking anual do Campeonato?'))return;
-  try{await gravar({fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},categoria:'',publicados:ATUAL.publicados});
-    R={fonte:'camp',prova:'__anual__',vista:'geral',livreId:'',categoria:''};msg('msgEnviar','ok','TV reposta para o ranking anual do Campeonato.');desenhar()}
+  try{await gravar({fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},nacional:{chave:'atual'},categoria:'',publicados:ATUAL.publicados});
+    R={fonte:'camp',prova:'__anual__',vista:'geral',nac:'atual',tsel:'',categoria:''};msg('msgEnviar','ok','TV reposta para o ranking anual do Campeonato.');desenhar()}
   catch(e){msg('msgEnviar','err',ajuda(e))}
 };
 

@@ -131,7 +131,8 @@ addEventListener('online',()=>ligacao(true));addEventListener('offline',()=>liga
 const ordenar=(cats,ordem)=>[...cats].sort((a,b)=>{const ia=ordem.indexOf(a),ib=ordem.indexOf(b);return(ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b,'pt')});
 const CAT_CAMP=['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos','Juniores'];
 const CAT_NAC=['Homens','Senhoras','Juniores Masculinos','Juniores Femininos','Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos','Veteranos Masculinos','Veteranos Femininos'];
-const fmtData=iso=>{try{const[y,m,d]=iso.split('-');return d+'/'+m+'/'+y}catch(e){return iso}};
+const fmtData=iso=>{try{const[y,m,d]=String(iso).split('-');return d+'/'+m+'/'+y}catch(e){return iso}};
+const hora=iso=>{try{const d=new Date(iso);return'Atualizado às '+d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+(d.toDateString()!==new Date().toDateString()?' de '+d.toLocaleDateString('pt-PT'):'')}catch(e){return''}};
 
 /* ---------- clubes (lista única) ---------- */
 const CLUBES={VZG:'Vizelgolfe',NFC:'Necessidades Futebol Clube',CMP:'Clube Minigolfe Porto',MCL:'Minigolfe Clube Lamego',MCP:'Minigolfe Clube Portugal',ADA:'ADA Minigolfe Portel',IND:'Individual'};
@@ -162,12 +163,12 @@ function corTotal(total,nV,tipo){const n=Number(total);if(isNaN(n)||n<=0||!nV)re
 
 /* ---------- estado ---------- */
 let FS=null,RT=null,fsDb=null,rtDb=null;
-const D={rank:null,rankHora:null,atletas:{},nac:null,livre:{},ctrl:null,erro:{}};
-let CTRL={fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},categoria:'',publicados:[]};
-let SEL={ver:'camp',prova:'__anual__',vista:'geral',id:'',cat:''};
+const D={rank:null,rankHora:null,atletas:{},provas:[],nac:null,livre:{},erro:{}};
+let CTRL={fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},nac:{chave:'atual'},categoria:'',publicados:[]};
+let SEL={ver:'camp',prova:'__anual__',vista:'geral',id:'',nac:'atual',cat:''};
 let userSel=false;
 const subs={};
-function marcarCtrl(c){CTRL={fonte:c?.fonte||'camp',camp:{prova:c?.camp?.prova||'__anual__',vista:String(c?.camp?.vista||'geral')},livre:{id:c?.livre?.id||''},categoria:c?.categoria||'',publicados:Array.isArray(c?.publicados)?c.publicados:[]}}
+function marcarCtrl(c){CTRL={fonte:c?.fonte||'camp',camp:{prova:c?.camp?.prova||'__anual__',vista:String(c?.camp?.vista||'geral')},livre:{id:c?.livre?.id||''},nac:{chave:c?.nacional?.chave||'atual'},categoria:c?.categoria||'',publicados:Array.isArray(c?.publicados)?c.publicados:[]}}
 
 /* ---------- ligações (só leitura) ---------- */
 async function iniciarSDK(){
@@ -182,73 +183,105 @@ function escutarDoc(chave,docId,aoReceber){
     err=>{D.erro[chave]=err.code||err.message;ligacao(false);aplicar()});
 }
 let ultimoDados=0;
-async function carregarClubes(){
-  if(Date.now()-ultimoDados<60000)return;ultimoDados=Date.now();
-  try{const s=await FS.getDoc(FS.doc(fsDb,'vizelgolfe','dados'));const m={};
-    ((s.exists()?s.data().atletas:[])||[]).forEach(a=>{m[String(a.id)]=a});D.atletas=m}catch(e){}}
+async function carregarDados(){
+  if(!FS||Date.now()-ultimoDados<60000)return;ultimoDados=Date.now();
+  try{const s=await FS.getDoc(FS.doc(fsDb,'vizelgolfe','dados'));const dd=s.exists()?s.data():{};const m={};
+    (dd.atletas||[]).forEach(a=>{m[String(a.id)]=a});D.atletas=m;
+    D.provas=(dd.provas||[]).map(p=>({nome:p.nome,tipo:p.tipo,estado:p.estado,data:p.data,jornadas:p.jornadas}))}catch(e){}}
 function garantir(ver,id){
   if(!FS)return;
-  if(ver==='camp'){escutarDoc('rank','ranking_portal',d=>{D.rank=d?.ranking||null;D.rankHora=d?.atualizadoEm||null;carregarClubes().then(aplicar)})}
+  if(ver==='camp'||ver==='prova'){
+    escutarDoc('rank','ranking_portal',d=>{D.rank=d?.ranking||null;D.rankHora=d?.atualizadoEm||null;carregarDados().then(aplicar)});
+    if(!subs.dadosIni){subs.dadosIni=true;carregarDados().then(aplicar)}}
   if(ver==='nacional'){escutarDoc('nac','nacional',d=>{D.nac=d})}
   if(ver==='livre'&&id&&!subs['livre:'+id]){
     subs['livre:'+id]=RT.onValue(RT.ref(rtDb,ROOT+'/'+id),s=>{D.erro['livre:'+id]=null;ligacao(true);D.livre[id]=s.exists()?s.val():null;aplicar()},
       e=>{D.erro['livre:'+id]=e.code||e.message;aplicar()})}
 }
 
+/* ---------- provas do consola (Campeonato e torneios do clube) ---------- */
+function provasDoRanking(rk){const m=new Map();
+  Object.values(rk||{}).forEach(r=>(r.participacoes||[]).forEach(p=>{
+    if(!m.has(p.prova))m.set(p.prova,{nome:p.prova,tipo:p.tipo,jornadas:new Set(),ult:''});
+    const e=m.get(p.prova);e.jornadas.add(Number(p.jornada));if((p.data||'')>e.ult)e.ult=p.data||''}));
+  return[...m.values()].map(e=>({nome:e.nome,tipo:e.tipo,jornadas:[...e.jornadas].sort((a,b)=>a-b),ult:e.ult}))}
+const ORD_EST={ativo:0,concluido:1,'':1,agendado:2};
+const EST_ROT={ativo:'🟢',concluido:'✅',agendado:'📅'};
+function listaProvas(){
+  const map=new Map();
+  (D.provas||[]).forEach(p=>map.set(p.nome,{nome:p.nome,tipo:p.tipo||'torneio',estado:p.estado||'',data:p.data||'',njor:Math.max(Number(p.jornadas)||1,1)}));
+  provasDoRanking(D.rank).forEach(r=>{const m=map.get(r.nome),mx=Math.max(...r.jornadas,1);
+    if(m)m.njor=Math.max(m.njor,mx);else map.set(r.nome,{nome:r.nome,tipo:r.tipo||'torneio',estado:'',data:r.ult,njor:mx})});
+  return[...map.values()].sort((a,b)=>{const ea=ORD_EST[a.estado]??1,eb=ORD_EST[b.estado]??1;if(ea!==eb)return ea-eb;
+    return ea===2?(a.data||'9').localeCompare(b.data||'9'):(b.data||'').localeCompare(a.data||'')})}
+const ehCampeonato=p=>p.tipo==='campeonato';
+
 /* ---------- construção das listas ---------- */
 const th=(t,c)=>'<th'+(c?' class="'+c+'"':'')+'>'+t+'</th>';
 const linhaNome=(clube,nome,sub)=>'<div class="nm">'+clubeHtml(clube)+'<div><div>'+esc(nome)+'</div>'+(sub?'<div class="cl">'+esc(sub)+'</div>':'')+'</div></div>';
 const tabela=(cab,linhas)=>'<table><thead><tr>'+cab+'</tr></thead><tbody>'+linhas+'</tbody></table>';
 const posCls=i=>i<3?' p'+(i+1):'';
-
-function provasDoRanking(rk){const m=new Map();
-  Object.values(rk||{}).forEach(r=>(r.participacoes||[]).forEach(p=>{
-    if(!m.has(p.prova))m.set(p.prova,{nome:p.prova,jornadas:new Set(),ult:''});
-    const e=m.get(p.prova);e.jornadas.add(Number(p.jornada));if((p.data||'')>e.ult)e.ult=p.data||''}));
-  return[...m.values()].map(e=>({nome:e.nome,jornadas:[...e.jornadas].sort((a,b)=>a-b),ult:e.ult})).sort((a,b)=>b.ult.localeCompare(a.ult))}
-
 function agruparPorCat(lista){const g={};lista.forEach(x=>{(g[x.categoria||'Sem categoria']??=[]).push(x)});return g}
 const soma=(arr,k)=>arr.reduce((s,p)=>s+(Number(p[k])||0),0);
+const entradasRank=()=>Object.entries(D.rank||{}).map(([id,r])=>({id,...r}));
+function slidesDe(lista,cab,fn){const g=agruparPorCat(lista);return ordenar(Object.keys(g),CAT_CAMP).map(cat=>({cat,html:tabela(cab,g[cat].map(fn).join(''))}))}
+const infoRank=()=>D.rankHora?hora(D.rankHora):'';
 
-function viewCamp(){
-  const rk=D.rank;if(!rk)return{msg:D.erro.rank?'Não foi possível ler o Campeonato ('+esc(D.erro.rank)+').':'Ainda sem classificações do Campeonato.'};
-  const provas=provasDoRanking(rk);
-  let lista,sub,colJ=[],cab,fn;
-  const entradas=Object.entries(rk).map(([id,r])=>({id,...r}));
-  if(SEL.prova==='__anual__'||!provas.find(p=>p.nome===SEL.prova)){
-    sub='Campeonato de Vizela · Ranking anual';
-    lista=entradas.map(r=>({...r,pts:Number(r.totalPontos)||0,tac:soma(r.participacoes||[],'total'),n:(r.participacoes||[]).length})).filter(r=>r.n>0);
-    lista.sort((a,b)=>b.pts-a.pts||a.tac-b.tac||a.nome.localeCompare(b.nome,'pt'));
-    cab=th('#','c')+th('Atleta')+th('Jornadas','c')+th('Pontos','r');
-    fn=(r,i)=>'<tr class="'+posCls(i).trim()+'"><td class="pos">'+(i+1)+'</td><td>'+linhaNome(D.atletas[r.id]?.clube,r.nome)+'</td><td class="c">'+r.n+'</td><td class="tot">'+r.pts+'</td></tr>';
-  }else{
-    const prova=provas.find(p=>p.nome===SEL.prova);
-    if(SEL.vista==='geral'){
-      sub=prova.nome+' · Classificação geral';
-      const js=prova.jornadas;
-      lista=entradas.map(r=>{const ps=(r.participacoes||[]).filter(p=>p.prova===prova.nome);
-        return{...r,ps,pts:soma(ps,'pontos'),tac:soma(ps,'total'),n:ps.length}}).filter(r=>r.n>0);
-      lista.sort((a,b)=>b.pts-a.pts||a.tac-b.tac||a.nome.localeCompare(b.nome,'pt'));
-      cab=th('#','c')+th('Atleta')+js.map(j=>th('J'+j,'c')).join('')+th('Pontos','r');
-      fn=(r,i)=>'<tr class="'+posCls(i).trim()+'"><td class="pos">'+(i+1)+'</td><td>'+linhaNome(D.atletas[r.id]?.clube,r.nome)+'</td>'+
-        js.map(j=>{const p=r.ps.find(x=>Number(x.jornada)===j);return'<td class="c">'+(p?(p.pontos+'<span class="sm">'+(p.ajuste?'ajuste':p.total+' tac.')+'</span>'):'–')+'</td>'}).join('')+'<td class="tot">'+r.pts+'</td></tr>';
-    }else{
-      const n=Number(SEL.vista);sub=prova.nome+' · Jornada '+n;
-      lista=entradas.map(r=>{const p=(r.participacoes||[]).find(x=>x.prova===prova.nome&&Number(x.jornada)===n);return p?{...r,p}:null}).filter(Boolean);
-      lista.sort((a,b)=>((a.p.pos??1e9)-(b.p.pos??1e9))||(a.p.total-b.p.total)||a.nome.localeCompare(b.nome,'pt'));
-      cab=th('#','c')+th('Atleta')+th('Tacadas','c')+th('Pontos','r');
-      fn=(r,i)=>'<tr class="'+posCls(i).trim()+'"><td class="pos">'+(r.p.pos??'–')+'</td><td>'+linhaNome(D.atletas[r.id]?.clube,r.nome)+'</td><td class="c">'+(r.p.ajuste?'–':r.p.total)+'</td><td class="tot">'+r.p.pontos+'</td></tr>';
-    }
-  }
-  if(!lista.length)return{sub,msg:'Ainda sem resultados nesta vista.'};
-  const g=agruparPorCat(lista);
-  const slides=ordenar(Object.keys(g),CAT_CAMP).map(cat=>({cat,html:tabela(cab,g[cat].map(fn).join(''))}));
-  let info='';if(D.rankHora){try{const d=new Date(D.rankHora);info='Atualizado às '+d.toLocaleTimeString('pt-PT',{hour:'2-digit',minute:'2-digit'})+(d.toDateString()!==new Date().toDateString()?' de '+d.toLocaleDateString('pt-PT'):'')}catch(e){}}
-  return{sub,slides,info};
+function viewAnual(){
+  if(!D.rank)return{msg:D.erro.rank?'Não foi possível ler o Campeonato ('+esc(D.erro.rank)+').':'Ainda sem classificações do Campeonato.'};
+  const sub='Campeonato de Vizela · Ranking anual';
+  const lista=entradasRank().map(r=>({...r,pts:Number(r.totalPontos)||0,tac:soma(r.participacoes||[],'total'),n:(r.participacoes||[]).length})).filter(r=>r.n>0);
+  lista.sort((a,b)=>b.pts-a.pts||a.tac-b.tac||a.nome.localeCompare(b.nome,'pt'));
+  if(!lista.length)return{sub,msg:'Ainda sem resultados.'};
+  const cab=th('#','c')+th('Atleta')+th('Jornadas','c')+th('Pontos','r');
+  const fn=(r,i)=>'<tr class="'+posCls(i).trim()+'"><td class="pos">'+(i+1)+'</td><td>'+linhaNome(D.atletas[r.id]?.clube,r.nome)+'</td><td class="c">'+r.n+'</td><td class="tot">'+r.pts+'</td></tr>';
+  return{sub,slides:slidesDe(lista,cab,fn),info:infoRank()};
 }
 
+function viewProva(nome,vista){
+  if(D.erro.rank&&!D.rank)return{msg:'Não foi possível ler os resultados ('+esc(D.erro.rank)+').'};
+  const prova=listaProvas().find(p=>p.nome===nome);
+  if(!prova)return{msg:D.provas.length||D.rank?'Esta prova já não está disponível.':'A carregar…'};
+  const camp=ehCampeonato(prova)&&prova.njor>1;
+  const aviso=prova.estado==='agendado'?'📅 Agendado'+(prova.data?' para '+fmtData(prova.data):'')+'. ':'';
+  let sub,cab,fn,lista;
+  if(camp&&(!vista||vista==='geral')){
+    sub=prova.nome+' · Classificação geral';
+    const js=Array.from({length:prova.njor},(_,i)=>i+1);
+    lista=entradasRank().map(r=>{const ps=(r.participacoes||[]).filter(p=>p.prova===prova.nome);
+      return{...r,ps,pts:soma(ps,'pontos'),tac:soma(ps,'total'),n:ps.length}}).filter(r=>r.n>0);
+    lista.sort((a,b)=>b.pts-a.pts||a.tac-b.tac||a.nome.localeCompare(b.nome,'pt'));
+    cab=th('#','c')+th('Atleta')+js.map(j=>th('J'+j,'c')).join('')+th('Pontos','r');
+    fn=(r,i)=>'<tr class="'+posCls(i).trim()+'"><td class="pos">'+(i+1)+'</td><td>'+linhaNome(D.atletas[r.id]?.clube,r.nome)+'</td>'+
+      js.map(j=>{const p=r.ps.find(x=>Number(x.jornada)===j);return'<td class="c">'+(p?(p.pontos+'<span class="sm">'+(p.ajuste?'ajuste':p.total+' tac.')+'</span>'):'–')+'</td>'}).join('')+'<td class="tot">'+r.pts+'</td></tr>';
+  }else{
+    const n=camp?(Number(vista)||1):1;
+    sub=prova.nome+(camp?' · Jornada '+n:' · Resultados');
+    lista=entradasRank().map(r=>{const p=(r.participacoes||[]).find(x=>x.prova===prova.nome&&Number(x.jornada)===n);return p?{...r,p}:null}).filter(Boolean);
+    lista.sort((a,b)=>((a.p.pos??1e9)-(b.p.pos??1e9))||(a.p.total-b.p.total)||a.nome.localeCompare(b.nome,'pt'));
+    cab=th('#','c')+th('Atleta')+th('Tacadas','c')+(camp?th('Pontos','r'):'');
+    fn=(r,i)=>'<tr class="'+posCls(i).trim()+'"><td class="pos">'+(r.p.pos??i+1)+'</td><td>'+linhaNome(D.atletas[r.id]?.clube,r.nome)+'</td><td class="'+(camp?'c':'tot')+'">'+(r.p.ajuste?'–':r.p.total)+'</td>'+(camp?'<td class="tot">'+r.p.pontos+'</td>':'')+'</tr>';
+  }
+  if(!lista.length)return{sub,msg:aviso+'Ainda sem resultados.'};
+  return{sub,slides:slidesDe(lista,cab,fn),info:infoRank()};
+}
+const viewCamp=()=>SEL.prova==='__anual__'?viewAnual():viewProva(SEL.prova,SEL.vista);
+
+/* ---------- Nacional (prova atual em «bangolfe», anteriores em «historico») ---------- */
+function nacOpcoes(){
+  const d=D.nac||{},out=[];
+  if(d.bangolfe)out.push({chave:'atual',nome:'Atual · '+(d.bangolfe.nome||'Prova Nacional')});
+  Object.entries(d.historico||{}).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([k,h])=>{
+    if(d.bangolfe&&h.nome===d.bangolfe.nome&&String(h.ano)===String(d.bangolfe.ano))return;
+    out.push({chave:k,nome:h.nome||k})});
+  return out}
+function nacEscolhido(){
+  const d=D.nac;if(!d)return null;const k=SEL.nac||'atual';
+  if(k==='atual')return d.bangolfe||Object.values(d.historico||{}).sort((a,b)=>String(b.atualizadoEm||'').localeCompare(String(a.atualizadoEm||'')))[0]||null;
+  return d.historico?.[k]||d.bangolfe||null}
 function viewNac(){
-  const d=D.nac;if(!d)return{msg:D.erro.nac?'Não foi possível ler o Nacional ('+esc(D.erro.nac)+').':'Ainda sem dados do Nacional.'};
+  if(!D.nac)return{msg:D.erro.nac?'Não foi possível ler o Nacional ('+esc(D.erro.nac)+').':'Ainda sem dados do Nacional.'};
+  const d=nacEscolhido();if(!d)return{msg:'Ainda sem resultados do Nacional.'};
   const cats=d.categorias||{},vert=d.vertentes||{};
   const slides=ordenar(Object.keys(cats).filter(c=>(cats[c]||[]).length),CAT_NAC).map(cat=>{
     const at=cats[cat],disc=vert[cat]||'mini';
@@ -265,10 +298,11 @@ function viewNac(){
       return'<tr class="'+(posCls(i).trim()+(vz?' vzg':'')).trim()+'"><td class="pos">'+(a.rank||'–')+'</td><td>'+linhaNome(a.clube,a.nome,a.clube)+'</td>'+cells+
         '<td class="r">'+(a.dnf?'<span class="chip nj">DNF</span>':'<span class="chip '+tc+'">'+(a.total||'–')+'</span>')+'</td><td class="c hm">'+(a.dnf?'':(a.completo?'✅':'⏳'))+'</td></tr>'}).join('');
     return{cat,html:tabela(cab,rows)}});
-  if(!slides.length)return{msg:'Ainda sem dados do Nacional.'};
-  return{sub:'Nacional · '+(d.nome||'Prova Nacional'),slides};
+  if(!slides.length)return{sub:'Nacional · '+(d.nome||'Prova Nacional'),msg:'Ainda sem resultados nesta prova.'};
+  return{sub:'Nacional · '+(d.nome||'Prova Nacional'),slides,info:d.atualizadoEm?hora(d.atualizadoEm):''};
 }
 
+/* ---------- Torneios livres ---------- */
 function viewLivre(){
   const id=SEL.id;if(!id)return{msg:'Nenhum torneio escolhido.'};
   const t=D.livre[id];
@@ -291,7 +325,7 @@ function viewLivre(){
 }
 
 /* ---------- apresentação ---------- */
-let SL=[],idx=0,timer=null,raf=null,ultimaVista='';
+let SL=[],idx=0,timer=null,raf=null;
 function limparTimers(){clearTimeout(timer);cancelAnimationFrame(raf)}
 function desenhar(v){
   $('sub').textContent=v.sub||'';$('info').textContent=v.info||'';
@@ -324,39 +358,51 @@ function mostrar(i){
 /* ---------- menu (acompanhar) ---------- */
 function sincronizarURL(){
   if(MODO_TV)return;const q=new URLSearchParams();q.set('ver',SEL.ver);
-  if(SEL.ver==='camp'){q.set('prova',SEL.prova);q.set('vista',SEL.vista)}
+  if(SEL.ver==='camp'||SEL.ver==='prova'){q.set('prova',SEL.prova);q.set('vista',SEL.vista)}
   if(SEL.ver==='livre'&&SEL.id)q.set('id',SEL.id);
+  if(SEL.ver==='nacional'&&SEL.nac&&SEL.nac!=='atual')q.set('nac',SEL.nac);
   if(SEL.cat)q.set('cat',SEL.cat);
   try{history.replaceState(null,'','?'+q.toString())}catch(e){}
 }
 function construirMenu(){
   if(MODO_TV)return;const m=$('menu');
-  const tabs=[['camp','Campeonato'],['nacional','Nacional']];if(CTRL.publicados.length||SEL.ver==='livre')tabs.push(['livre','Torneios']);
-  let h='<div class="tabs">'+tabs.map(([k,n])=>'<button class="tab'+(SEL.ver===k?' on':'')+'" data-v="'+k+'">'+n+'</button>').join('')+'</div>';
-  if(SEL.ver==='camp'&&D.rank){const pv=provasDoRanking(D.rank);
-    h+='<select id="selP"><option value="__anual__">Ranking anual</option>'+pv.map(p=>'<option value="'+esc(p.nome)+'"'+(p.nome===SEL.prova?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+'</select>';
-    const p=pv.find(x=>x.nome===SEL.prova);
-    if(p)h+='<select id="selV"><option value="geral">Classificação geral</option>'+p.jornadas.map(j=>'<option value="'+j+'"'+(String(j)===SEL.vista?' selected':'')+'>Jornada '+j+'</option>').join('')+'</select>'}
-  if(SEL.ver==='livre'){const lista=[...CTRL.publicados];if(SEL.id&&!lista.find(x=>x.id===SEL.id))lista.unshift({id:SEL.id,nome:D.livre[SEL.id]?.meta?.nome||'Torneio'});
-    h+='<div class="tabs">'+lista.map(t=>'<button class="tab'+(t.id===SEL.id?' on':'')+'" data-t="'+esc(t.id)+'">'+esc(t.nome)+'</button>').join('')+'</div>'}
+  const ps=listaProvas(),campProvas=ps.filter(ehCampeonato),torneios=ps.filter(p=>!ehCampeonato(p));
+  const emTorneios=SEL.ver==='livre'||SEL.ver==='prova';
+  const tabs=[['camp','Campeonato',SEL.ver==='camp'],['nacional','Nacional',SEL.ver==='nacional']];
+  if(CTRL.publicados.length||torneios.length||emTorneios)tabs.push(['torneios','Torneios',emTorneios]);
+  let h='<div class="tabs">'+tabs.map(([k,n,on])=>'<button class="tab'+(on?' on':'')+'" data-v="'+k+'">'+n+'</button>').join('')+'</div>';
+  if(SEL.ver==='camp'){
+    h+='<select id="selP"><option value="__anual__">Ranking anual</option>'+campProvas.map(p=>'<option value="'+esc(p.nome)+'"'+(p.nome===SEL.prova?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+'</select>';
+    const p=campProvas.find(x=>x.nome===SEL.prova);
+    if(p&&p.njor>1)h+='<select id="selV"><option value="geral">Classificação geral</option>'+Array.from({length:p.njor},(_,i)=>i+1).map(j=>'<option value="'+j+'"'+(String(j)===String(SEL.vista)?' selected':'')+'>Jornada '+j+'</option>').join('')+'</select>'}
+  if(SEL.ver==='nacional'){const op=nacOpcoes();
+    if(op.length>1)h+='<select id="selN">'+op.map(o=>'<option value="'+esc(o.chave)+'"'+(o.chave===SEL.nac?' selected':'')+'>'+esc(o.nome)+'</option>').join('')+'</select>'}
+  if(emTorneios){
+    const lista=[...CTRL.publicados];if(SEL.ver==='livre'&&SEL.id&&!lista.find(x=>x.id===SEL.id))lista.unshift({id:SEL.id,nome:D.livre[SEL.id]?.meta?.nome||'Torneio'});
+    h+='<div class="tabs">'+lista.map(t=>'<button class="tab'+(SEL.ver==='livre'&&t.id===SEL.id?' on':'')+'" data-t="'+esc(t.id)+'">'+esc(t.nome)+'</button>').join('')+
+      torneios.map(p=>'<button class="tab'+(SEL.ver==='prova'&&p.nome===SEL.prova?' on':'')+'" data-p="'+esc(p.nome)+'">'+(EST_ROT[p.estado]?EST_ROT[p.estado]+' ':'')+esc(p.nome)+'</button>').join('')+'</div>'}
   m.innerHTML=h;
-  m.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>escolher({ver:b.dataset.v}));
+  m.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const k=b.dataset.v;
+    if(k==='camp')escolher({ver:'camp',prova:'__anual__',vista:'geral'});
+    else if(k==='nacional')escolher({ver:'nacional',nac:'atual'});
+    else if(CTRL.publicados[0])escolher({ver:'livre',id:CTRL.publicados[0].id});
+    else if(torneios[0])escolher({ver:'prova',prova:torneios[0].nome,vista:'geral'})});
   m.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>escolher({ver:'livre',id:b.dataset.t}));
+  m.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>escolher({ver:'prova',prova:b.dataset.p,vista:'geral'}));
   const sp=$('selP');if(sp)sp.onchange=()=>escolher({prova:sp.value,vista:'geral'});
   const sv=$('selV');if(sv)sv.onchange=()=>escolher({vista:sv.value});
+  const sn=$('selN');if(sn)sn.onchange=()=>escolher({nac:sn.value});
 }
-function escolher(o){userSel=true;if(o.ver&&o.ver!==SEL.ver){SEL.cat=''}Object.assign(SEL,o);
-  if(SEL.ver==='livre'&&!SEL.id&&CTRL.publicados[0])SEL.id=CTRL.publicados[0].id;
-  garantir(SEL.ver,SEL.id);aplicar()}
+function escolher(o){userSel=true;SEL.cat='';Object.assign(SEL,o);garantir(SEL.ver,SEL.id);aplicar()}
 
 /* ---------- aplicar ---------- */
-function selDeCtrl(){SEL.ver=CTRL.fonte;SEL.prova=CTRL.camp.prova;SEL.vista=CTRL.camp.vista;SEL.id=CTRL.livre.id}
+function selDeCtrl(){SEL.ver=CTRL.fonte;SEL.prova=CTRL.camp.prova;SEL.vista=CTRL.camp.vista;SEL.id=CTRL.livre.id;SEL.nac=CTRL.nac.chave}
 function aplicar(){
   try{
     if(MODO_TV||!userSel)selDeCtrl();
     garantir(SEL.ver,SEL.id);
     let v;if(!FS)v={msg:'Sem ligação à base de dados. Verifica a internet.'};
-    else v=SEL.ver==='nacional'?viewNac():SEL.ver==='livre'?viewLivre():viewCamp();
+    else v=SEL.ver==='nacional'?viewNac():SEL.ver==='livre'?viewLivre():SEL.ver==='prova'?viewProva(SEL.prova,SEL.vista):viewCamp();
     construirMenu();desenhar(v);sincronizarURL();
   }catch(e){$('stage').innerHTML='<div class="empty">Ocorreu um erro ao mostrar os resultados. A tentar de novo…</div>';console.warn(e)}
 }
@@ -365,10 +411,10 @@ function aplicar(){
 const sdk=await iniciarSDK();
 if(!sdk){desenhar({msg:'Sem ligação à base de dados. Verifica a internet.'});ligacao(false)}
 else{
-  if(P.get('ver')){userSel=!MODO_TV;SEL.ver=P.get('ver');SEL.prova=P.get('prova')||'__anual__';SEL.vista=P.get('vista')||'geral';SEL.id=P.get('id')||'';SEL.cat=P.get('cat')||''}
-  escutarDoc('ctrl','tv_controlo',d=>{marcarCtrl(d);D.ctrl=d});
+  if(P.get('ver')){userSel=!MODO_TV;SEL.ver=P.get('ver');SEL.prova=P.get('prova')||'__anual__';SEL.vista=P.get('vista')||'geral';SEL.id=P.get('id')||'';SEL.nac=P.get('nac')||'atual';SEL.cat=P.get('cat')||''}
+  escutarDoc('ctrl','tv_controlo',d=>{marcarCtrl(d)});
   setTimeout(aplicar,2500);
-  setInterval(()=>{if(MODO_TV)carregarClubes().then(aplicar)},600000);
+  setInterval(()=>{if(MODO_TV){ultimoDados=0;carregarDados().then(aplicar)}},600000);
 }
 </script>
 </body>
