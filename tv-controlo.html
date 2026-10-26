@@ -206,7 +206,8 @@ function desenhar(){
     if(!NAC)h+='<div class="mut">A ler o Nacional…</div>';
     else if(!op.length)h+='<div class="msg av">Ainda não há provas do Nacional.</div>';
     else h+='<label>Prova nacional<select id="selN">'+op.map(o=>'<option value="'+esc(o.chave)+'"'+(o.chave===R.nac?' selected':'')+'>'+esc(o.nome)+'</option>').join('')+'</select></label><div style="height:.5rem"></div>'}
-  if(R.fonte==='torneios'){const tc=ps.filter(p=>!ehCamp(p)&&!ATUAL.ocultas.includes(p.nome)),pub=ATUAL.publicados;
+  if(R.fonte==='torneios'){const nm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim(),pub=ATUAL.publicados,cob=new Set(pub.flatMap(p=>[p.prova,p.nome]).filter(Boolean).map(nm));
+    const tc=ps.filter(p=>!ehCamp(p)&&!ATUAL.ocultas.includes(p.nome)&&!cob.has(nm(p.nome)));
     const valores=[...pub.map(p=>'livre:'+p.id),...tc.map(p=>'prova:'+p.nome)];
     if(!valores.length)h+='<div class="msg av">Ainda não há torneios. Publica um torneio livre na secção 2.</div>';
     else{if(!valores.includes(R.tsel))R.tsel=valores[0];
@@ -275,7 +276,7 @@ $('btPub').onclick=async()=>{
   if(ATUAL.publicados.some(p=>p.id===id)){msg('msgPub','av','Esse torneio já está publicado.');return}
   try{const s=await RT.get(RT.ref(rtDb,ROOT+'/'+id));
     if(!s.exists()){msg('msgPub','err','Esse torneio não foi encontrado (ID errado?).');return}
-    const m=s.val().meta||{};const lista=[...ATUAL.publicados,{id,nome:m.nome||'Torneio',data:m.data||''}];
+    const m=s.val().meta||{};const lista=[...ATUAL.publicados,{id,nome:m.nome||'Torneio',data:m.data||'',prova:m.provaCalendario||''}];
     await gravar({publicados:lista});LIVRE[id]=s.val();$('inLink').value='';msg('msgPub','ok','Publicado: '+(m.nome||'Torneio')+'.')}
   catch(e){msg('msgPub','err',ajuda(e))}
 };

@@ -252,7 +252,7 @@ async function publicar(ids,auto){
   if(publicando)return;publicando=true;
   try{
     const lista=[...(CT.publicados||[])];const nomes=[];
-    ids.forEach(id=>{if(!lista.some(p=>p.id===id)){const m=TOR[id]?.meta||{};lista.push({id,nome:m.nome||'Torneio',data:m.data||''});nomes.push(m.nome||'Torneio')}});
+    ids.forEach(id=>{if(!lista.some(p=>p.id===id)){const m=TOR[id]?.meta||{};lista.push({id,nome:m.nome||'Torneio',data:m.data||'',prova:m.provaCalendario||''});nomes.push(m.nome||'Torneio')}});
     if(nomes.length){await gravarCT({publicados:lista});toast('✓ '+(auto?'Publicado automaticamente: ':'Publicado: ')+nomes.map(n=>'«'+n+'»').join(', '))}
   }catch(e){toast('Não foi possível publicar ('+(e.code||e.message)+'). Publica em Ecrãs.',true)}
   publicando=false;
