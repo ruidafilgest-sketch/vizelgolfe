@@ -164,11 +164,11 @@ function corTotal(total,nV,tipo){const n=Number(total);if(isNaN(n)||n<=0||!nV)re
 /* ---------- estado ---------- */
 let FS=null,RT=null,fsDb=null,rtDb=null;
 const D={rank:null,rankHora:null,atletas:{},provas:[],nac:null,livre:{},erro:{}};
-let CTRL={fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},nac:{chave:'atual'},categoria:'',publicados:[]};
+let CTRL={fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},nac:{chave:'atual'},categoria:'',publicados:[],ocultas:[]};
 let SEL={ver:'camp',prova:'__anual__',vista:'geral',id:'',nac:'atual',cat:''};
 let userSel=false;
 const subs={};
-function marcarCtrl(c){CTRL={fonte:c?.fonte||'camp',camp:{prova:c?.camp?.prova||'__anual__',vista:String(c?.camp?.vista||'geral')},livre:{id:c?.livre?.id||''},nac:{chave:c?.nacional?.chave||'atual'},categoria:c?.categoria||'',publicados:Array.isArray(c?.publicados)?c.publicados:[]}}
+function marcarCtrl(c){CTRL={fonte:c?.fonte||'camp',camp:{prova:c?.camp?.prova||'__anual__',vista:String(c?.camp?.vista||'geral')},livre:{id:c?.livre?.id||''},nac:{chave:c?.nacional?.chave||'atual'},categoria:c?.categoria||'',publicados:Array.isArray(c?.publicados)?c.publicados:[],ocultas:Array.isArray(c?.ocultas)?c.ocultas:[]}}
 
 /* ---------- ligações (só leitura) ---------- */
 async function iniciarSDK(){
@@ -187,7 +187,7 @@ async function carregarDados(){
   if(!FS||Date.now()-ultimoDados<60000)return;ultimoDados=Date.now();
   try{const s=await FS.getDoc(FS.doc(fsDb,'vizelgolfe','dados'));const dd=s.exists()?s.data():{};const m={};
     (dd.atletas||[]).forEach(a=>{m[String(a.id)]=a});D.atletas=m;
-    D.provas=(dd.provas||[]).map(p=>({nome:p.nome,tipo:p.tipo,estado:p.estado,data:p.data,jornadas:p.jornadas}))}catch(e){}}
+    D.provas=(dd.provas||[]).map(p=>({nome:p.nome,tipo:p.tipo,estado:p.estado,data:p.data,jornadas:p.jornadas,resultados:p.resultados,jornadaEspecial:p.jornadaEspecial}))}catch(e){}}
 function garantir(ver,id){
   if(!FS)return;
   if(ver==='camp'||ver==='prova'){
@@ -225,6 +225,10 @@ function agruparPorCat(lista){const g={};lista.forEach(x=>{(g[x.categoria||'Sem 
 const soma=(arr,k)=>arr.reduce((s,p)=>s+(Number(p[k])||0),0);
 const entradasRank=()=>Object.entries(D.rank||{}).map(([id,r])=>({id,...r}));
 function slidesDe(lista,cab,fn){const g=agruparPorCat(lista);return ordenar(Object.keys(g),CAT_CAMP).map(cat=>({cat,html:tabela(cab,g[cat].map(fn).join(''))}))}
+const voltaCell=(v,cor)=>{const n=voltaVal(v);
+  if(n===null)return'<td class="c"><span class="chip vt-neutral">–</span></td>';
+  if(n===126)return'<td class="c"><span class="chip nj" title="Não jogou">126</span></td>';
+  return'<td class="c"><span class="chip '+(mapNac[cor(n)]||'vt-neutral')+'">'+n+'</span></td>'};
 const infoRank=()=>D.rankHora?hora(D.rankHora):'';
 
 function viewAnual(){
@@ -257,10 +261,22 @@ function viewProva(nome,vista){
   }else{
     const n=camp?(Number(vista)||1):1;
     sub=prova.nome+(camp?' · Jornada '+n:' · Resultados');
-    lista=entradasRank().map(r=>{const p=(r.participacoes||[]).find(x=>x.prova===prova.nome&&Number(x.jornada)===n);return p?{...r,p}:null}).filter(Boolean);
+    const pd=D.provas.find(p=>p.nome===prova.nome);
+    const esp=pd?.jornadaEspecial?.[n],p4=esp?.tipo==='peter4voltas';
+    const rawDe=r=>{const j=pd?.resultados?.[n];return j?(j[r.id]||j[Number(r.id)]||null):null};
+    lista=entradasRank().map(r=>{const p=(r.participacoes||[]).find(x=>x.prova===prova.nome&&Number(x.jornada)===n);return p?{...r,p,raw:rawDe(r)}:null}).filter(Boolean);
     lista.sort((a,b)=>((a.p.pos??1e9)-(b.p.pos??1e9))||(a.p.total-b.p.total)||a.nome.localeCompare(b.nome,'pt'));
-    cab=th('#','c')+th('Atleta')+th('Tacadas','c')+(camp?th('Pontos','r'):'');
-    fn=(r,i)=>'<tr class="'+posCls(i).trim()+'"><td class="pos">'+(r.p.pos??i+1)+'</td><td>'+linhaNome(D.atletas[r.id]?.clube,r.nome)+'</td><td class="'+(camp?'c':'tot')+'">'+(r.p.ajuste?'–':r.p.total)+'</td>'+(camp?'<td class="tot">'+r.p.pontos+'</td>':'')+'</tr>';
+    const comRaw=lista.some(r=>r.raw);
+    const colV=p4?['pV1','pV2','pV3','pV4']:['mV1','mV2','pV1','pV2'],lblV=p4?['P1','P2','P3','P4']:['M1','M2','P1','P2'];
+    cab=th('#','c')+th('Atleta')+(comRaw?lblV.map(l=>th(l,'c')).join(''):'')+th(comRaw?'Total':'Tacadas',comRaw?'r':'c')+(camp?th('Pontos','r'):'');
+    fn=(r,i)=>{
+      let cel='';
+      if(comRaw){const cs=colV.map((c,k)=>voltaCell(r.raw?.[c],(p4||k>=2)?corVoltaPeter:corVoltaMini)).join('');
+        const nV=colV.filter(c=>voltaVal(r.raw?.[c])!==null).length;
+        const tc=mapNac[corTotal(r.p.total,nV,'peter')]||'';
+        cel=cs+'<td class="r"><span class="chip '+tc+'">'+(r.p.ajuste?'–':r.p.total)+'</span></td>'}
+      else cel='<td class="'+(camp?'c':'tot')+'">'+(r.p.ajuste?'–':r.p.total)+'</td>';
+      return'<tr class="'+posCls(i).trim()+'"><td class="pos">'+(r.p.pos??i+1)+'</td><td>'+linhaNome(D.atletas[r.id]?.clube,r.nome)+'</td>'+cel+(camp?'<td class="tot">'+r.p.pontos+'</td>':'')+'</tr>'};
   }
   if(!lista.length)return{sub,msg:aviso+'Ainda sem resultados.'};
   return{sub,slides:slidesDe(lista,cab,fn),info:infoRank()};
@@ -366,7 +382,7 @@ function sincronizarURL(){
 }
 function construirMenu(){
   if(MODO_TV)return;const m=$('menu');
-  const ps=listaProvas(),campProvas=ps.filter(ehCampeonato),torneios=ps.filter(p=>!ehCampeonato(p));
+  const ps=listaProvas(),campProvas=ps.filter(ehCampeonato),torneios=ps.filter(p=>!ehCampeonato(p)&&!CTRL.ocultas.includes(p.nome));
   const emTorneios=SEL.ver==='livre'||SEL.ver==='prova';
   const tabs=[['camp','Campeonato',SEL.ver==='camp'],['nacional','Nacional',SEL.ver==='nacional']];
   if(CTRL.publicados.length||torneios.length||emTorneios)tabs.push(['torneios','Torneios',emTorneios]);

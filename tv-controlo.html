@@ -79,7 +79,14 @@ label{display:flex;flex-direction:column;gap:.2rem;font-size:.85rem;color:var(--
     <div class="msg" id="msgPub"></div>
   </section>
 
-  <section><h2>3. Links</h2><div id="links"></div></section>
+  <section>
+    <h2>3. Torneios do clube (do consola)</h2>
+    <p class="mut" style="margin-bottom:.6rem">Escolhe o que quem acompanha pode ver. «Esconder» só tira da lista da TV e do link público; <b>não apaga nem altera nada no consola</b>. Podes voltar a mostrar quando quiseres.</p>
+    <div id="clube"></div>
+    <div class="msg" id="msgClube"></div>
+  </section>
+
+  <section><h2>4. Links</h2><div id="links"></div></section>
 
   <section><h2>Pré-visualização do que a TV mostra</h2><div id="pv"></div></section>
 </main>
@@ -100,13 +107,13 @@ const ordenar=(cats,ordem)=>[...cats].sort((a,b)=>{const ia=ordem.indexOf(a),ib=
 $('hlogo').src=LOGO;
 
 let FS=null,RT=null,fsDb=null,rtDb=null;
-let ATUAL={fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},nac:{chave:'atual'},categoria:'',publicados:[]};
+let ATUAL={fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},nac:{chave:'atual'},categoria:'',publicados:[],ocultas:[]};
 let R={fonte:'camp',prova:'__anual__',vista:'geral',nac:'atual',tsel:'',categoria:''};   // rascunho
 let RANK=null,NAC=null,PROVAS_DADOS=[],LIVRE={};
 let carregado=false;
 
 function msg(id,tipo,txt){const e=$(id);e.className='msg '+(tipo||'');e.textContent=txt||'';if(!tipo)e.style.display='none'}
-const lerCtrl=c=>({fonte:c?.fonte||'camp',camp:{prova:c?.camp?.prova||'__anual__',vista:String(c?.camp?.vista||'geral')},livre:{id:c?.livre?.id||''},nac:{chave:c?.nacional?.chave||'atual'},categoria:c?.categoria||'',publicados:Array.isArray(c?.publicados)?c.publicados:[]});
+const lerCtrl=c=>({fonte:c?.fonte||'camp',camp:{prova:c?.camp?.prova||'__anual__',vista:String(c?.camp?.vista||'geral')},livre:{id:c?.livre?.id||''},nac:{chave:c?.nacional?.chave||'atual'},categoria:c?.categoria||'',publicados:Array.isArray(c?.publicados)?c.publicados:[],ocultas:Array.isArray(c?.ocultas)?c.ocultas:[]});
 function rascunhoDe(c){const f=c.fonte;
   R={fonte:(f==='livre'||f==='prova')?'torneios':f,prova:c.camp.prova,vista:c.camp.vista,nac:c.nac.chave,tsel:f==='livre'?'livre:'+c.livre.id:(f==='prova'?'prova:'+c.camp.prova:''),categoria:c.categoria}}
 
@@ -197,7 +204,7 @@ function desenhar(){
     if(!NAC)h+='<div class="mut">A ler o Nacional…</div>';
     else if(!op.length)h+='<div class="msg av">Ainda não há provas do Nacional.</div>';
     else h+='<label>Prova nacional<select id="selN">'+op.map(o=>'<option value="'+esc(o.chave)+'"'+(o.chave===R.nac?' selected':'')+'>'+esc(o.nome)+'</option>').join('')+'</select></label><div style="height:.5rem"></div>'}
-  if(R.fonte==='torneios'){const tc=ps.filter(p=>!ehCamp(p)),pub=ATUAL.publicados;
+  if(R.fonte==='torneios'){const tc=ps.filter(p=>!ehCamp(p)&&!ATUAL.ocultas.includes(p.nome)),pub=ATUAL.publicados;
     const valores=[...pub.map(p=>'livre:'+p.id),...tc.map(p=>'prova:'+p.nome)];
     if(!valores.length)h+='<div class="msg av">Ainda não há torneios. Publica um torneio livre na secção 2.</div>';
     else{if(!valores.includes(R.tsel))R.tsel=valores[0];
@@ -215,11 +222,24 @@ function desenhar(){
   const pode=!(R.fonte==='torneios'&&!R.tsel);
   $('enviar').disabled=igual()||!pode;
   $('enviar').textContent=igual()?'A TV já mostra isto':'Enviar para a TV';
-  desenharPubs();montarLinks();
+  desenharPubs();desenharClube();montarLinks();
 }
 function desenharPubs(){
   $('pubs').innerHTML=ATUAL.publicados.length?ATUAL.publicados.map(p=>'<div class="item"><span class="n">'+esc(p.nome)+(p.data?' <span class="mut">· '+esc(p.data.split('-').reverse().join('/'))+'</span>':'')+'</span><button class="peq perigo" data-r="'+esc(p.id)+'">Retirar</button></div>').join(''):'<div class="mut">Nenhum torneio publicado.</div>';
   $('pubs').querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>retirar(b.dataset.r));
+}
+
+function desenharClube(){
+  const tc=listaProvas().filter(p=>!ehCamp(p));
+  $('clube').innerHTML=tc.length?tc.map(p=>{const o=ATUAL.ocultas.includes(p.nome);
+    return'<div class="item"><span class="n">'+(EST_ROT[p.estado]||'')+' '+esc(p.nome)+(p.data?' <span class="mut">· '+esc(String(p.data).split('-').reverse().join('/'))+'</span>':'')+(o?' <span class="mut">· escondido</span>':'')+'</span><button class="peq'+(o?'':' perigo')+'" data-o="'+esc(p.nome)+'">'+(o?'Mostrar':'Esconder')+'</button></div>'}).join(''):'<div class="mut">Sem torneios do clube.</div>';
+  $('clube').querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>alternar(b.dataset.o));
+}
+async function alternar(nome){
+  msg('msgClube','');const o=ATUAL.ocultas.includes(nome);
+  const lista=o?ATUAL.ocultas.filter(x=>x!==nome):[...ATUAL.ocultas,nome];
+  try{await gravar({ocultas:lista});msg('msgClube','ok',o?'«'+nome+'» volta a aparecer.':'«'+nome+'» deixou de aparecer.')}
+  catch(e){msg('msgClube','err',ajuda(e))}
 }
 
 /* ---------- gravação (só no documento tv_controlo) ---------- */
