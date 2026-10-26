@@ -154,6 +154,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div style="display:flex;gap:8px">
         <button class="btn-outline btn" onclick="abrirTV()">📺 Abrir TV</button>
         <button class="btn-outline btn" onclick="toggleConfig()">⚙️ Configurar</button>
+        <button class="btn-outline btn" style="color:#e57373;border-color:#7a2a20" onclick="eliminarTorneioAtual()">🗑️ Eliminar torneio</button>
       </div>
     </div>
 
@@ -209,6 +210,23 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
           <button class="btn btn-sm" onclick="preverImportLote()">Pré-visualizar</button>
         </div>
         <div id="preview-lote" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <!-- Lista de jogadores (sempre disponível) -->
+    <div class="card" id="card-roster">
+      <h3>👥 Lista de jogadores</h3>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5">Todos os jogadores que já inscreveste noutros torneios e os atletas da Consola. Marca os que queres e clica em «Adicionar». Quem inscreveres aqui fica na lista para a próxima vez.</div>
+      <div class="form-row">
+        <div class="form-group"><input id="roster-busca" placeholder="Procurar por nome…" oninput="renderRoster()"></div>
+        <div class="form-group" style="max-width:150px"><select id="roster-clube" onchange="renderRoster()"><option value="">Todos os clubes</option></select></div>
+        <div class="form-group" style="max-width:220px"><select id="roster-cat"></select></div>
+      </div>
+      <div id="roster-lista" style="max-height:340px;overflow:auto;border:1px solid var(--border2);border-radius:8px"></div>
+      <div style="display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap">
+        <button class="btn" id="roster-btn" onclick="rosterAdicionar()">Adicionar selecionados</button>
+        <button class="btn-outline btn btn-sm" onclick="rosterLimpar()">Limpar seleção</button>
+        <span id="roster-info" style="font-size:12px;color:var(--text2)"></span>
       </div>
     </div>
 
@@ -356,6 +374,7 @@ window.renderListaTorneios = function(){
     const m = t.meta||{};
     const nJog = Object.keys(t.jogadores||{}).length;
     return `<div class="torneio-card" onclick="abrirTorneio('${id}')">
+      <button class="btn-icon" style="float:right" title="Eliminar torneio" onclick="event.stopPropagation();eliminarTorneio('${id}')">🗑️</button>
       <h4>${m.nome||'(sem nome)'}</h4>
       <div class="meta">${m.data ? formatarData(m.data) : ''} · ${nJog} jogador${nJog!==1?'es':''} · ${(m.categorias||[]).length} categorias · ${(m.voltas||[]).length} voltas</div>
     </div>`;
@@ -436,6 +455,22 @@ window.abrirTorneio = function(id){
   document.getElementById('config-block').classList.add('hidden');
   renderTorneio();
 };
+window.eliminarTorneio = async function(id){
+  const tt = torneios[id]; if (!tt) return;
+  const nome = tt.meta?.nome || '(sem nome)';
+  const js = Object.values(tt.jogadores||{});
+  const comRes = js.some(j => Object.values(j.resultados||{}).some(r => parseInt(r?.total) > 0));
+  if (comRes) {
+    const r = prompt(`ATENÇÃO: «${nome}» tem ${js.length} jogadores e resultados lançados.\nEsta ação não pode ser desfeita (faz antes uma cópia de segurança, na Gestão).\n\nPara eliminar, escreve ELIMINAR:`);
+    if ((r||'').trim().toUpperCase() !== 'ELIMINAR') { toast('Cancelado'); return; }
+  } else if (!confirm(`Eliminar o torneio «${nome}»${js.length ? ` (${js.length} jogadores, sem resultados)` : ''}?`)) return;
+  try {
+    await remove(ref(db, `${ROOT}/${id}`));
+    toast('Torneio eliminado 🗑️');
+    if (torneioAtualId === id) voltarLista();
+  } catch(e) { toast('❌ Erro: ' + e.message); }
+};
+window.eliminarTorneioAtual = function(){ if (torneioAtualId) eliminarTorneio(torneioAtualId); };
 window.voltarLista = function(){
   torneioAtualId = null;
   document.getElementById('view-torneio').classList.add('hidden');
@@ -462,6 +497,7 @@ window.renderTorneio = function(){
   renderConfigVoltas();
   renderSelectCategoriaJogador();
   renderListaJogadores();
+  renderRoster();
 };
 
 function renderConfigCategorias(){
@@ -573,6 +609,88 @@ window.confirmarImportLote = async function(){
   document.getElementById('input-lote').value = '';
   document.getElementById('preview-lote').innerHTML = '';
   loteValidado = [];
+};
+
+
+// ─── LISTA DE JOGADORES (sempre disponível) ────────
+// A lista junta: os atletas da Consola + todos os jogadores já inscritos em qualquer torneio.
+const normNome = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+let rosterConsola = [];
+let rosterSel = new Set();
+let rosterCarregado = false;
+async function carregarAtletasConsola(){
+  if (rosterCarregado) return; rosterCarregado = true;
+  try {
+    const B = 'https://www.gstatic.com/firebasejs/10.12.0/';
+    const fs = await import(B + 'firebase-firestore.js');
+    const appEc = initializeApp({ apiKey:"AIzaSyDr7wfBzKbH1VAiXbte4YzkejuvJpQvltE", authDomain:"vizelgolfe-ec270.firebaseapp.com", projectId:"vizelgolfe-ec270", appId:"1:386073357614:web:098f635403f605650e5ebf" }, 'ec270');
+    const s = await fs.getDoc(fs.doc(fs.getFirestore(appEc), 'vizelgolfe', 'dados'));
+    rosterConsola = ((s.exists() ? s.data().atletas : []) || []).filter(a => a && a.nome).map(a => ({ nome: a.nome, clube: 'VZG', categoria: a.categoria || '' }));
+    renderRoster();
+  } catch(e) { console.warn('Atletas da Consola indisponíveis', e); }
+}
+function construirRoster(){
+  const m = new Map();
+  rosterConsola.forEach(a => m.set(normNome(a.nome), { nome:a.nome, clube:a.clube, categoria:a.categoria }));
+  Object.values(torneios).sort((a,b)=> (a.meta?.criadoEm||'').localeCompare(b.meta?.criadoEm||'')).forEach(t => {
+    Object.values(t.jogadores||{}).forEach(j => {
+      if (!j || !j.nome) return;
+      const k = normNome(j.nome), ant = m.get(k) || {};
+      m.set(k, { nome:j.nome, clube:j.clube||ant.clube||'', categoria:j.categoria||ant.categoria||'' });
+    });
+  });
+  return [...m.entries()].map(([k,v]) => ({ k, ...v })).sort((a,b)=> a.nome.localeCompare(b.nome,'pt'));
+}
+window.renderRoster = function(){
+  const card = document.getElementById('card-roster'); if (!card) return;
+  const t = torneioAtual(); if (!t) return;
+  carregarAtletasConsola();
+  const cats = t.meta?.categorias || [];
+  const ja = new Set(Object.values(t.jogadores||{}).map(j => normNome(j.nome)));
+  const todos = construirRoster();
+  // seletores (mantêm a escolha atual)
+  const selCat = document.getElementById('roster-cat'), catAtual = selCat.value;
+  selCat.innerHTML = `<option value="">Categoria habitual do jogador</option>` + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (cats.includes(catAtual)) selCat.value = catAtual;
+  const selClube = document.getElementById('roster-clube'), clubeAtual = selClube.value;
+  const clubes = [...new Set(todos.map(r => r.clube).filter(Boolean))].sort();
+  selClube.innerHTML = `<option value="">Todos os clubes</option>` + clubes.map(c => `<option value="${c}">${c}</option>`).join('');
+  if (clubes.includes(clubeAtual)) selClube.value = clubeAtual;
+  // filtro
+  const q = normNome(document.getElementById('roster-busca').value);
+  const vis = todos.filter(r => (!q || normNome(r.nome).includes(q)) && (!selClube.value || r.clube === selClube.value));
+  const cont = document.getElementById('roster-lista'), scroll = cont.scrollTop;
+  cont.innerHTML = vis.length ? vis.map(r => {
+    const inscrito = ja.has(r.k);
+    return `<label style="display:flex;align-items:center;gap:10px;padding:7px 12px;border-bottom:1px solid var(--border2);${inscrito?'opacity:.45;cursor:default':'cursor:pointer'}">
+      <input type="checkbox" ${inscrito?'disabled':''} ${rosterSel.has(r.k)?'checked':''} onchange="rosterMarcar('${r.k.replace(/'/g,"\\'")}',this.checked)">
+      <span style="flex:1;font-weight:600">${r.nome}</span>
+      <span class="clube-badge">${r.clube ? `<img src="${r.clube.toLowerCase()}.png" alt="" onerror="this.remove()">${r.clube}` : '—'}</span>
+      <span style="font-size:11px;color:var(--text2);min-width:90px;text-align:right">${inscrito ? '✓ inscrito' : (r.categoria || '')}</span>
+    </label>`;
+  }).join('') : '<div class="empty-state" style="padding:18px">Nenhum jogador encontrado.</div>';
+  cont.scrollTop = scroll;
+  const nSel = [...rosterSel].filter(k => !ja.has(k)).length;
+  document.getElementById('roster-info').textContent = `${todos.length} na lista · ${vis.length} visíveis · ${nSel} selecionado${nSel!==1?'s':''}`;
+  document.getElementById('roster-btn').textContent = nSel ? `Adicionar ${nSel} selecionado${nSel!==1?'s':''}` : 'Adicionar selecionados';
+};
+window.rosterMarcar = function(k, on){ if (on) rosterSel.add(k); else rosterSel.delete(k); renderRoster(); };
+window.rosterLimpar = function(){ rosterSel.clear(); renderRoster(); };
+window.rosterAdicionar = async function(){
+  const t = torneioAtual(); if (!t) return;
+  const cats = t.meta?.categorias || [];
+  if (!cats.length){ toast('Cria uma categoria primeiro'); return; }
+  const forcada = document.getElementById('roster-cat').value;
+  const ja = new Set(Object.values(t.jogadores||{}).map(j => normNome(j.nome)));
+  const lista = construirRoster().filter(r => rosterSel.has(r.k) && !ja.has(r.k));
+  if (!lista.length){ toast('Marca jogadores que ainda não estejam inscritos'); return; }
+  for (const r of lista) {
+    const categoria = forcada || (cats.includes(r.categoria) ? r.categoria : cats[0]);
+    const clube = CLUBES.includes(r.clube) ? r.clube : 'IND';
+    await push(ref(db, `${ROOT}/${torneioAtualId}/jogadores`), { nome: r.nome, categoria, clube, resultados: {}, criadoEm: new Date().toISOString() });
+  }
+  rosterSel.clear();
+  toast(`${lista.length} jogador${lista.length!==1?'es':''} inscrito${lista.length!==1?'s':''} ✅`);
 };
 
 window.editarNomeJogador = async function(key, novoNome){

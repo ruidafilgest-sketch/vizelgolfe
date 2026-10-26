@@ -216,6 +216,16 @@ async function iniciarVigia(){
     const rtDb=d.getDatabase(APP.getApp());
     f.onSnapshot(f.doc(fsDb,'vizelgolfe','tv_controlo'),s=>{CT=s.exists()?s.data():{};avaliarSoon();atualizarBarra()},e=>console.warn('vigia: tv_controlo',e.code));
     d.onChildAdded(d.ref(rtDb,ROOT),s=>{TOR[s.key]=s.val();avaliarSoon()},e=>console.warn('vigia: torneios',e.code));
+    // um torneio eliminado deixa de aparecer aos atletas (e sai do projetor, se lá estiver)
+    d.onChildRemoved(d.ref(rtDb,ROOT),async s=>{
+      const id=s.key;delete TOR[id];if(!CT)return;
+      try{
+        const antes=CT.publicados||[],lista=antes.filter(p=>p.id!==id),parcial={};
+        if(lista.length!==antes.length)parcial.publicados=lista;
+        if(CT.fonte==='livre'&&CT.livre&&CT.livre.id===id){parcial.fonte='camp';parcial.camp={prova:'__anual__',vista:'geral'};parcial.livre={id:''}}
+        if(Object.keys(parcial).length){await gravarCT(parcial);toast('Torneio eliminado: já não aparece aos atletas.')}
+      }catch(e){console.warn('vigia: limpeza',e)}
+    });
   }catch(e){console.warn('vigia indisponível',e)}
 }
 function avaliarSoon(){clearTimeout(torTimer);torTimer=setTimeout(avaliar,300)}
