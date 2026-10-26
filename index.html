@@ -3,151 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Vizelgolfe · Sistema de Resultados</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;700&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%}
-body{
-  font-family:'DM Sans',sans-serif;
-  background:#0a1520;
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  padding:40px 20px;
-}
-
-.portal{width:100%;max-width:680px;text-align:center}
-
-/* Logo */
-.logo-wrap{margin-bottom:24px}
-.logo-wrap img{
-  width:160px;height:160px;
-  object-fit:contain;border-radius:50%;
-  box-shadow:0 0 0 3px rgba(200,148,50,.6), 0 12px 50px rgba(0,0,0,.7);
-}
-
-/* Linha dourada */
-.linha{width:60px;height:2px;background:#c8943a;margin:22px auto 18px;border-radius:2px}
-
-.eyebrow{font-size:11px;letter-spacing:4px;text-transform:uppercase;color:rgba(200,148,50,.9);font-weight:500;margin-bottom:4px}
-.sub{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:400;color:rgba(255,255,255,.45);letter-spacing:.5px;margin-bottom:40px;font-style:italic}
-
-/* Cartões */
-.cartoes{
-  display:grid;grid-template-columns:1fr 1fr;
-  gap:16px;
-  margin-bottom:32px;
-}
-
-/* Cartão AZUL — TV Interno */
-.cartao-azul{
-  background:linear-gradient(145deg,#0e2d5e,#1a4a8a);
-  border:2px solid rgba(100,160,255,.35);
-  border-radius:18px;
-  padding:48px 24px 42px;
-  cursor:pointer;text-decoration:none;
-  display:flex;flex-direction:column;align-items:center;
-  transition:all .25s ease;
-  position:relative;overflow:hidden;
-}
-.cartao-azul::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,transparent,#5aa0ff,transparent);
-}
-.cartao-azul:hover{
-  background:linear-gradient(145deg,#122f60,#1e52a0);
-  border-color:rgba(100,160,255,.65);
-  transform:translateY(-4px);
-  box-shadow:0 16px 40px rgba(20,80,200,.45);
-}
-
-/* Cartão DOURADO — TV Nacional */
-.cartao-ouro{
-  background:linear-gradient(145deg,#3a2200,#7a4a00);
-  border:2px solid rgba(220,165,50,.4);
-  border-radius:18px;
-  padding:48px 24px 42px;
-  cursor:pointer;text-decoration:none;
-  display:flex;flex-direction:column;align-items:center;
-  transition:all .25s ease;
-  position:relative;overflow:hidden;
-}
-.cartao-ouro::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,transparent,#c8943a,transparent);
-}
-.cartao-ouro:hover{
-  background:linear-gradient(145deg,#422800,#8a5500);
-  border-color:rgba(220,165,50,.7);
-  transform:translateY(-4px);
-  box-shadow:0 16px 40px rgba(180,110,0,.45);
-}
-
-.num{
-  font-family:'Cormorant Garamond',serif;
-  font-size:12px;font-weight:400;
-  letter-spacing:4px;margin-bottom:18px;
-}
-.cartao-azul .num{color:rgba(150,200,255,.6)}
-.cartao-ouro .num{color:rgba(220,165,50,.6)}
-
-.nome{
-  font-family:'Cormorant Garamond',serif;
-  font-size:32px;font-weight:700;
-  color:#fff;line-height:1.15;
-  margin-bottom:12px;letter-spacing:-.3px;
-}
-.desc{font-size:12px;line-height:1.8;max-width:155px}
-.cartao-azul .desc{color:rgba(180,215,255,.6)}
-.cartao-ouro .desc{color:rgba(220,185,100,.6)}
-
-.tag{
-  display:inline-flex;align-items:center;gap:6px;
-  margin-top:20px;
-  font-size:10px;letter-spacing:2px;text-transform:uppercase;
-  font-weight:600;padding:6px 16px;border-radius:20px;
-}
-.cartao-azul .tag{background:rgba(100,160,255,.15);color:rgba(150,210,255,.9);border:1px solid rgba(100,160,255,.3)}
-.cartao-ouro .tag{background:rgba(200,148,50,.15);color:rgba(240,190,80,.9);border:1px solid rgba(200,148,50,.35)}
-.tag::before{content:'';width:6px;height:6px;border-radius:50%;animation:pulse 2s infinite}
-.cartao-azul .tag::before{background:#5aa0ff}
-.cartao-ouro .tag::before{background:#c8943a}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
-
-.rodape{font-size:10px;color:rgba(255,255,255,.15);letter-spacing:1.5px;text-transform:uppercase}
-</style>
+<meta name="robots" content="noindex">
+<title>Vizelgolfe — Resultados</title>
+<noscript><meta http-equiv="refresh" content="0;url=https://vizelgolfe.net/tv.html"></noscript>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#060d18;color:#e8eef8;font-family:system-ui,sans-serif;text-align:center;padding:1rem}a{color:#e8c675}p{color:#8faac8;line-height:1.6}</style>
 </head>
 <body>
-<div class="portal">
-
-  <div class="logo-wrap">
-    <img src="data:image/jpeg;base64,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" alt="Vizelgolfe">
-  </div>
-
-  <div class="linha"></div>
-  <p class="eyebrow">Sistema de Resultados</p>
-  <p class="sub">Seleccione o modo de visualização</p>
-
-  <div class="cartoes">
-    <a class="cartao-azul" href="tv-interno.html" target="_blank">
-      <div class="num">— 01 —</div>
-      <div class="nome">TV<br>Interno</div>
-      <p class="desc">Resultados e classificações do Campeonato de Vizela</p>
-      <div class="tag">Ao vivo</div>
-    </a>
-    <a class="cartao-ouro" href="tv-nacional.html" target="_blank">
-      <div class="num">— 02 —</div>
-      <div class="nome">TV<br>Nacional</div>
-      <p class="desc">Resultados das Provas Nacionais em tempo real</p>
-      <div class="tag">Ao vivo</div>
-    </a>
-  </div>
-
-  <p class="rodape">vizelgolfe.net</p>
-
-</div>
+<div><p>A abrir os resultados da Vizelgolfe…</p><p><a id="l" href="https://vizelgolfe.net/tv.html">Se não abrir sozinho, clica aqui</a></p></div>
+<script>
+(function(){
+  var dest='https://vizelgolfe.net/tv.html';
+  document.getElementById('l').href=dest;
+  location.replace(dest);
+})();
+</script>
 </body>
 </html>
