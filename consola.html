@@ -2321,6 +2321,54 @@ window.anularImportacao = async function(provaId, jornada) {
   } catch (e) { mostrarNotif('❌ Erro: ' + e.message, true); }
 };
 
+
+// ── «USAR COMO JORNADA» VINDO DO TORNEIO LIVRE ─────────────────────────────
+// O botão do torneio chama aqui: escolhe-se a prova e a jornada e segue-se para o ecrã de importação normal.
+function _impEsperarPronto(fn) {
+  let n = 0; const t = setInterval(() => { if (dadosInt && modoAdmin) { clearInterval(t); fn(); } else if (++n > 200) clearInterval(t); }, 300);
+}
+window.abrirImportarDeTorneio = function(torneioId) {
+  if (!dadosInt || !modoAdmin) return;
+  const provas = (dadosInt.provas || []).slice().sort((a, b) =>
+    (a.tipo === 'campeonato' ? 0 : 1) - (b.tipo === 'campeonato' ? 0 : 1) || (a.estado === 'ativo' ? 0 : 1) - (b.estado === 'ativo' ? 0 : 1));
+  if (!provas.length) { mostrarNotif('Não há provas na Consola.', true); return; }
+  _imp = { provaId: provas[0].id, jornada: 1, id: null, torneio: null, deTorneio: torneioId };
+  _impModal('📥 Usar como jornada do Campeonato', 'Escolhe onde queres guardar os resultados',
+    `<p style="line-height:1.6;margin-bottom:12px">Os resultados do torneio vão ser <b>copiados</b> para uma jornada <b>vazia</b>. O torneio não é alterado.</p>
+     <div class="form-group"><label>Prova</label><select id="imp0-prova" onchange="impJornadas0()">${provas.map(p => `<option value="${p.id}">${_impEsc(p.nome)}</option>`).join('')}</select></div>
+     <div class="form-group"><label>Jornada</label><select id="imp0-jor"></select></div>
+     <div id="imp0-aviso" style="font-size:0.8rem;color:var(--dim);line-height:1.5;margin-bottom:6px"></div>
+     <div class="btn-row"><button class="btn btn-primary" onclick="impContinuar0('${_impEsc(torneioId)}')">Continuar →</button>
+       <button class="btn btn-secondary" onclick="document.getElementById('modal-overlay').classList.remove('on')">Cancelar</button></div>`);
+  impJornadas0();
+};
+window.impJornadas0 = function() {
+  const prova = (dadosInt.provas || []).find(p => p.id == document.getElementById('imp0-prova').value); if (!prova) return;
+  const n = prova.jornadas || 1, sel = document.getElementById('imp0-jor');
+  sel.innerHTML = Array.from({ length: n }, (_, i) => {
+    const j = i + 1, cheia = _impTemResultados(prova, j);
+    return `<option value="${j}" ${cheia ? 'disabled' : ''}>Jornada ${j} — ${cheia ? 'já tem resultados' : 'vazia'}</option>`;
+  }).join('');
+  const livre = Array.from({ length: n }, (_, i) => i + 1).find(j => !_impTemResultados(prova, j));
+  if (livre) sel.value = livre;
+  document.getElementById('imp0-aviso').textContent = livre ? '' : 'Esta prova não tem nenhuma jornada vazia. Escolhe outra prova.';
+};
+window.impContinuar0 = async function(torneioId) {
+  const prova = (dadosInt.provas || []).find(p => p.id == document.getElementById('imp0-prova').value);
+  const jornada = parseInt(document.getElementById('imp0-jor').value);
+  if (!prova || !jornada || _impTemResultados(prova, jornada)) { mostrarNotif('Escolhe uma jornada vazia.', true); return; }
+  _imp = { provaId: prova.id, jornada, id: null, torneio: null };
+  await impLer(torneioId);
+};
+window.addEventListener('message', ev => {
+  if (ev.origin !== location.origin) return;
+  const d = ev.data; if (d && d.vzg === 'importar' && d.id) _impEsperarPronto(() => abrirImportarDeTorneio(d.id));
+});
+(function() {
+  const m = (location.hash || '').match(/importar=([^&]+)/);
+  if (m) { const id = decodeURIComponent(m[1]); try { history.replaceState(null, '', location.pathname); } catch (e) {} _impEsperarPronto(() => abrirImportarDeTorneio(id)); }
+})();
+
 window.recalcBonusJornada = async function(provaId, jornada) {
   if (!dadosInt || !modoAdmin) return;
   const prova = (dadosInt.provas||[]).find(p=>p.id==provaId);
@@ -3104,6 +3152,7 @@ function renderGerir() {
     <div style="padding:10px 0;border-bottom:1px solid var(--sep);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <strong style="flex:1">${p.nome}</strong>
       <span class="badge badge-${p.estado||'agendado'}">${p.estado||'agendado'}</span>
+      <input type="date" value="${p.data||''}" title="Data da prova" onchange="alterarData(${p.id},this.value)" style="padding:4px 8px;border:1px solid var(--sep);border-radius:6px;font-size:0.78rem">
       <select onchange="alterarEstado(${p.id},this.value)" style="padding:4px 8px;border:1px solid var(--sep);border-radius:6px;font-size:0.78rem">
         <option value="agendado"${p.estado==='agendado'?' selected':''}>Agendado</option>
         <option value="ativo"${p.estado==='ativo'?' selected':''}>Ativo</option>
@@ -3126,6 +3175,12 @@ window.criarProva = async function() {
   await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
   mostrarNotif('✅ Prova criada!');
   document.getElementById('nova-prova-nome').value='';
+};
+
+window.alterarData = async function(id, val) {
+  if (!dadosInt) return;
+  const p = (dadosInt.provas||[]).find(p=>p.id==id);
+  if (p) { p.data = val; await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'}); mostrarNotif('Data atualizada'); }
 };
 
 window.alterarEstado = async function(id, val) {

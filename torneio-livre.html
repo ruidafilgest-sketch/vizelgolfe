@@ -153,6 +153,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn-outline btn" onclick="abrirTV()">📺 Abrir TV</button>
+        <button class="btn btn-sm" onclick="usarComoJornada()" title="Copia os resultados deste torneio para uma jornada do Campeonato">📥 Usar como jornada do Campeonato</button>
         <button class="btn-outline btn" onclick="toggleConfig()">⚙️ Configurar</button>
         <button class="btn-outline btn" style="color:#e57373;border-color:#7a2a20" onclick="eliminarTorneioAtual()">🗑️ Eliminar torneio</button>
       </div>
@@ -356,10 +357,31 @@ let mtCategorias = [];
 let mtVoltas = [];
 let jogadorAberto = null;
 
-onValue(ref(db, ROOT), snap => {
-  torneios = snap.val() || {};
+// Ao gravar um número a página redesenha-se. Isto guarda o campo onde estava o cursor e devolve-o
+// no fim, para se poder escrever buraco a buraco com a tecla Tab sem perder o sítio.
+let renderPendente = null;
+function guardarFoco(){
+  const a = document.activeElement;
+  if (a && a.dataset && a.dataset.f) return { f: a.dataset.f, y: window.scrollY };
+  return { f: null, y: window.scrollY };
+}
+function restaurarFoco(st){
+  if (st.f) {
+    const el = document.querySelector(`[data-f="${st.f}"]`);
+    if (el) el.focus({ preventScroll: true });
+  }
+  window.scrollTo(0, st.y);
+}
+function redesenhar(){
+  renderPendente = null;
+  const st = guardarFoco();
   if (torneioAtualId) renderTorneio();
   else renderListaTorneios();
+  restaurarFoco(st);
+}
+onValue(ref(db, ROOT), snap => {
+  torneios = snap.val() || {};
+  if (!renderPendente) renderPendente = setTimeout(redesenhar, 0);
 });
 
 // ─── LISTA DE TORNEIOS ────────────────────────────
@@ -469,6 +491,15 @@ window.eliminarTorneio = async function(id){
     toast('Torneio eliminado 🗑️');
     if (torneioAtualId === id) voltarLista();
   } catch(e) { toast('❌ Erro: ' + e.message); }
+};
+window.usarComoJornada = function(){
+  const tt = torneioAtual(); if (!tt) return;
+  const voltas = tt.meta?.voltas || [], js = Object.values(tt.jogadores || {});
+  if (!js.length) { toast('Este torneio ainda não tem jogadores'); return; }
+  const incompletos = js.filter(j => voltas.some((v,i) => totalVolta(j.resultados, i) <= 0)).length;
+  if (incompletos && !confirm(`${incompletos} de ${js.length} jogadores ainda têm voltas por lançar. As voltas em falta não entram na jornada.\n\nContinuar mesmo assim?`)) return;
+  if (window.parent !== window) { window.parent.postMessage({ vzg: 'importar', id: torneioAtualId }, location.origin); toast('A abrir a Consola…'); }
+  else window.open('consola.html#importar=' + encodeURIComponent(torneioAtualId), '_blank');
 };
 window.eliminarTorneioAtual = function(){ if (torneioAtualId) eliminarTorneio(torneioAtualId); };
 window.voltarLista = function(){
@@ -787,11 +818,11 @@ window.renderListaJogadores = function(){
         const modo = getModoVolta(key, i, j.resultados);
         const holes = Array.from({length:18}).map((_,h) => {
           const val = buracos[h] ?? '';
-          return `<div class="hole-cell"><label>${h+1}</label><input type="number" min="0" max="20" class="${corBuraco(val)}" value="${val}"
+          return `<div class="hole-cell"><label>${h+1}</label><input type="number" min="0" max="20" data-f="${key}|${i}|${h}" class="${corBuraco(val)}" value="${val}"
             onchange="gravarBuraco('${key}',${i},${h},this.value)"></div>`;
         }).join('');
         const totalInput = `<div style="display:flex;align-items:center;gap:10px">
-          <input type="number" min="0" max="200" class="volta-total-badge ${cor}" style="width:80px;text-align:center;font-size:16px"
+          <input type="number" min="0" max="200" data-f="${key}|${i}|T" class="volta-total-badge ${cor}" style="width:80px;text-align:center;font-size:16px"
             value="${tv||''}" placeholder="Total" onchange="gravarTotalVolta('${key}',${i},this.value)">
           <span style="color:var(--text2);font-size:12px">pancadas na volta</span>
         </div>`;
@@ -800,8 +831,8 @@ window.renderListaJogadores = function(){
             <strong>${v.label} <span class="${v.tipo==='peter'?'badge-peter':'badge-mini'}">${v.tipo==='peter'?'Peter':'Mini'}</span></strong>
             <div style="display:flex;align-items:center;gap:8px">
               <div class="modo-toggle">
-                <button class="modo-btn ${modo==='buraco'?'ativo':''}" onclick="toggleModoVolta('${key}',${i},'buraco')">⛳ Por buraco</button>
-                <button class="modo-btn ${modo==='total'?'ativo':''}" onclick="toggleModoVolta('${key}',${i},'total')">Σ Por total</button>
+                <button data-f="${key}|${i}|mb" class="modo-btn ${modo==='buraco'?'ativo':''}" onclick="toggleModoVolta('${key}',${i},'buraco')">⛳ Por buraco</button>
+                <button data-f="${key}|${i}|mt" class="modo-btn ${modo==='total'?'ativo':''}" onclick="toggleModoVolta('${key}',${i},'total')">Σ Por total</button>
               </div>
               ${modo==='buraco' ? `<span class="volta-total-badge ${cor}">Total: ${tv||0}</span>` : ''}
             </div>

@@ -133,7 +133,7 @@ function ir(id){
   $('subtabs').style.display=t.g==='comp'?'flex':'none';
   $('subtabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===id));
   let f=$('f-'+id);
-  if(!f){f=document.createElement('iframe');f.id='f-'+id;f.src=t.src;f.title=t.nome;f.allow='clipboard-write; fullscreen';$('frames').appendChild(f)}
+  if(!f){f=document.createElement('iframe');f.id='f-'+id;f.src=t.srcInicial||t.src;f.title=t.nome;f.allow='clipboard-write; fullscreen';$('frames').appendChild(f)}
   document.querySelectorAll('#frames iframe').forEach(x=>x.classList.toggle('on',x===f));
   let h='<span class="txt">'+t.txt+'</span><span class="sp"></span><button id="bAjuda">?</button>';
   (t.copiar||[]).forEach((c,i)=>{h+='<button class="'+(c[2]?'forte':'')+'" data-c="'+i+'">'+c[0]+'</button>'});
@@ -148,6 +148,14 @@ function ir(id){
     try{await navigator.clipboard.writeText(c[1]);b.textContent='Copiado ✓'}catch(e){prompt('Copia o link:',c[1])}setTimeout(()=>b.textContent=o,1800)});
   try{history.replaceState(null,'','#'+id)}catch(e){}
 }
+// o botão «Usar como jornada» (no torneio) pede à Consola para abrir a importação
+addEventListener('message',ev=>{
+  if(ev.origin!==location.origin||!noApp)return;
+  const d=ev.data;if(!d||d.vzg!=='importar'||!d.id)return;
+  const f=$('f-camp');
+  if(f){ir('camp');f.contentWindow.postMessage({vzg:'importar',id:d.id},location.origin)}
+  else{V.camp.srcInicial='consola.html#importar='+encodeURIComponent(d.id);ir('camp');delete V.camp.srcInicial}
+});
 addEventListener('hashchange',()=>{if(!noApp)return;const k=escolhido();if(!atual||atual.id!==k)ir(k)});
 
 /* ---------- entrada única (Firebase Auth, o mesmo login do Torneios Livres) ---------- */
