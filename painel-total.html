@@ -1,139 +1,15 @@
 <!DOCTYPE html>
 <html lang="pt">
 <head>
-    <meta charset="UTF-8">
-    <title>VIZELGOLFE - PAINEL ADMINISTRATIVO</title>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <style>
-        :root { --gold: #d4820a; --dark: #0a1424; --card: #1a2d4f; }
-        body { font-family: 'Segoe UI', sans-serif; background: #0f1e35; color: white; margin: 0; }
-        .header { background: var(--dark); padding: 15px 20px; border-bottom: 3px solid var(--gold); display: flex; align-items: center; justify-content: space-between; }
-        .nav { display: flex; background: var(--dark); padding: 0 20px; gap: 10px; }
-        .nav button { background: none; border: none; color: #888; padding: 15px 20px; cursor: pointer; font-weight: bold; text-transform: uppercase; border-bottom: 3px solid transparent; }
-        .nav button.active { color: var(--gold); border-bottom: 3px solid var(--gold); }
-        .container { padding: 20px; }
-        .card { background: var(--card); border-radius: 8px; padding: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th { text-align: left; color: var(--gold); border-bottom: 2px solid #334b73; padding: 10px; font-size: 13px; }
-        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        input { padding: 8px; border-radius: 4px; border: none; }
-        .btn-gold { background: var(--gold); color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Vizelgolfe — Gestão</title>
+<noscript><meta http-equiv="refresh" content="0;url=https://vizelgolfe.net/gestao.html"></noscript>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#060d18;color:#e8eef8;font-family:system-ui,sans-serif;text-align:center;padding:1rem}a{color:#e8c675}p{color:#8faac8;line-height:1.6}</style>
 </head>
 <body>
-
-<div id="login-area" style="display: flex; justify-content: center; align-items: center; height: 100vh;">
-    <div class="card" style="width: 320px; text-align: center;">
-        <h2 style="color:var(--gold)">VIZELGOLFE LOGIN</h2>
-        <input type="email" id="email" placeholder="Email" style="width: 90%; margin-bottom: 10px;"><br>
-        <input type="password" id="pass" placeholder="Senha" style="width: 90%; margin-bottom: 10px;"><br>
-        <button class="btn-gold" onclick="login()" style="width: 100%">ENTRAR NO PAINEL</button>
-    </div>
-</div>
-
-<div id="admin-area" style="display: none;">
-    <div class="header">
-        <h2 style="margin:0; color:var(--gold)">PAINEL DE CONTROLO 2026</h2>
-        <button onclick="location.reload()" style="background:none; border:1px solid #ff4444; color:#ff4444; cursor:pointer; padding:5px 10px; border-radius:4px;">SAIR</button>
-    </div>
-
-    <div class="nav">
-        <button class="tab-btn active" onclick="switchTab(event, 'tab-nacional')">🏆 Nacional (CNI)</button>
-        <button class="tab-btn" onclick="switchTab(event, 'tab-socios')">👥 Sócios</button>
-        <button class="tab-btn" onclick="switchTab(event, 'tab-campeonato')">⛳ Campeonato Vizela</button>
-    </div>
-
-    <div class="container">
-        <div id="tab-nacional" class="tab-content active">
-            <div class="card">
-                <h3>Atualizar Dados do Bangolfe</h3>
-                <input type="text" id="id-bangolfe" placeholder="ID da Prova (Ex: 1541)">
-                <button class="btn-gold" onclick="alert('A ligar ao servidor Bangolfe...')">ATUALIZAR TV</button>
-            </div>
-        </div>
-
-        <div id="tab-socios" class="tab-content">
-            <div class="card">
-                <h3>Lista de Atletas Registados</h3>
-                <table id="tabela-socios">
-                    <thead><tr><th>ID</th><th>Nome</th><th>Categoria</th></tr></thead>
-                    <tbody id="corpo-socios"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <div id="tab-campeonato" class="tab-content">
-            <div class="card">
-                <h3>Provas e Torneios Guardados</h3>
-                <table id="tabela-provas">
-                    <thead><tr><th>Prova</th><th>Data</th><th>Tipo</th><th>Estado</th></tr></thead>
-                    <tbody id="corpo-provas"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyDr7wfBzKbH1VAiXbte4YzkejuvJpQvltE",
-        authDomain: "vizelgolfe-ec270.firebaseapp.com",
-        projectId: "vizelgolfe-ec270",
-        storageBucket: "vizelgolfe-ec270.appspot.com",
-        messagingSenderId: "386073357614",
-        appId: "1:386073357614:web:098f635403f605650e5ebf"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-
-    function login() {
-        const e = document.getElementById('email').value;
-        const p = document.getElementById('pass').value;
-        firebase.auth().signInWithEmailAndPassword(e, p).then(() => {
-            document.getElementById('login-area').style.display = 'none';
-            document.getElementById('admin-area').style.display = 'block';
-            carregarDadosInterface();
-        }).catch(err => alert("Erro: " + err.message));
-    }
-
-    function switchTab(evt, tabId) {
-        let contents = document.getElementsByClassName("tab-content");
-        for (let c of contents) c.classList.remove("active");
-        let btns = document.getElementsByClassName("tab-btn");
-        for (let b of btns) b.classList.remove("active");
-        document.getElementById(tabId).classList.add("active");
-        evt.currentTarget.classList.add("active");
-    }
-
-    function carregarDadosInterface() {
-        db.collection('vizelgolfe').doc('dados').get().then(doc => {
-            if (doc.exists) {
-                const d = doc.data();
-                // Preencher Sócios
-                let hAtletas = "";
-                d.atletas.forEach(a => {
-                    hAtletas += `<tr><td>${a.id}</td><td>${a.nome}</td><td>${a.categoria}</td></tr>`;
-                });
-                document.getElementById('corpo-socios').innerHTML = hAtletas;
-
-                // Preencher Provas
-                db.collection('vizelgolfe').get().then(snap => {
-                    let hProvas = "";
-                    snap.forEach(pDoc => {
-                        const p = pDoc.data();
-                        if(p.nome) {
-                            hProvas += `<tr><td>${p.nome}</td><td>${p.data || '--'}</td><td>${p.tipo || '--'}</td><td>${p.estado || '--'}</td></tr>`;
-                        }
-                    });
-                    document.getElementById('corpo-provas').innerHTML = hProvas;
-                });
-            }
-        });
-    }
-</script>
+<div><p>O painel passou a chamar-se Gestão. A abrir…</p><p><a id="l" href="https://vizelgolfe.net/gestao.html">Se não abrir sozinho, clica aqui</a></p></div>
+<script>location.replace("https://vizelgolfe.net/gestao.html");</script>
 </body>
 </html>

@@ -123,6 +123,8 @@ function entrar(){
   else{msg('loginMsg','err','Password incorreta.')}
 }
 $('entrar').onclick=entrar;$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')entrar()});
+// Entrada única: se vier da Gestão (já autenticada), não pede a password
+try{if(sessionStorage.getItem('vzgAdmin')==='1'){$('login').style.display='none';$('app').style.display='block';init()}}catch(e){}
 
 /* ---------- ligação ---------- */
 async function init(){

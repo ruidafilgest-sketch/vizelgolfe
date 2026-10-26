@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Cópia de segurança — Vizelgolfe</title>
+<style>
+:root{--navy:#060d18;--navy2:#0a1828;--gold:#c9a84c;--gold2:#e8c675;--border:rgba(201,168,76,.22);--text:#e8eef8;--text2:#8faac8;--text3:#5a7a98;--ok:#7bd88f;--err:#f08a7d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--navy);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh;padding:1.2rem 1rem}
+main{max-width:640px;margin:0 auto}
+h1{font-size:1.25rem;color:var(--gold);letter-spacing:.06em;margin-bottom:.4rem}
+p,li{font-size:.9rem;line-height:1.6;color:var(--text2)}
+ul{margin:.4rem 0 .9rem 1.2rem}
+.card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem}
+button{font:inherit;font-weight:600;width:100%;padding:.85rem;background:var(--gold);color:#060d18;border:0;border-radius:10px;cursor:pointer;font-size:1rem}
+button:disabled{opacity:.5;cursor:default}
+#log{font-family:ui-monospace,Consolas,monospace;font-size:.78rem;color:var(--text3);margin-top:.8rem;line-height:1.7;white-space:pre-wrap}
+.res{display:none}
+.res h2{font-size:1rem;color:var(--ok);margin-bottom:.5rem}
+.res table{width:100%;border-collapse:collapse;font-size:.88rem}
+.res td{padding:.35rem 0;border-bottom:1px solid rgba(201,168,76,.12);color:var(--text2)}
+.res td:last-child{text-align:right;color:var(--text);font-weight:600}
+.aviso{color:var(--gold2);font-size:.82rem;margin-top:.6rem;line-height:1.5}
+.err{color:var(--err)}
+.fim{color:var(--text3);font-size:.8rem;line-height:1.6}
+</style>
+</head>
+<body>
+<main>
+  <h1>💾 CÓPIA DE SEGURANÇA</h1>
+  <p style="margin-bottom:1rem">Guarda num ficheiro tudo o que está nos dados. <b>Só lê, não altera nada.</b></p>
+
+  <div class="card">
+    <p><b>O que inclui:</b></p>
+    <ul>
+      <li>Atletas, provas, resultados e desempates do Campeonato</li>
+      <li>Nacional (prova atual e histórico)</li>
+      <li>Ranking calculado e escolhas da TV</li>
+      <li>Torneios livres (todos, se estiveres autenticado; senão só os publicados)</li>
+    </ul>
+    <p>Não inclui passwords nem chaves.</p>
+  </div>
+
+  <div class="card">
+    <button id="go">Gerar e descarregar cópia</button>
+    <div id="log"></div>
+  </div>
+
+  <div class="card res" id="res">
+    <h2>✓ Cópia guardada</h2>
+    <table id="tab"></table>
+    <p class="aviso" id="avisoT"></p>
+  </div>
+
+  <p class="fim">Guarda o ficheiro num sítio seguro (por exemplo o teu Google Drive) e não o partilhes: tem nomes e resultados dos atletas. Para restaurar uma cópia, fala comigo: faz-se com cuidado e nunca por engano.</p>
+</main>
+
+<script type="module">
+const CFG_EC={apiKey:"AIzaSyDr7wfBzKbH1VAiXbte4YzkejuvJpQvltE",authDomain:"vizelgolfe-ec270.firebaseapp.com",projectId:"vizelgolfe-ec270",storageBucket:"vizelgolfe-ec270.firebasestorage.app",messagingSenderId:"386073357614",appId:"1:386073357614:web:098f635403f605650e5ebf"};
+const CFG_PO={apiKey:"AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",authDomain:"vizelgolfe-portal.firebaseapp.com",databaseURL:"https://vizelgolfe-portal-default-rtdb.europe-west1.firebasedatabase.app",projectId:"vizelgolfe-portal",storageBucket:"vizelgolfe-portal.firebasestorage.app",messagingSenderId:"651151089287",appId:"1:651151089287:web:d7f044bbb6c64f2e8fa222"};
+const ADMIN_UID='pId7gclO7OUpwwIjSr2cXOZvhq43';
+const ROOT='/portal/torneiosLivres';
+const $=id=>document.getElementById(id);
+const log=(t,err)=>{$('log').innerHTML+=(err?'<span class="err">':'')+t.replace(/</g,'&lt;')+(err?'</span>':'')+'\n'};
+const limite=(p,ms=15000)=>Promise.race([p,new Promise((_,r)=>setTimeout(()=>r(new Error('tempo esgotado')),ms))]);
+let FS,RT,AU,fsDb,rtDb,auth,admin=false,pronto=false;
+async function iniciar(){
+  try{const B='https://www.gstatic.com/firebasejs/10.12.0/';
+    const[a,f,d,u]=await Promise.all([import(B+'firebase-app.js'),import(B+'firebase-firestore.js'),import(B+'firebase-database.js'),import(B+'firebase-auth.js')]);
+    const portal=a.initializeApp(CFG_PO),ec=a.initializeApp(CFG_EC,'ec270');
+    FS=f;RT=d;AU=u;rtDb=d.getDatabase(portal);fsDb=f.getFirestore(ec);auth=u.getAuth(portal);
+    AU.onAuthStateChanged(auth,user=>{admin=!!user&&user.uid===ADMIN_UID;pronto=true});
+    return true}catch(e){log('Não foi possível ligar ao Firebase. Verifica a internet.',true);return false}
+}
+const semChaves=(k,v)=>k==='_vzgKey'?undefined:v;
+async function gerar(){
+  $('go').disabled=true;$('log').textContent='';$('res').style.display='none';
+  if(!FS){log('Sem ligação.',true);$('go').disabled=false;return}
+  try{
+    for(let i=0;i<20&&!pronto;i++)await new Promise(r=>setTimeout(r,100));
+    const dados={},erros=[];
+    for(const id of ['dados','nacional','ranking_portal','tv_controlo']){
+      log('A ler '+id+'…');
+      try{const s=await limite(FS.getDoc(FS.doc(fsDb,'vizelgolfe',id)));dados[id]=s.exists()?s.data():null}
+      catch(e){dados[id]=null;erros.push(id+': '+(e.code||e.message));log('  falhou: '+(e.code||e.message),true)}
+    }
+    log('A ler torneios livres…');
+    let torneios={},todos=false;
+    if(admin){
+      try{const s=await limite(RT.get(RT.ref(rtDb,ROOT)));torneios=s.exists()?s.val():{};todos=true}
+      catch(e){log('  lista completa recusada, a usar os publicados',true)}
+    }
+    if(!todos){
+      const pubs=Array.isArray(dados.tv_controlo?.publicados)?dados.tv_controlo.publicados:[];
+      for(const p of pubs){
+        try{const s=await limite(RT.get(RT.ref(rtDb,ROOT+'/'+p.id)));if(s.exists())torneios[p.id]=s.val()}
+        catch(e){erros.push('torneio '+p.id+': '+(e.code||e.message))}
+      }
+    }
+    const obj={tipo:'copia-seguranca-vizelgolfe',versao:1,geradoEm:new Date().toISOString(),
+      nota:'Cópia só de leitura. As chaves de segurança e as passwords foram excluídas.',
+      incluiTodosOsTorneiosLivres:todos,firestore:dados,torneiosLivres:torneios};
+    const json=JSON.stringify(obj,semChaves,1);
+    const d=new Date(),p2=n=>String(n).padStart(2,'0');
+    const nome='vizelgolfe-copia-'+d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate())+'-'+p2(d.getHours())+p2(d.getMinutes())+'.json';
+    const blob=new Blob([json],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nome;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+    const dd=dados.dados||{},nac=dados.nacional||{};
+    const linhas=[['Atletas',(dd.atletas||[]).length],['Provas do Campeonato/clube',(dd.provas||[]).length],
+      ['Resultados do Nacional (provas)',(nac.bangolfe?1:0)+Object.keys(nac.historico||{}).length],
+      ['Torneios livres',Object.keys(torneios).length],['Tamanho do ficheiro',(json.length/1024).toFixed(0)+' KB']];
+    $('tab').innerHTML=linhas.map(l=>'<tr><td>'+l[0]+'</td><td>'+l[1]+'</td></tr>').join('')+'<tr><td>Ficheiro</td><td style="font-size:.78rem">'+nome+'</td></tr>';
+    $('avisoT').textContent=(todos?'':'Atenção: só entraram os torneios livres publicados (entra pela Gestão para incluir todos). ')+(erros.length?'Houve leituras que falharam: '+erros.join(' · '):'');
+    $('res').style.display='block';log('Concluído.');
+  }catch(e){log('Erro: '+(e.message||e),true)}
+  $('go').disabled=false;
+}
+$('go').onclick=gerar;
+iniciar();
+</script>
+</body>
+</html>

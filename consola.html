@@ -702,6 +702,13 @@ document.addEventListener('DOMContentLoaded', function() {
   if(passInput) passInput.addEventListener('keydown', function(e) {
     if(e.key==='Enter') window.fazerLogin();
   });
+  // Entrada única: se vier da Gestão (já autenticada), entra como Admin sem pedir a password
+  try {
+    if (sessionStorage.getItem('vzgAdmin') === '1') {
+      modoAdmin = true; modoView = false; iniciarApp('Admin');
+      document.querySelectorAll('#btn-logout, .btn-logout').forEach(function(b){ b.style.display = 'none'; }); // o «Sair» passa a ser o da Gestão
+    }
+  } catch(e) {}
 });
 
 
