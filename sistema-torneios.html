@@ -156,6 +156,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
       <div style="display:flex;gap:8px">
         <button class="btn-outline btn" onclick="abrirTV()">📺 Abrir TV</button>
         <button class="btn btn-sm" onclick="abrirProtocolos()" title="Imprime os cartões de resultados (protocolos) já preenchidos">🖨️ Protocolos</button>
+        <button class="btn btn-sm" onclick="exportarResultados()" title="Descarrega os resultados deste torneio num ficheiro que abre no Excel">📊 Resultados (Excel)</button>
         <button class="btn btn-sm" onclick="usarComoJornada()" title="Copia os resultados deste torneio para uma jornada do Campeonato">📥 Usar como jornada do Campeonato</button>
         <button class="btn-outline btn" onclick="toggleConfig()">⚙️ Configurar</button>
         <button class="btn-outline btn" style="color:#e57373;border-color:#7a2a20" onclick="eliminarTorneioAtual()">🗑️ Eliminar torneio</button>
@@ -228,7 +229,7 @@ input:focus,select:focus{outline:none;border-color:var(--accent)}
     <!-- Lista de jogadores (sempre disponível) -->
     <div class="card" id="card-roster">
       <h3>👥 Lista de jogadores</h3>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5">Todos os jogadores que já inscreveste noutros torneios e os atletas da Consola. Marca os que queres e clica em «Adicionar». Quem inscreveres aqui fica na lista para a próxima vez.</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5">Todos os jogadores que já inscreveste noutros torneios e os atletas do Campeonato. Marca os que queres e clica em «Adicionar». Quem inscreveres aqui fica na lista para a próxima vez.</div>
       <div class="form-row">
         <div class="form-group"><input id="roster-busca" placeholder="Procurar por nome…" oninput="renderRoster()"></div>
         <div class="form-group" style="max-width:150px"><select id="roster-clube" onchange="renderRoster()"><option value="">Todos os clubes</option></select></div>
@@ -428,7 +429,7 @@ window.renderProximos = function(){
   if (!prox.length) { box.innerHTML = ''; return; }
   const jaCriado = p => Object.entries(torneios).find(([id,tt]) => tt.meta?.provaCalendario === p.nome || normNome(tt.meta?.nome) === normNome(p.nome));
   box.innerHTML = `<div class="card" style="margin-bottom:16px"><h3>📅 Próximos torneios do calendário</h3>
-    <div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">Vêm da Consola. Carrega em «Criar torneio» no dia (ou antes) e o torneio nasce já com o nome e a data. Para tirar um da lista, usa «Esconder» na Gestão, em Ecrãs.</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">Vêm do Campeonato (🗂 Provas). Carrega em «Criar torneio» no dia (ou antes) e o torneio nasce já com o nome e a data. Para tirar um da lista, usa «Esconder» no separador 📺 Ecrãs.</div>
     ${prox.map((p,i) => { const j = jaCriado(p); return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border2)">
       <span style="flex:1"><strong>${p.nome}</strong><span style="color:var(--text2);font-size:12px"> · ${p.data ? formatarData(p.data) : 'sem data'}</span></span>
       ${j ? `<span style="font-size:12px;color:#7bd88f">✓ já criado</span><button class="btn-outline btn btn-sm" onclick="abrirTorneio('${j[0]}')">Abrir</button>`
@@ -542,7 +543,7 @@ window.eliminarTorneio = async function(id){
   const js = Object.values(tt.jogadores||{});
   const comRes = js.some(j => Object.values(j.resultados||{}).some(r => parseInt(r?.total) > 0));
   if (comRes) {
-    const r = prompt(`ATENÇÃO: «${nome}» tem ${js.length} jogadores e resultados lançados.\nEsta ação não pode ser desfeita (faz antes uma cópia de segurança, na Gestão).\n\nPara eliminar, escreve ELIMINAR:`);
+    const r = prompt(`ATENÇÃO: «${nome}» tem ${js.length} jogadores e resultados lançados.\nEsta ação não pode ser desfeita (faz antes uma cópia de segurança, no separador 💾 Cópia).\n\nPara eliminar, escreve ELIMINAR:`);
     if ((r||'').trim().toUpperCase() !== 'ELIMINAR') { toast('Cancelado'); return; }
   } else if (!confirm(`Eliminar o torneio «${nome}»${js.length ? ` (${js.length} jogadores, sem resultados)` : ''}?`)) return;
   try {
@@ -557,8 +558,8 @@ window.usarComoJornada = function(){
   if (!js.length) { toast('Este torneio ainda não tem jogadores'); return; }
   const incompletos = js.filter(j => voltas.some((v,i) => totalVolta(j.resultados, i) <= 0)).length;
   if (incompletos && !confirm(`${incompletos} de ${js.length} jogadores ainda têm voltas por lançar. As voltas em falta não entram na jornada.\n\nContinuar mesmo assim?`)) return;
-  if (window.parent !== window) { window.parent.postMessage({ vzg: 'importar', id: torneioAtualId }, location.origin); toast('A abrir a Consola…'); }
-  else window.open('consola.html#importar=' + encodeURIComponent(torneioAtualId), '_blank');
+  if (window.parent !== window) { window.parent.postMessage({ vzg: 'importar', id: torneioAtualId }, location.origin); toast('A abrir o Campeonato…'); }
+  else window.open('sistema.html#camp', '_blank');
 };
 window.eliminarTorneioAtual = function(){ if (torneioAtualId) eliminarTorneio(torneioAtualId); };
 window.voltarLista = function(){
@@ -961,6 +962,35 @@ function getModoVolta(key, voltaIdx, resultados){
   if (guardado) return guardado;
   return 'buraco';
 }
+
+// ─── EXPORTAR resultados do torneio (Excel/CSV, separador «;», acentos corretos) ───
+window.exportarResultados = function(){
+  const t = torneioAtual(); if(!t){ return; }
+  const voltas = t.meta.voltas || [], jog = Object.entries(t.jogadores || {});
+  const aspas = v => '"' + String(v ?? '').replace(/"/g,'""') + '"';
+  const tv = (r,i) => parseInt(r?.[i]?.total) || 0;
+  const nCompletas = r => voltas.filter((v,i)=>tv(r,i)>0).length;
+  const cats = [...new Set([...(t.meta.categorias||[]), ...jog.map(([k,j])=>j.categoria)])].filter(Boolean);
+  const linhas = [['Categoria','Pos.','Nome','Clube',...voltas.map(v=>v.label),'Total','Voltas jogadas']];
+  cats.forEach(cat=>{
+    const ent = jog.filter(([k,j])=>j.categoria===cat).sort((a,b)=>{
+      const ca=nCompletas(a[1].resultados), cb=nCompletas(b[1].resultados);
+      if (ca!==cb) return cb-ca;
+      if (ca===0) return (a[1].criadoEm||'').localeCompare(b[1].criadoEm||'');
+      return voltas.reduce((s,_,i)=>s+tv(a[1].resultados,i),0) - voltas.reduce((s,_,i)=>s+tv(b[1].resultados,i),0);
+    });
+    ent.forEach(([k,j],idx)=>{
+      const total = voltas.reduce((s,_,i)=>s+tv(j.resultados,i),0);
+      linhas.push([cat, total>0?idx+1:'', j.nome, j.clube||'', ...voltas.map((v,i)=>tv(j.resultados,i)||''), total||'', nCompletas(j.resultados)]);
+    });
+  });
+  const csv = '\ufeff' + linhas.map(r=>r.map(aspas).join(';')).join('\r\n');
+  const nome = 'resultados-' + String(t.meta.nome||'torneio').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase() + '-' + (t.meta.data||'') + '.csv';
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})); a.download = nome;
+  document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  window.toast('📊 ' + nome);
+};
+
 window.toggleModoVolta = function(key, voltaIdx, modo){
   modoVolta[`${key}_${voltaIdx}`] = modo;
   renderListaJogadores();

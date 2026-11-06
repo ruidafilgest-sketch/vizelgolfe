@@ -153,6 +153,20 @@ details:not(.cx *){background:var(--navy2);border:1px solid var(--border);border
   background:var(--navy);border-radius:8px;padding:10px 16px;
   display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;
 }.cx #nac-dot{width:8px;height:8px;border-radius:50%;background:#6b7280;flex-shrink:0;}.cx #nac-dot.verde{background:#4ade80;animation:blink 1.5s ease-in-out infinite;}.cx #nac-dot.laranja{background:#f59e0b;}@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}.cx #nac-status-text{font-size:0.78rem;color:rgba(255,255,255,0.7);}.cx #nac-countdown{font-family:"Bebas Neue",sans-serif;font-size:1rem;color:var(--org2);margin-left:auto;}.cx #modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:500;padding:20px;}.cx #modal-overlay.on{display:flex;}.cx #modal-box{background:var(--bg2);border-radius:12px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;padding:28px;}.cx #modal-close{float:right;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--dim);}.cx .notif{position:fixed;bottom:20px;right:20px;background:var(--green);color:#fff;padding:10px 18px;border-radius:8px;font-size:0.82rem;font-weight:700;z-index:999;display:none;animation:slideup 0.3s ease;}@keyframes slideup{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}.cx #sync-status{font-size:0.68rem;letter-spacing:1px;color:rgba(255,255,255,0.4);}@media(max-width:768px){.cx #sidebar{width:56px;}.cx .nav-item span.label{display:none;}.cx .nav-item{justify-content:center;padding:12px 8px;}.cx .secao{padding:12px;}}.cx{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1a1e28;font-size:14px;line-height:1.4}.cxpage{background:#f0f2f5;border-radius:12px;padding:16px;margin-bottom:14px}.cxpage h2{color:#d4820a}.cx *{box-sizing:border-box}.cx .stat-tab{background:#fff;border:1px solid #d3d9e2;border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer;color:#1a2d4f;font-size:.85rem}.cx .stat-tab:hover{border-color:#d4820a}.cx .stat-tab.on{background:#1a2d4f;color:#fff;border-color:#1a2d4f}.cx select{border:1px solid #d3d9e2;border-radius:8px;padding:7px 10px;background:#fff;color:#1a1e28}
+.printonly{display:none}
+@media print{
+ html,body{height:auto!important;overflow:visible!important;background:#fff!important;color:#000!important;display:block!important}
+ header,#nav,.pills,.ctx,.tabs2,.no-print,.toast,#estado,.cfg,.cartao,#login{display:none!important}
+ #app{display:block!important}main{position:static!important}
+ main>section{position:static!important;display:none!important;overflow:visible!important;padding:0!important}main>section.on{display:block!important}
+ .wrap{max-width:none!important}.printonly{display:block!important;font-size:11pt;margin-bottom:8px;border-bottom:2px solid #000;padding-bottom:4px}
+ h2{color:#000!important}.nota{color:#333!important}
+ .bloco{border:1px solid #888!important;background:#fff!important;break-inside:avoid;margin-bottom:10px!important}
+ .bloco h3{background:#eee!important;color:#000!important;border-bottom:2px solid #000!important}
+ th{background:#ddd!important;color:#000!important}td{color:#000!important;background:#fff!important;border-color:#bbb!important}td.pos,td.pts,td.tot,td.nome{color:#000!important}
+ .v{background:#fff!important;color:#000!important;border:1px solid #999!important}.b{background:#eee!important;color:#000!important;border-color:#999!important}
+ tr:nth-child(even) td{background:#f6f6f6!important}
+}
 </style>
 </head>
 <body>
@@ -201,6 +215,7 @@ details:not(.cx *){background:var(--navy2);border:1px solid var(--border);border
 <tr><td class="l"><b>Datas</b>, estado e nº de jornadas</td><td class="l">🏆 Campeonato</td><td class="l">Separador "🗂 Provas"</td></tr>
 <tr><td class="l"><b>Novo atleta</b></td><td class="l">👥 Atletas</td><td class="l">"Adicionar atleta"</td></tr>
 <tr><td class="l"><b>TV</b> do projetor / links</td><td class="l">📺 Ecrãs</td><td class="l">"1. O que mostrar" → "Enviar para a TV"</td></tr>
+<tr><td class="l"><b>Extrair</b> para Excel ou imprimir</td><td class="l">🏆 Campeonato → 📊 Classificações; 🏌️ Torneios</td><td class="l">"🖨️ Imprimir / PDF" e "📊 Excel (CSV)"; no torneio, "📊 Resultados (Excel)"</td></tr>
 <tr><td class="l"><b>Estatísticas</b> e <b>regras</b></td><td class="l">📈 Estatísticas / 📖 Regras</td><td class="l">Abas Ranking, Métricas, Por Atleta, Por Prova, Nacional</td></tr>
 <tr><td class="l"><b>Guardar</b> / <b>repor</b> tudo</td><td class="l">💾 Cópia</td><td class="l">"Descarregar cópia" / "Repor de um ficheiro"</td></tr>
 <tr><td class="l"><b>Voltar atrás</b> num erro</td><td class="l">💾 Cópia</td><td class="l">"Pontos de restauro": há um por dia e um <b>antes de cada importação</b>. Clica "Repor" no que quiseres</td></tr>
@@ -512,11 +527,28 @@ details:not(.cx *){background:var(--navy2);border:1px solid var(--border);border
 
   /* ---------- RANKING ANUAL ----------
      Soma os pontos de TODAS as provas (Campeonato e torneios), mais o bónus de participação completa. */
-  function rankingAnual(estado, regras = REGRAS) {
+  // Época = ano da data da prova. Sem «opc.ano» somam-se todas as provas (comportamento original).
+  // Provas sem data entram em qualquer época.
+  function provasDaEpoca(estado, ano) {
+    return (estado.provas || []).filter(p => !ano || !p.data || String(p.data).slice(0, 4) === String(ano));
+  }
+  // Época em curso: o ano do Campeonato ativo mais recente; senão o ano mais recente com provas; senão o ano de hoje.
+  function epocaAtual(estado, hoje = new Date()) {
+    const ano = p => parseInt(String(p.data || '').slice(0, 4)) || 0;
+    const ativos = (estado.provas || []).filter(p => p.tipo === 'campeonato' && p.estado === 'ativo').map(ano).filter(Boolean);
+    if (ativos.length) return Math.max(...ativos);
+    const todos = (estado.provas || []).map(ano).filter(Boolean);
+    return todos.length ? Math.max(...todos) : hoje.getFullYear();
+  }
+  function epocas(estado) {
+    return [...new Set((estado.provas || []).map(p => parseInt(String(p.data || '').slice(0, 4)) || 0).filter(Boolean))].sort((a, b) => b - a);
+  }
+  function rankingAnual(estado, regras = REGRAS, opc) {
     const ranking = {};
+    const provasEp = provasDaEpoca(estado, opc && opc.ano);
     (estado.atletas || []).forEach(a => {
       const participacoes = []; let totalPontos = 0;
-      (estado.provas || []).forEach(prova => {
+      provasEp.forEach(prova => {
         for (let j = 1; j <= (prova.jornadas || 1); j++) {
           const p = pontosJornada(prova, j, a, estado, regras);
           if (!p) continue; participacoes.push(p); totalPontos += p.pontos;
@@ -731,7 +763,7 @@ details:not(.cx *){background:var(--navy2);border:1px solid var(--border);border
   }
 
   return { REGRAS, grupoDe, ehCampVizela, camposDaJornada, totalJornada, ordemGrupo, posicao, melhorVolta,
-           bonusJornada, aplicarBonus, recalcularBonus, pontosJornada, bonusCompleto, rankingAnual, pontosAtletaEpoca,
+           bonusJornada, aplicarBonus, recalcularBonus, pontosJornada, bonusCompleto, rankingAnual, provasDaEpoca, epocaAtual, epocas, pontosAtletaEpoca,
            classificacaoJornada, desempatesJornada, normNome, temResultados, casarJogador, sugerirMapa, jogouAntes, ligacoesSugeridas, importarTorneio, anularImportacao, totalVoltaLivre, totalGeralLivre, voltasCompletadas, estadoVoltaLivre, classificacaoLivre };
 });
 
@@ -757,6 +789,8 @@ function toast(m,err){const t=$('toast');t.textContent=m;t.className='toast'+(er
 /* ---------- estado e guardar automático ---------- */
 let D=null,NAC=null,CTRL=null,TORN={},DEXISTE=false;
 const ST={sujo:false,aGuardar:false,erro:null,v:0,tm:null};
+const rankingEpoca=()=>M.rankingAnual(D,undefined,{ano:M.epocaAtual(D)});
+const dadosEpoca=()=>({...D,provas:M.provasDaEpoca(D,M.epocaAtual(D))});
 const dadosVazio=()=>({atletas:[],provas:[],empates:{},ajustesPontos:{},proximoProvaId:1});
 function normalizar(d){d.atletas??=[];d.provas??=[];d.empates??={};d.ajustesPontos??={};d.provas.forEach(p=>{p.resultados??={}});return d}
 function renderEstado(){const e=$('estado');if(ST.erro){e.className='err';e.textContent='⚠ Não guardado: '+ST.erro}else if(ST.sujo||ST.aGuardar){e.className='wait';e.textContent='● A guardar…'}else{e.className='ok';e.textContent='● Tudo guardado'}}
@@ -764,7 +798,7 @@ function marcarSujo(){ST.sujo=true;ST.erro=null;renderEstado();clearTimeout(ST.t
 async function guardar(){
   if(ST.aGuardar||!ST.sujo)return;ST.aGuardar=true;ST.sujo=false;renderEstado();
   try{ST.v=Date.now();D._v=ST.v;await setDoc(doc(fs,COL,'dados'),clone(D));
-    await setDoc(doc(fs,COL,'ranking_portal'),{ranking:M.rankingAnual(D),atualizadoEm:new Date().toISOString()});ST.erro=null;DEXISTE=true}
+    await setDoc(doc(fs,COL,'ranking_portal'),{ranking:rankingEpoca(),epoca:M.epocaAtual(D),atualizadoEm:new Date().toISOString()});ST.erro=null;DEXISTE=true}
   catch(e){ST.erro=(e&&e.code)||(e&&e.message)||'erro';ST.sujo=true}
   ST.aGuardar=false;renderEstado();
   if(ST.sujo){clearTimeout(ST.tm);ST.tm=setTimeout(guardar,ST.erro?8000:300)}
@@ -816,7 +850,7 @@ $('sec-inicio').addEventListener('click',ev=>{
   const d=ev.target.closest('[data-ir]');if(d)ir(d.dataset.ir)});
 
 /* ---------- Campeonato ---------- */
-const CAMP={sub:'jorn',p:null,j:1,tab:'lancar',cp:'__anual__',cv:'geral',ORD:{}};
+const CAMP={sub:'jorn',p:null,j:1,tab:'lancar',cp:'__anual__',cv:'geral',ep:null,ORD:{}};
 const IMP={id:null,mapa:{},lig:{},motivo:{},tipo:undefined,exige:undefined,hab:false};
 const NOME_V={mV1:'Mini 1',mV2:'Mini 2',pV1:'Peter 1',pV2:'Peter 2',pV3:'Peter 3',pV4:'Peter 4'};
 const NOME_V4={pV1:'Peter 1 (manhã)',pV2:'Peter 2 (manhã)',pV3:'Peter 3 (tarde)',pV4:'Peter 4 (tarde)'};
@@ -960,14 +994,16 @@ const corMini=n=>n===null?'cv-null':n<=19?'cv-blue':n<=24?'cv-green':n<=29?'cv-r
 const corPeter=n=>n===null?'cv-null':n<=24?'cv-blue':n<=29?'cv-green':n<=35?'cv-red':'cv-gray';
 function tabelaPontos(cat,linhas){if(!linhas.length)return'';return'<div class="bloco"><h3>'+esc(cat)+'</h3><div class="tw"><table><thead><tr><th>Pos</th><th class="l">Atleta</th><th>Jornadas</th><th>Pontos</th></tr></thead><tbody>'+linhas.map((a,i)=>'<tr class="'+(i===0?'p1':i===1?'p2':i===2?'p3':'')+'"><td class="pos">'+(i+1)+'º</td><td class="nome">'+esc(a.nome)+'</td><td>'+a.jPart+'</td><td class="pts">'+a.pts+'</td></tr>').join('')+'</tbody></table></div></div>'}
 function renderClass(){
-  const c=$('c-corpo'),R=M.rankingAnual(D),ps=D.provas.filter(p=>Object.values(p.resultados||{}).some(j=>j&&Object.keys(j).length));
+  const c=$('c-corpo'),ANO=CAMP.ep||M.epocaAtual(D),R=CAMP.cp==='__anual__'?M.rankingAnual(D,undefined,{ano:ANO}):M.rankingAnual(D),ps=D.provas.filter(p=>Object.values(p.resultados||{}).some(j=>j&&Object.keys(j).length));
   if(CAMP.cp!=='__anual__'&&!D.provas.some(p=>p.id==CAMP.cp))CAMP.cp='__anual__';
   let h='<div class="ctx"><div><label>Ver</label><select id="k-prova"><option value="__anual__"'+(CAMP.cp==='__anual__'?' selected':'')+'>🏆 Ranking anual</option>'+ps.map(p=>'<option value="'+p.id+'"'+(p.id==CAMP.cp?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+'</select></div>';
+  if(CAMP.cp==='__anual__'&&M.epocas(D).length>1)h+='<div><label>Época</label><select id="k-epoca">'+M.epocas(D).map(y=>'<option value="'+y+'"'+(y===ANO?' selected':'')+'>'+y+(y===M.epocaAtual(D)?' (em curso)':'')+'</option>').join('')+'</select></div>';
   let p=null;if(CAMP.cp!=='__anual__'){p=D.provas.find(x=>x.id==CAMP.cp);
     h+='<div><label>Vista</label><select id="k-vista"><option value="geral"'+(CAMP.cv==='geral'?' selected':'')+'>Geral</option>'+Array.from({length:p.jornadas||1},(_,i)=>i+1).filter(j=>temRes(p,j)).map(j=>'<option value="'+j+'"'+(String(CAMP.cv)===String(j)?' selected':'')+'>Jornada '+j+(p.dataJornadas?.[j]?' · '+fdata(p.dataJornadas[j]):'')+'</option>').join('')+'</select></div>'}
-  h+='</div>';
+  h+='<div style="display:flex;gap:6px;margin-left:auto"><button class="btn s" data-act="imprimirCls">🖨️ Imprimir / PDF</button><button class="btn s" data-act="csvCls">📊 Excel (CSV)</button></div></div>';
+  h+='<div class="printonly"><b>Vizelgolfe</b> · '+(p?esc(p.nome)+' · '+(CAMP.cv==='geral'?'Classificação geral':'Jornada '+CAMP.cv):'Ranking anual '+ANO)+' · '+new Date().toLocaleDateString('pt-PT')+'</div>';
   if(CAMP.cp==='__anual__'){
-    h+='<h2>Ranking anual</h2><p class="nota">Pontos acumulados de todas as provas da época (Campeonato de Vizela com bónus; torneios só com pontos de posição).</p>';
+    h+='<h2>Ranking anual · '+ANO+'</h2><p class="nota">Pontos acumulados de todas as provas da época de '+ANO+' (Campeonato de Vizela com bónus; torneios só com pontos de posição).</p>';
     CATEGORIAS.forEach(cat=>{const l=D.atletas.filter(a=>a.categoria===cat).map(a=>{const r=R[String(a.id)];return{nome:a.nome,pts:r?r.totalPontos:0,jPart:r?r.participacoes.length:0}}).filter(a=>a.pts>0).sort((a,b)=>b.pts-a.pts);h+=tabelaPontos(cat,l)})}
   else if(CAMP.cv==='geral'){
     h+='<h2>'+esc(p.nome)+' · Geral</h2>';
@@ -986,6 +1022,24 @@ function vistaJornada(p,j){
   if(jun.length){jun.sort((a,b)=>a.total-b.total);h+='<div class="bloco"><h3>Juniores · classificação própria</h3><div class="tw"><table><thead><tr><th>Pos</th><th class="l">Atleta</th><th>Total</th><th>Posição nos Homens</th><th>Pontos</th></tr></thead><tbody>'+jun.map((l,i)=>'<tr><td class="pos">'+(i+1)+'º</td><td class="nome">'+esc(l.nome)+'</td><td class="tot">'+l.total+'</td><td>'+l.pos+'º</td><td class="pts">'+l.pontos+'</td></tr>').join('')+'</tbody></table></div></div>'}
   if(!grupos.length)h+='<div class="card">Sem resultados nesta jornada.</div>';
   return h}
+
+/* ----- Exportar classificações (Excel/CSV) ----- */
+function baixarCSV(nome,cab,lin){
+  const q=v=>'"'+String(v??'').replace(/"/g,'""')+'"',csv='\ufeff'+[cab].concat(lin).map(r=>r.map(q).join(';')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=nome;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);return nome}
+const slug=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9]+/g,'-').replace(/^-|-$/g,'').toLowerCase();
+function csvClassificacao(){
+  const ANO=CAMP.ep||M.epocaAtual(D),R=CAMP.cp==='__anual__'?M.rankingAnual(D,undefined,{ano:ANO}):M.rankingAnual(D),hoje=new Date().toISOString().slice(0,10),lin=[];
+  if(CAMP.cp==='__anual__'){
+    CATEGORIAS.forEach(cat=>{D.atletas.filter(a=>a.categoria===cat).map(a=>{const r=R[String(a.id)];return{a,pts:r?r.totalPontos:0,j:r?r.participacoes.length:0}}).filter(x=>x.pts>0).sort((x,y)=>y.pts-x.pts).forEach((x,i)=>lin.push([cat,i+1,x.a.nome,x.a.clube||'',x.j,x.pts]))});
+    return baixarCSV('ranking-anual-'+ANO+'-'+hoje+'.csv',['Categoria','Pos.','Atleta','Clube','Jornadas','Pontos'],lin)}
+  const p=D.provas.find(x=>x.id==CAMP.cp);
+  if(CAMP.cv==='geral'){
+    CATEGORIAS.forEach(cat=>{D.atletas.filter(a=>a.categoria===cat).map(a=>{const r=R[String(a.id)],x=r?r.participacoes.filter(y=>y.prova===p.nome):[];return{a,pts:x.reduce((s,y)=>s+y.pontos,0)+M.bonusCompleto(p,a.id),j:x.length}}).filter(x=>x.j>0).sort((x,y)=>y.pts-x.pts).forEach((x,i)=>lin.push([cat,i+1,x.a.nome,x.a.clube||'',x.j,x.pts]))});
+    return baixarCSV(slug(p.nome)+'-geral-'+hoje+'.csv',['Categoria','Pos.','Atleta','Clube','Jornadas','Pontos'],lin)}
+  const j=Number(CAMP.cv),inat=p.jornadaEspecial?.[j]?.voltasInativas||[],campos=M.camposDaJornada(p,j).filter(c=>!inat.includes(c)),camp=M.ehCampVizela(p);
+  M.classificacaoJornada(p,j,D).forEach(g=>g.linhas.forEach(l=>{const res=p.resultados[j][String(l.id)]||p.resultados[j][l.id]||{};lin.push([g.grupo,l.pos,l.nome,l.categoria,...campos.map(c=>res[c]??''),l.total,camp?[l.bonus.mini&&'Mini',l.bonus.peter&&'Peter',l.bonus.manha&&'Manhã',l.bonus.tarde&&'Tarde'].filter(Boolean).join(' + '):'',l.pontos])}));
+  return baixarCSV(slug(p.nome)+'-jornada-'+j+'-'+hoje+'.csv',['Grupo','Pos.','Atleta','Categoria',...campos.map(c=>nomeVolta(p,j,c)),'Total','Bónus','Pontos'],lin)}
 
 /* ----- Provas ----- */
 function renderProvas(){
@@ -1033,12 +1087,15 @@ CW.addEventListener('click',async ev=>{
   else if(a==='criarProva'){const nome=$('np-nome').value.trim();if(!nome){toast('Escreve o nome da prova.',true);return}
     const tipo=$('np-tipo').value,id=D.proximoProvaId||(Math.max(0,...D.provas.map(x=>x.id))+1),nj=Math.max(1,Math.min(12,parseInt($('np-jor').value)||1));
     D.provas.push({id,nome,tipo,estado:'agendado',data:$('np-data').value,jornadas:nj,pts1:25,bonusMini:1,bonusPeter:1,bonusCompleto:0,resultados:{}});D.proximoProvaId=id+1;marcarSujo();renderProvas();toast('✅ Prova criada.')}
+  else if(a==='imprimirCls'){window.print()}
+  else if(a==='csvCls'){toast('📊 '+csvClassificacao())}
   else if(a==='apagarProva'){const pr=D.provas.find(x=>x.id==b.dataset.id);if(!pr||!confirm('Apagar a prova «'+pr.nome+'»?'))return;D.provas=D.provas.filter(x=>x.id!=pr.id);if(CAMP.p==pr.id)CAMP.p=null;iniciarContexto();marcarSujo();renderProvas()}});
 CW.addEventListener('change',ev=>{const t=ev.target;
   if(t.id==='c-prova'){CAMP.p=Number(t.value);CAMP.j=1;IMP.id=null;iniciarContexto();renderJornadas();return}
   if(t.id==='c-jor'){CAMP.j=Number(t.value);IMP.id=null;renderJornadas();return}
   if(t.closest('#c-cfg')){gravarCfg();return}
   if(t.id==='k-prova'){CAMP.cp=t.value;CAMP.cv='geral';renderClass();return}
+  if(t.id==='k-epoca'){CAMP.ep=Number(t.value);renderClass();return}
   if(t.id==='k-vista'){CAMP.cv=t.value;renderClass();return}
   if(t.dataset.fmt){IMP.tipo=t.dataset.fmt;sugerirImp(false);renderImportar();return}
   if(t.dataset.exige){IMP.exige=t.checked;sugerirImp(true);renderImportar();return}
@@ -1232,7 +1289,7 @@ async function nacAtualizar(){
   catch(e){nacLog('❌ '+e.message);toast('Erro: '+e.message,true);return false}}
 $('sec-nac').addEventListener('click',async ev=>{
   const tr=ev.target.closest('tr[data-nat]');
-  if(tr&&!ev.target.closest('[data-e],[data-na],details')){const[cat,i]=tr.dataset.nat.split('|'),ed=edicoesNac(),e=ed.find(x=>x.k===NACK)||ed[0];const a=e&&e.d.categorias[cat]&&e.d.categorias[cat][Number(i)];if(a){LEG.set(D,e.d,cat);window.abrirDetalheOuModal(a,(e.d.vertentes||{})[cat])}return}
+  if(tr&&!ev.target.closest('[data-e],[data-na],details')){const[cat,i]=tr.dataset.nat.split('|'),ed=edicoesNac(),e=ed.find(x=>x.k===NACK)||ed[0];const a=e&&e.d.categorias[cat]&&e.d.categorias[cat][Number(i)];if(a){LEG.set(dadosEpoca(),e.d,cat);window.abrirDetalheOuModal(a,(e.d.vertentes||{})[cat])}return}
   const b=ev.target.closest('[data-e],[data-na]');if(!b)return;
   if(b.dataset.e){NACK=b.dataset.e;renderNac();return}
   const a=b.dataset.na;
@@ -1250,7 +1307,7 @@ function renderCopia(){
     '<div class="card"><h3>Repor de um ficheiro / Importar do sistema antigo</h3><p class="nota">Escolhe um ficheiro de cópia (do sistema antigo ou deste). <b>Substitui</b> os dados atuais. Antes de repor, o sistema descarrega automaticamente uma cópia do que existe agora.</p>'+
     '<input type="file" id="ca-ficheiro" accept=".json,application/json"> <label style="display:block;margin:8px 0;font-size:.85rem"><input type="checkbox" id="ca-torn"> Repor também os <b>torneios livres</b> do ficheiro (só os que lá estão; os restantes não são apagados)</label><button class="btn" data-ca="repor">Repor</button> <span id="ca-msg" class="nota" style="margin-left:8px"></span></div>';lerIndice().then(desenharPontos)}
 function descarregarCopia(){
-  const out={geradoEm:new Date().toISOString(),origem:'sistema',incluiTodosOsTorneiosLivres:true,firestore:{dados:clone(D),nacional:NAC||null,ranking_portal:{ranking:M.rankingAnual(D),atualizadoEm:new Date().toISOString()},tv_controlo:CTRL||null},torneiosLivres:clone(TORN)};
+  const out={geradoEm:new Date().toISOString(),origem:'sistema',incluiTodosOsTorneiosLivres:true,firestore:{dados:clone(D),nacional:NAC||null,ranking_portal:{ranking:rankingEpoca(),epoca:M.epocaAtual(D),atualizadoEm:new Date().toISOString()},tv_controlo:CTRL||null},torneiosLivres:clone(TORN)};
   const d=new Date(),p=n=>String(n).padStart(2,'0'),nome='vizelgolfe-copia-'+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+'.json';
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'}));a.download=nome;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);return nome}
 async function reporCopia(){
@@ -1263,7 +1320,7 @@ async function reporCopia(){
     if(DEXISTE&&D.provas.length)descarregarCopia();
     const nd=normalizar(clone(dados));delete nd._vzgKey;ST.sujo=false;clearTimeout(ST.tm);ST.v=Date.now();nd._v=ST.v;
     await setDoc(doc(fs,COL,'dados'),clone(nd));D=nd;DEXISTE=true;
-    await setDoc(doc(fs,COL,'ranking_portal'),{ranking:M.rankingAnual(D),atualizadoEm:new Date().toISOString()});
+    await setDoc(doc(fs,COL,'ranking_portal'),{ranking:rankingEpoca(),epoca:M.epocaAtual(D),atualizadoEm:new Date().toISOString()});
     if(fx.nacional){const n=clone(fx.nacional);delete n._vzgKey;await setDoc(doc(fs,COL,'nacional'),n)}
     if(fx.tv_controlo){const c=clone(fx.tv_controlo);delete c._vzgKey;await setDoc(doc(fs,COL,'tv_controlo'),c)}
     let nt=0;if($('ca-torn').checked&&j.torneiosLivres&&typeof j.torneiosLivres==='object'){await update(ref(rt,ROOT),clone(j.torneiosLivres));nt=Object.keys(j.torneiosLivres).length}
@@ -1280,8 +1337,8 @@ $('sec-copia').addEventListener('click',ev=>{const b=ev.target.closest('[data-ca
 window.__SIS={get D(){return D},get TORN(){return TORN},get CTRL(){return CTRL},get NAC(){return NAC},M,ir};
 
 /* ---------- Início (resumo) e Estatísticas ---------- */
-function renderInicio(){if(!D)return;try{LEG.set(D,NAC&&NAC.bangolfe,null);LEG.renderDashboard()}catch(e){console.warn('resumo',e)}}
-function renderStatsSec(){if(!D)return;try{LEG.set(D,NAC&&NAC.bangolfe,null);LEG.renderStats()}catch(e){console.warn('estatísticas',e)}}
+function renderInicio(){if(!D)return;try{LEG.set(dadosEpoca(),NAC&&NAC.bangolfe,null);LEG.renderDashboard()}catch(e){console.warn('resumo',e)}}
+function renderStatsSec(){if(!D)return;try{LEG.set(dadosEpoca(),NAC&&NAC.bangolfe,null);LEG.renderStats()}catch(e){console.warn('estatísticas',e)}}
 
 /* ---------- Pontos de restauro (um por dia, um antes de cada importação, e os que quiseres) ---------- */
 const MAX_PONTOS=20;let PONTOS=null;
@@ -1305,7 +1362,7 @@ async function reporPonto(id){
     await criarPonto('manual','Antes de repor');
     const nd=normalizar(clone(s.data().dados));ST.sujo=false;clearTimeout(ST.tm);ST.v=Date.now();nd._v=ST.v;
     await setDoc(doc(fs,COL,'dados'),clone(nd));D=nd;DEXISTE=true;
-    await setDoc(doc(fs,COL,'ranking_portal'),{ranking:M.rankingAnual(D),atualizadoEm:new Date().toISOString()});
+    await setDoc(doc(fs,COL,'ranking_portal'),{ranking:rankingEpoca(),epoca:M.epocaAtual(D),atualizadoEm:new Date().toISOString()});
     iniciarContexto();msg.textContent='✅ Reposto o estado de '+new Date(info.quando).toLocaleString('pt-PT',{dateStyle:'short',timeStyle:'short'})+'.';toast('✅ Reposto.');renderEstado();desenharPontos()}
   catch(e){msg.textContent='❌ '+((e&&e.message)||'erro');toast('Não foi possível repor.',true)}}
 
