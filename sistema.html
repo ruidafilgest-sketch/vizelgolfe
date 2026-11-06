@@ -11,7 +11,7 @@
 html,body{height:100%}
 body{background:var(--navy);color:var(--text);font-family:'Outfit',system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:15px;line-height:1.45;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
 button{font:inherit;cursor:pointer}
-input,select{font:inherit;color:var(--text);background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:7px 9px}
+input:not(.cx *),select:not(.cx *){font:inherit;color:var(--text);background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:7px 9px}
 input[type=checkbox],input[type=radio]{accent-color:var(--gold)}
 header{display:flex;align-items:center;gap:.6rem;padding:.5rem 1rem;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#060d18,#0a1828)}
 header img{height:2.3rem;width:2.3rem;object-fit:contain;border-radius:50%;background:#fff}
@@ -40,8 +40,8 @@ main>section.on{display:block}
 main>section.full{padding:0}
 main>section iframe{width:100%;height:100%;border:0;background:#fff}
 .wrap{max-width:1100px;margin:0 auto}
-h2{font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:1.35rem;letter-spacing:.08em;color:var(--gold2);margin:.2rem 0 .5rem}
-h3{font-size:1rem;color:var(--gold2);margin-bottom:.4rem}
+h2:not(.cx *){font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:1.35rem;letter-spacing:.08em;color:var(--gold2);margin:.2rem 0 .5rem}
+h3:not(.cx *){font-size:1rem;color:var(--gold2);margin-bottom:.4rem}
 .nota{font-size:.82rem;color:var(--text2);margin-bottom:.8rem;line-height:1.5}
 .btn{border:1px solid var(--border);background:var(--navy2);color:var(--text);padding:7px 14px;border-radius:8px;font-size:.85rem;font-weight:600}
 .btn:hover{border-color:var(--gold)}.btn.p{background:var(--gold);color:#060d18;border-color:var(--gold)}.btn.s{padding:4px 10px;font-size:.78rem}.btn:disabled{opacity:.45;cursor:not-allowed}.btn.red{color:var(--err);border-color:#7a2a20}
@@ -65,10 +65,10 @@ h3{font-size:1rem;color:var(--gold2);margin-bottom:.4rem}
 .dec{color:var(--ok);font-weight:600;font-size:.88rem}
 .bloco{background:var(--navy2);border:1px solid var(--border);border-radius:12px;margin-bottom:.8rem;overflow:hidden}
 .bloco h3{margin:0;padding:8px 14px;font-size:.74rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);border-bottom:2px solid var(--gold);background:var(--navy3)}
-.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.88rem}
-th{background:var(--navy3);color:var(--gold2);font-size:.72rem;padding:7px 6px;text-align:center;white-space:nowrap;letter-spacing:.4px}th.l,td.l{text-align:left}
-td{padding:5px 6px;border-top:1px solid var(--border);text-align:center;white-space:nowrap;vertical-align:middle;color:var(--text2)}
-tr:nth-child(even) td{background:rgba(15,34,64,.45)}
+.tw{overflow-x:auto}table:not(.cx *){width:100%;border-collapse:collapse;font-size:.88rem}
+th:not(.cx *){background:var(--navy3);color:var(--gold2);font-size:.72rem;padding:7px 6px;text-align:center;white-space:nowrap;letter-spacing:.4px}th.l,td.l{text-align:left}
+td:not(.cx *){padding:5px 6px;border-top:1px solid var(--border);text-align:center;white-space:nowrap;vertical-align:middle;color:var(--text2)}
+tr:nth-child(even) td:not(.cx *){background:rgba(15,34,64,.45)}
 td.nome{text-align:left;font-weight:600;white-space:normal;min-width:150px;color:var(--text)}td.nome em{font-style:normal;font-weight:500;font-size:.68rem;color:var(--gold);margin-left:4px}
 td.tot{font-weight:800;color:var(--text)}td.pos{font-weight:700;color:var(--text3);width:46px}td.pts{font-weight:800;color:var(--gold2);font-size:1rem}
 tr.p1 td.pos{color:#e8c675}tr.p2 td.pos{color:#b9c5d6}tr.p3 td.pos{color:#c98a5a}tr.inc td.pos{color:var(--gold);font-weight:600;font-size:.74rem}
@@ -86,10 +86,73 @@ tr.p1 td.pos{color:#e8c675}tr.p2 td.pos{color:#b9c5d6}tr.p3 td.pos{color:#c98a5a
 .sec-t{font-family:'Bebas Neue',Impact,sans-serif;letter-spacing:.1em;font-size:1.1rem;color:var(--gold);margin:1rem 0 .4rem;border-bottom:1px solid var(--border);padding-bottom:3px}
 .lst{display:flex;flex-direction:column;gap:6px}.lrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:8px 10px}.lrow .t{flex:1;min-width:10rem}.lrow .t small{display:block;color:var(--text3);font-size:.74rem}
 .code{background:var(--navy);color:var(--gold2);padding:.2rem .5rem;border-radius:6px;font-size:.86rem;font-family:ui-monospace,Menlo,Consolas,monospace}
-details{background:var(--navy2);border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem;padding:.1rem .9rem}summary{cursor:pointer;padding:.6rem 0;font-weight:600;color:var(--text)}details p{padding:0 0 .7rem;color:var(--text2);font-size:.88rem}
+details:not(.cx *){background:var(--navy2);border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem;padding:.1rem .9rem}summary:not(.cx *){cursor:pointer;padding:.6rem 0;font-weight:600;color:var(--text)}details:not(.cx *) p{padding:0 0 .7rem;color:var(--text2);font-size:.88rem}
 .g-hero{background:linear-gradient(135deg,#0f2240,#0a1828);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:12px;padding:1.1rem 1.3rem;margin-bottom:1rem}.g-hero h1{font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:2rem;letter-spacing:.08em;color:var(--gold);margin-bottom:.4rem}
 .g-table td b{color:var(--text)}.g-fases{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.9rem}.g-fase{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem}.g-fase ol{padding-left:1.3rem;display:flex;flex-direction:column;gap:.5rem;color:var(--text2);font-size:.88rem}.g-fase li b{color:var(--text)}
 @media (max-width:640px){main>section{padding:.7rem .6rem 4rem}.vin{width:54px}.g-table{display:block;overflow-x:auto}}
+.cx{
+  --navy:   #1a2d4f;
+  --navy2:  #0f1e35;
+  --orange: #d4820a;
+  --org2:   #e8960f;
+  --blue:   #1e5fa8;
+  --text:   #1a1e28;
+  --silver: #556070;
+  --dim:    #909aa4;
+  --bg:     #f0f2f5;
+  --bg2:    #ffffff;
+  --green:  #1a8a4a;
+  --red:    #cc2222;
+  --sep:    #e2e6ec;
+  --gold:   #c9a84c;
+  --gold2:  #e8c96a;
+}.cx *{margin:0;padding:0;box-sizing:border-box;}.cx #login{
+  position:fixed;inset:0;background:var(--navy2);
+  display:flex;align-items:center;justify-content:center;z-index:9999;
+}.cx .login-box{
+  background:var(--navy);border-radius:16px;padding:36px;width:360px;
+  border:1px solid rgba(212,130,10,0.3);text-align:center;
+}.cx .login-box img{width:80px;height:80px;border-radius:50%;border:3px solid var(--orange);margin-bottom:16px;}.cx .login-box h1{font-family:"Bebas Neue",sans-serif;font-size:1.8rem;letter-spacing:5px;color:var(--org2);margin-bottom:4px;}.cx .login-box p{font-size:0.78rem;color:rgba(255,255,255,0.4);margin-bottom:24px;}.cx .login-box input{
+  width:100%;padding:10px 14px;border:1px solid rgba(255,255,255,0.1);border-radius:8px;
+  background:rgba(255,255,255,0.05);color:#f0f4f7;font-size:0.9rem;
+  font-family:"Barlow",sans-serif;margin-bottom:8px;
+}.cx .login-box input:focus{outline:none;border-color:var(--orange);}.cx .login-erro{color:#f87171;font-size:0.78rem;margin-bottom:8px;display:none;}.cx .login-hint{font-size:0.72rem;color:rgba(255,255,255,0.25);margin-top:12px;}.cx .btn-login{
+  width:100%;padding:12px;background:var(--orange);color:#fff;
+  border:none;border-radius:8px;font-size:0.9rem;font-weight:700;
+  cursor:pointer;font-family:"Barlow",sans-serif;letter-spacing:1px;
+}.cx .btn-login:hover{background:var(--org2);}.cx #app{display:none;flex-direction:column;height:100vh;}.cx #app.on{display:flex;}.cx #topbar{
+  height:56px;flex-shrink:0;
+  background:var(--navy2);border-bottom:2px solid var(--orange);
+  display:flex;align-items:center;padding:0 20px;gap:12px;
+}.cx #topbar img{width:36px;height:36px;border-radius:50%;border:2px solid var(--orange);}.cx #topbar-title{display:flex;flex-direction:column;}.cx #topbar-title .t1{font-family:"Bebas Neue",sans-serif;font-size:1.1rem;letter-spacing:4px;color:var(--org2);line-height:1;}.cx #topbar-title .t2{font-size:0.6rem;letter-spacing:1px;color:rgba(255,255,255,0.3);text-transform:uppercase;}.cx #topbar-mode{
+  margin-left:4px;padding:3px 10px;border-radius:20px;
+  font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;
+  background:rgba(212,130,10,0.2);color:var(--org2);border:1px solid rgba(212,130,10,0.3);
+}.cx #topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}.cx #btn-tv{
+  padding:6px 14px;background:var(--navy);border:1px solid var(--orange);
+  color:var(--org2);border-radius:6px;cursor:pointer;font-size:0.75rem;
+  font-family:"Barlow Condensed",sans-serif;letter-spacing:1px;
+  transition:all 0.2s;
+}.cx #btn-tv:hover{background:var(--orange);color:#fff;}.cx #btn-logout{
+  padding:6px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);
+  color:rgba(255,255,255,0.5);border-radius:6px;cursor:pointer;font-size:0.72rem;
+  font-family:"Barlow",sans-serif;
+}.cx #btn-logout:hover{background:rgba(255,0,0,0.15);color:#f87171;border-color:#f87171;}.cx #body{display:flex;flex:1;overflow:hidden;}.cx #sidebar{
+  width:200px;flex-shrink:0;
+  background:var(--navy);border-right:1px solid rgba(255,255,255,0.07);
+  display:flex;flex-direction:column;overflow-y:auto;
+}.cx .nav-section{padding:12px 16px 6px;font-size:0.6rem;letter-spacing:2px;color:rgba(255,255,255,0.25);text-transform:uppercase;}.cx .nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;cursor:pointer;transition:all 0.15s;
+  font-size:0.82rem;color:rgba(255,255,255,0.6);letter-spacing:0.5px;
+  border-left:3px solid transparent;
+}.cx .nav-item:hover{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.9);}.cx .nav-item.on{background:rgba(212,130,10,0.12);color:var(--org2);border-left-color:var(--orange);}.cx .nav-item .ico{font-size:1rem;width:20px;text-align:center;}.cx .nav-item.admin-only{display:none;}.cx #content{flex:1;overflow-y:auto;background:var(--bg);}.cx .secao{display:none;padding:24px;max-width:1200px;margin:0 auto;}.cx .secao.on{display:block;}.cx .card{background:var(--bg2);border:1px solid var(--sep);border-radius:10px;padding:20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,0.05);}.cx .card-titulo{font-family:"Bebas Neue",sans-serif;font-size:1rem;letter-spacing:3px;color:var(--navy);margin-bottom:14px;}.cx .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px;}.cx .stat-box{background:var(--bg2);border:1px solid var(--sep);border-radius:10px;padding:16px;text-align:center;}.cx .stat-num{font-family:"Bebas Neue",sans-serif;font-size:1.8rem;color:var(--navy);}.cx .stat-label{font-size:0.68rem;color:var(--dim);margin-top:4px;letter-spacing:1px;text-transform:uppercase;}.cx .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;font-family:"Barlow Condensed",sans-serif;letter-spacing:1px;}.cx .btn-primary{background:var(--orange);color:#fff;}.cx .btn-primary:hover{background:var(--org2);}.cx .btn-secondary{background:#e8eaf0;color:var(--text);}.cx .btn-secondary:hover{background:#d8dae0;}.cx .btn-danger{background:#dc2626;color:#fff;}.cx .btn-danger:hover{background:#b91c1c;}.cx .btn-green{background:#16a34a;color:#fff;}.cx .btn-green:hover{background:#15803d;}.cx .btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}.cx .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;}.cx .form-group{display:flex;flex-direction:column;gap:5px;}.cx .form-group label{font-size:0.72rem;color:var(--dim);font-weight:600;letter-spacing:1px;text-transform:uppercase;}.cx .form-group input,.cx .form-group select,.cx .form-group textarea{
+  padding:8px 12px;border-radius:8px;border:1px solid var(--sep);
+  background:var(--bg);color:var(--text);font-size:0.85rem;font-family:"Barlow",sans-serif;
+}.cx .form-group input:focus,.cx .form-group select:focus{outline:none;border-color:var(--orange);}.cx .tabela-wrap{overflow-x:auto;}.cx table{width:100%;border-collapse:collapse;font-size:0.82rem;}.cx thead{background:#f0f3f8;}.cx th{padding:8px 12px;text-align:left;font-weight:700;color:var(--navy);font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid var(--sep);}.cx td{padding:9px 12px;border-bottom:1px solid var(--sep);}.cx tr:hover td{background:rgba(0,0,0,0.02);}.cx .pos-1{color:var(--orange);font-weight:800;}.cx .pos-2{color:#6080a0;font-weight:700;}.cx .pos-3{color:#a07050;font-weight:700;}.cx .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;}.cx .badge-ativo{background:rgba(22,163,74,0.15);color:#16a34a;border:1px solid rgba(22,163,74,0.3);}.cx .badge-concluido{background:rgba(100,100,100,0.15);color:#666;border:1px solid rgba(100,100,100,0.2);}.cx .badge-agendado{background:rgba(212,130,10,0.15);color:var(--orange);border:1px solid rgba(212,130,10,0.3);}.cx .vzg-row td{background:rgba(255,200,0,0.14);}.cx .vzg-row td:first-child{border-left:3px solid var(--orange);}.cx .vzg-row:hover td{background:rgba(255,200,0,0.25)!important;}.cx .cat-tab{padding:5px 14px;border:1px solid var(--sep);border-radius:20px;font-size:0.75rem;cursor:pointer;background:var(--bg2);transition:all 0.15s;letter-spacing:1px;}.cx .cat-tab:hover{border-color:var(--orange);}.cx .cat-tab.on{background:var(--navy);color:#fff;border-color:var(--navy);}.cx .cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}.cx #nac-status-bar{
+  background:var(--navy);border-radius:8px;padding:10px 16px;
+  display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;
+}.cx #nac-dot{width:8px;height:8px;border-radius:50%;background:#6b7280;flex-shrink:0;}.cx #nac-dot.verde{background:#4ade80;animation:blink 1.5s ease-in-out infinite;}.cx #nac-dot.laranja{background:#f59e0b;}@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}.cx #nac-status-text{font-size:0.78rem;color:rgba(255,255,255,0.7);}.cx #nac-countdown{font-family:"Bebas Neue",sans-serif;font-size:1rem;color:var(--org2);margin-left:auto;}.cx #modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:none;align-items:center;justify-content:center;z-index:500;padding:20px;}.cx #modal-overlay.on{display:flex;}.cx #modal-box{background:var(--bg2);border-radius:12px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;padding:28px;}.cx #modal-close{float:right;background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--dim);}.cx .notif{position:fixed;bottom:20px;right:20px;background:var(--green);color:#fff;padding:10px 18px;border-radius:8px;font-size:0.82rem;font-weight:700;z-index:999;display:none;animation:slideup 0.3s ease;}@keyframes slideup{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}.cx #sync-status{font-size:0.68rem;letter-spacing:1px;color:rgba(255,255,255,0.4);}@media(max-width:768px){.cx #sidebar{width:56px;}.cx .nav-item span.label{display:none;}.cx .nav-item{justify-content:center;padding:12px 8px;}.cx .secao{padding:12px;}}.cx{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#1a1e28;font-size:14px;line-height:1.4}.cxpage{background:#f0f2f5;border-radius:12px;padding:16px;margin-bottom:14px}.cxpage h2{color:#d4820a}.cx *{box-sizing:border-box}.cx .stat-tab{background:#fff;border:1px solid #d3d9e2;border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer;color:#1a2d4f;font-size:.85rem}.cx .stat-tab:hover{border-color:#d4820a}.cx .stat-tab.on{background:#1a2d4f;color:#fff;border-color:#1a2d4f}.cx select{border:1px solid #d3d9e2;border-radius:8px;padding:7px 10px;background:#fff;color:#1a1e28}
 </style>
 </head>
 <body>
@@ -97,6 +160,17 @@ details{background:var(--navy2);border:1px solid var(--border);border-radius:10p
 <div id="login"><div class="cartao"><img id="logo2" alt=""><h1>ENTRAR</h1><p id="lstatus">A verificar a sessão…</p><div id="lform" style="display:none"><input id="em" type="email" placeholder="Email de administrador" autocomplete="username"><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><button id="bEntrar">Entrar</button></div><div id="lmsg"></div></div></div>
 <div id="app"><nav id="nav"></nav><main>
 <section id="sec-inicio"><div class="wrap"><div class="g-hero"><h1>Bem-vindo ao Sistema Vizelgolfe</h1><p class="nota" style="margin:0;font-size:.95rem">Entras aqui <b>uma só vez</b> e tens <b>tudo</b>: Campeonato, Torneios, Nacional, TV, atletas e cópias, <b>na mesma base de dados</b> e sem pontes entre ferramentas. Este guia diz-te onde está cada coisa.</p></div>
+<div class="cx cxpage" id="dash-wrap">
+        <div class="stats-row" id="stats-row"></div>
+        <div class="card">
+          <div class="card-titulo">🏆 Provas Ativas</div>
+          <div id="dash-provas"></div>
+        </div>
+        <div class="card">
+          <div class="card-titulo">🥇 Líderes Atuais</div>
+          <div id="dash-lideres"></div>
+        </div>
+      </div>
 <h2>1 · O que queres fazer?</h2>
 <div class="grid">
   <div class="gcard" data-ir="torneios"><i>🏌️</i><b>Fazer um torneio</b><small>Criar, inscrever, imprimir protocolos e lançar resultados.</small></div>
@@ -104,6 +178,7 @@ details{background:var(--navy2);border:1px solid var(--border);border-radius:10p
   <div class="gcard" data-ir="nac"><i>🇵🇹</i><b>Nacional</b><small>Ver e atualizar os resultados dos campeonatos nacionais.</small></div>
   <div class="gcard" data-ir="ecras"><i>📺</i><b>TV e links dos atletas</b><small>O que se projeta, torneios publicados e links.</small></div>
   <div class="gcard" data-ir="atletas"><i>👥</i><b>Atletas</b><small>A lista única de pessoas, com categoria e clube.</small></div>
+  <div class="gcard" data-ir="stats"><i>📈</i><b>Estatísticas e regras</b><small>Rankings, métricas, por atleta, por prova, e o regulamento.</small></div>
   <div class="gcard" data-ir="copia"><i>💾</i><b>Cópia de segurança</b><small>Guardar e repor tudo. Faz antes de importar para uma jornada.</small></div>
 </div>
 <h2>2 · Os teus endereços</h2>
@@ -126,7 +201,9 @@ details{background:var(--navy2);border:1px solid var(--border);border-radius:10p
 <tr><td class="l"><b>Datas</b>, estado e nº de jornadas</td><td class="l">🏆 Campeonato</td><td class="l">Separador "🗂 Provas"</td></tr>
 <tr><td class="l"><b>Novo atleta</b></td><td class="l">👥 Atletas</td><td class="l">"Adicionar atleta"</td></tr>
 <tr><td class="l"><b>TV</b> do projetor / links</td><td class="l">📺 Ecrãs</td><td class="l">"1. O que mostrar" → "Enviar para a TV"</td></tr>
+<tr><td class="l"><b>Estatísticas</b> e <b>regras</b></td><td class="l">📈 Estatísticas / 📖 Regras</td><td class="l">Abas Ranking, Métricas, Por Atleta, Por Prova, Nacional</td></tr>
 <tr><td class="l"><b>Guardar</b> / <b>repor</b> tudo</td><td class="l">💾 Cópia</td><td class="l">"Descarregar cópia" / "Repor de um ficheiro"</td></tr>
+<tr><td class="l"><b>Voltar atrás</b> num erro</td><td class="l">💾 Cópia</td><td class="l">"Pontos de restauro": há um por dia e um <b>antes de cada importação</b>. Clica "Repor" no que quiseres</td></tr>
 </tbody></table></div></div>
 <h2>4 · Dia de prova (exemplo: Magusto, que conta para a 4.ª jornada)</h2>
 <div class="g-fases">
@@ -154,6 +231,7 @@ details{background:var(--navy2);border:1px solid var(--border);border-radius:10p
 <details><summary>Os protocolos saem sozinhos ao inscrever?</summary><p>Ficam sempre prontos: clicas em 🖨️ Protocolos e saem todos preenchidos (nome, clube, categoria, nº de saída, data e o ID do atleta). À mão só escreves os resultados.</p></details>
 <details><summary>O formato só se sabe no dia</summary><p>O cartão sai neutro. No dia escolhes o "Formato do dia" no torneio, e na importação escolhes "Normal" ou "Só Peter, 4 voltas".</p></details>
 <details><summary>Convidado, iniciante, ou alguém que nunca jogou o Campeonato</summary><p>Marca 🚫 "Só torneio". Quem não é atleta nunca é importado; quem é atleta mas ainda não jogou nenhuma jornada fica retido pela caixa recomendada na importação. A decisão final é sempre tua.</p></details>
+<details><summary>Fiz asneira e quero voltar atrás</summary><p>Vai a <b>💾 Cópia → Pontos de restauro</b>. O sistema guarda um ponto <b>todos os dias</b> e outro <b>antes de cada importação de torneio</b>. Escolhe a hora que queres e clica "Repor". Antes de repor, guarda sozinho o estado atual.</p></details>
 <details><summary>Importei por engano / corrigi o torneio depois</summary><p>Em Campeonato → Jornadas, clica "↩ Anular importação", corrige no torneio e importa outra vez. O Campeonato não se atualiza sozinho.</p></details>
 <details><summary>Falhou a internet</summary><p>Escreve nos cartões de papel e lança depois. O estado "A guardar…" no topo diz-te se tudo ficou guardado.</p></details>
 </div></section>
@@ -162,8 +240,97 @@ details{background:var(--navy2);border:1px solid var(--border);border-radius:10p
 <section id="sec-nac"><div class="wrap" id="nac-wrap"></div></section>
 <section id="sec-ecras"><div class="wrap" id="ecras-wrap"></div></section>
 <section id="sec-atletas"><div class="wrap" id="atl-wrap"></div></section>
+<section id="sec-stats"><div class="wrap"><div class="cx cxpage">
+  <h2 style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:2px;color:var(--org2);margin:0 0 16px">📈 Estatísticas</h2>
+
+  <!-- TABS SIMPLES -->
+  <div id="stats-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px">
+    <button class="stat-tab on" onclick="statsTab('ranking',this)">🏆 Ranking</button>
+    <button class="stat-tab" onclick="statsTab('metricas',this)">📊 Métricas</button>
+    <button class="stat-tab" onclick="statsTab('atleta',this)">👤 Por Atleta</button>
+    <button class="stat-tab" onclick="statsTab('provas',this)">🏌️ Por Prova</button>
+    <button class="stat-tab" onclick="statsTab('nacional',this)">🇵🇹 Nacional</button>
+  </div>
+
+  <!-- FILTROS -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
+    <select id="stats-cat" onchange="renderStats()" style="background:var(--bg2);border:1px solid var(--sep);color:var(--text);padding:7px 12px;border-radius:6px;font-size:0.82rem;font-family:'Barlow Condensed',sans-serif">
+      <option value="">Todas as categorias</option>
+      <option value="Homens">Homens</option>
+      <option value="Senhoras">Senhoras</option>
+      <option value="Seniores Masculinos">Seniores Masculinos</option>
+      <option value="Veteranos Masculinos">Veteranos Masculinos</option>
+      <option value="Juniores">Juniores</option>
+    </select>
+    <div id="stats-filtro-atleta" style="display:none">
+      <select id="stats-atleta" onchange="renderStats()" style="background:var(--bg2);border:1px solid var(--sep);color:var(--text);padding:7px 12px;border-radius:6px;font-size:0.82rem;font-family:'Barlow Condensed',sans-serif;min-width:180px">
+        <option value="">Todos os atletas</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="stats-body"></div>
+</div></div></section>
+<section id="sec-regras"><div class="wrap"><div class="cx cxpage">
+        <div class="card-titulo" style="margin-bottom:20px">📖 Regulamento Técnico de Minigolfe</div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-titulo">1. Equipamento Técnico e do Atleta</div>
+          <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
+            <p style="margin-bottom:10px"><strong>O Taco:</strong> São permitidos tacos de minigolfe e golfe. Não pode ter dispositivos de mira, mas pode ter entalhes ou linhas no topo. A face da patilha não deve exceder <strong>40 cm²</strong>. Se usado um taco ilegal, a pista deve ser repetida e as tacadas anteriores contam.</p>
+            <p style="margin-bottom:10px"><strong>A Bola:</strong> O diâmetro deve estar entre <strong>37 e 43 mm</strong>. O ressalto não pode exceder <strong>85 cm</strong> quando largada de 1 metro de altura a 25°C sobre cimento. Só são permitidas bolas licenciadas em torneios oficiais.</p>
+            <p style="margin-bottom:10px"><strong>Vestuário:</strong> Obrigatório uniforme do clube da cintura para cima, com a filiação visível. Da cintura para baixo, exige-se vestuário e calçado desportivo. O uniforme deve ser usado também nas cerimónias oficiais.</p>
+            <p><strong>Publicidade:</strong> Permitida no equipamento (frente, costas ou braços), exceto se for de tabaco, álcool ou ofensiva.</p>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-titulo">2. Regras de Distância e Espaço</div>
+          <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
+            <p style="margin-bottom:10px"><strong>Distância de Cortesia:</strong> Quando um jogador se prepara para tacar, as outras pessoas devem manter, se possível, uma distância mínima de <strong>1 metro</strong> da pista e do jogador.</p>
+            <p style="margin-bottom:10px"><strong>Distância de Objetos:</strong> Todos os objetos e pessoas devem estar, preferencialmente, a pelo menos 1 metro de distância dos limites da pista.</p>
+            <p><strong>Pisar a Pista:</strong> A pista só pode ser pisada ou tocada pelo jogador nas áreas permitidas e apenas para preparar a tacada. É proibido entrar na pista quando a bola está em movimento.</p>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-titulo">3. Procedimentos Técnicos de Jogo</div>
+          <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
+            <p style="margin-bottom:10px"><strong>Definição de Tacada:</strong> Conta como tacada quando o jogador, em estado de preparação, coloca a bola em movimento. Toques acidentais fora da preparação não contam.</p>
+            <p style="margin-bottom:10px"><strong>Uso das Mãos:</strong> Antes da tacada, o taco deve ser seguro com ambas as mãos. A bola pode ser colocada na marca de saída com a mão ou o taco, mas dentro da área de jogo só pode ser reposicionada com a mão.</p>
+            <p style="margin-bottom:10px"><strong>Substituição de Bola:</strong> O jogador deve terminar a pista com a bola que iniciou. Se a bola se danificar ou for perdida (não encontrada em <strong>5 minutos</strong>), pode ser substituída após decisão do júri.</p>
+            <p><strong>Interferências:</strong> Não é permitido influenciar intencionalmente o curso da bola após a tacada.</p>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-titulo">4. Regras de Reposicionamento</div>
+          <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
+            <p style="margin-bottom:10px"><strong>Junto à Tabela:</strong> Se a bola parar junto à tabela, pode ser colocada a 90 graus da mesma, até <strong>20 cm</strong> de distância.</p>
+            <p style="margin-bottom:10px"><strong>Junto ao Obstáculo:</strong></p>
+            <ul style="padding-left:20px;line-height:2">
+              <li><strong>Petergolfe / Miniaturgolfe:</strong> Se já passou o obstáculo, até <strong>30 cm</strong> na direção do buraco.</li>
+              <li><strong>Miniaturgolfe</strong> (não passou): até <strong>20 cm</strong> na direção da marca de saída.</li>
+              <li><strong>Feltgolf:</strong> Até <strong>50 cm</strong> do obstáculo.</li>
+              <li><strong>MOS (Adventure Golf):</strong> Até <strong>30 cm</strong> do obstáculo em qualquer direção.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:14px">
+          <div class="card-titulo">5. Comportamento e Ética Desportiva</div>
+          <div style="font-size:0.85rem;line-height:1.8;color:var(--text)">
+            <p style="margin-bottom:10px"><strong>Proibições Absolutas:</strong> É estritamente proibido o doping, consumo de drogas e bebidas alcoólicas, bem como fumar dentro da área das 18 pistas durante o torneio.</p>
+            <p style="margin-bottom:10px"><strong>Instrumentos de Ajuda:</strong> É proibido o uso de aparelhos de mira, rádio ou níveis no circuito. É permitido usar planos de pistas ou notas escritas.</p>
+            <p><strong>Abandono de Grupo:</strong> Um jogador não pode abandonar o seu grupo de saída sem autorização do árbitro.</p>
+          </div>
+        </div>
+      </div></div></section>
 <section id="sec-copia"><div class="wrap" id="copia-wrap"></div></section>
 </main></div>
+<div class="cx"><div id="modal-overlay" onclick="fecharModal(event)">
+  <div id="modal-box">
+    <button id="modal-close" onclick="document.getElementById('modal-overlay').classList.remove('on')">✕</button>
+    <div id="modal-nome" style="font-family:Bebas Neue,sans-serif;font-size:1.5rem;letter-spacing:3px;color:var(--navy);margin-bottom:4px"></div>
+    <div id="modal-meta" style="font-size:0.8rem;color:var(--silver);margin-bottom:20px"></div>
+    <div id="modal-body"></div>
+  </div>
+</div></div>
 <div class="toast" id="toast"></div>
 <script>
 /* ==========================================================================
@@ -572,7 +739,7 @@ details{background:var(--navy2);border:1px solid var(--border);border-radius:10p
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getDatabase, ref, get, update, remove, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const CFG={apiKey:"AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",authDomain:"vizelgolfe-portal.firebaseapp.com",databaseURL:"https://vizelgolfe-portal-default-rtdb.europe-west1.firebasedatabase.app",projectId:"vizelgolfe-portal",storageBucket:"vizelgolfe-portal.firebasestorage.app",messagingSenderId:"651151089287",appId:"1:651151089287:web:d7f044bbb6c64f2e8fa222"};
@@ -618,7 +785,7 @@ function abrir(){ABERTO=true;$('login').style.display='none';$('app').style.disp
 const ctrlPadrao=()=>({fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},nacional:{chave:'atual'},categoria:'',publicados:[],ocultas:[]});
 function ouvir(){
   const falha=e=>{ST.erro='sem ligação à base de dados ('+((e&&e.code)||'erro')+')';renderEstado()};
-  onSnapshot(doc(fs,COL,'dados'),s=>{if(ST.sujo||ST.aGuardar)return;const d=s.exists()?s.data():null;if(d&&d._v&&d._v===ST.v)return;D=normalizar(d||dadosVazio());DEXISTE=!!d;iniciarContexto();renderAtual();renderBanner()},falha);
+  onSnapshot(doc(fs,COL,'dados'),s=>{if(ST.sujo||ST.aGuardar)return;const d=s.exists()?s.data():null;if(d&&d._v&&d._v===ST.v)return;D=normalizar(d||dadosVazio());DEXISTE=!!d;iniciarContexto();renderAtual();renderBanner();copiaDiaria()},falha);
   onSnapshot(doc(fs,COL,'nacional'),s=>{NAC=s.exists()?s.data():null;if(SEC==='nac')renderNac();if(SEC==='ecras')renderEcras()},falha);
   onSnapshot(doc(fs,COL,'tv_controlo'),s=>{CTRL=Object.assign(ctrlPadrao(),s.exists()?s.data():{});CTRL.publicados??=[];CTRL.ocultas??=[];if(SEC==='ecras')renderEcras();avaliarPublicacao()},falha);
   onValue(ref(rt,ROOT),s=>{TORN=s.val()||{};if(SEC==='camp'&&CAMP.tab==='imp'&&CAMP.sub==='jorn')renderImportar();if(SEC==='ecras')renderEcras();avaliarPublicacao()},e=>{});
@@ -626,7 +793,7 @@ function ouvir(){
 async function gravarCtrl(parcial){CTRL=Object.assign(CTRL||ctrlPadrao(),parcial);await setDoc(doc(fs,COL,'tv_controlo'),Object.assign({},clone(CTRL),{atualizadoEm:new Date().toISOString()}))}
 
 /* ---------- navegação ---------- */
-const SECS=[['inicio','🏠','Início'],['camp','🏆','Campeonato'],['torneios','🏌️','Torneios'],['nac','🇵🇹','Nacional'],['ecras','📺','Ecrãs'],['atletas','👥','Atletas'],['copia','💾','Cópia']];
+const SECS=[['inicio','🏠','Início'],['camp','🏆','Campeonato'],['torneios','🏌️','Torneios'],['nac','🇵🇹','Nacional'],['ecras','📺','Ecrãs'],['atletas','👥','Atletas'],['stats','📈','Estatísticas'],['regras','📖','Regras'],['copia','💾','Cópia']];
 let SEC='inicio';
 function montarNav(){$('nav').innerHTML=SECS.map(([k,i,n])=>'<button data-s="'+k+'"><span class="ic">'+i+'</span><b>'+n+'</b></button>').join('');$('nav').onclick=e=>{const b=e.target.closest('[data-s]');if(b)ir(b.dataset.s)}}
 function ir(s){
@@ -639,7 +806,7 @@ function ir(s){
 function irHash(){const h=(location.hash||'').slice(1);ir(SECS.some(x=>x[0]===h)?h:'inicio')}
 function renderAtual(){
   if(!D){const w={camp:'camp-wrap',nac:'nac-wrap',ecras:'ecras-wrap',atletas:'atl-wrap',copia:'copia-wrap'}[SEC];if(w)$(w).innerHTML='<div class="nota">A ligar à base de dados…</div>';return}
-  ({camp:renderCamp,nac:renderNac,ecras:renderEcras,atletas:renderAtletas,copia:renderCopia}[SEC]||(()=>{}))()}
+  ({camp:renderCamp,nac:renderNac,ecras:renderEcras,atletas:renderAtletas,copia:renderCopia,inicio:renderInicio,stats:renderStatsSec}[SEC]||(()=>{}))()}
 function renderBanner(){
   let b=$('banner-vazio');
   if(!DEXISTE&&D){if(!b){b=document.createElement('div');b.id='banner-vazio';b.className='al w';b.innerHTML='⚠️ <span>Ainda <b>não há dados</b> no sistema novo. Vai a <b>💾 Cópia → Importar do sistema antigo</b> para trazer o que já tens.</span> <button class="btn s p" data-ir="copia">Abrir Cópia</button>';$('sec-inicio').querySelector('.wrap').prepend(b)}}
@@ -847,7 +1014,7 @@ function aoMudarProva(t){
 
 /* ----- eventos do Campeonato ----- */
 const CW=document.getElementById('sec-camp');
-CW.addEventListener('click',ev=>{
+CW.addEventListener('click',async ev=>{
   const b=ev.target.closest('[data-sub],[data-tab],[data-act],#c-bcfg');if(!b)return;
   if(b.dataset.sub){CAMP.sub=b.dataset.sub;renderCamp();return}
   if(b.id==='c-bcfg'){const c=$('c-cfg');c.style.display=c.style.display==='block'?'none':'block';renderCfg();return}
@@ -860,7 +1027,7 @@ CW.addEventListener('click',ev=>{
   else if(a==='limpar'){delete D.empates[b.dataset.key];delete CAMP.ORD[b.dataset.key];depoisDecidir()}
   else if(a==='escolherT'){prepararImp(b.dataset.id);renderImportar()}
   else if(a==='outroT'){IMP.id=null;renderImportar()}
-  else if(a==='importar'){const t=TORN[IMP.id];const r=M.importarTorneio(D,p.id,j,t,IMP.id,IMP.mapa,IMP.lig,undefined,{tipo:IMP.tipo});
+  else if(a==='importar'){const t=TORN[IMP.id];try{await criarPonto('auto','Antes de importar «'+t.meta.nome+'»')}catch(e){}const r=M.importarTorneio(D,p.id,j,t,IMP.id,IMP.mapa,IMP.lig,undefined,{tipo:IMP.tipo});
     if(!r.ok){toast(r.erro,true);return}if(M.ehCampVizela(p))M.recalcularBonus(D);IMP.id=null;CAMP.tab='lancar';marcarSujo();renderJornadas();toast('✅ '+r.importados+' resultados importados para a Jornada '+j+'.')}
   else if(a==='anular'){if(!confirm('Anular a importação desta jornada? Isto apaga TODOS os resultados desta jornada.'))return;const r=M.anularImportacao(D,p.id,j);if(r.ok){marcarSujo();renderJornadas();toast('↩ Importação anulada.')}else toast(r.erro,true)}
   else if(a==='criarProva'){const nome=$('np-nome').value.trim();if(!nome){toast('Escreve o nome da prova.',true);return}
@@ -992,7 +1159,7 @@ function renderNac(){
     const at=cats[cat],disc=vert[cat]||'mini',isMini=['Homens','Senhoras','H','S'].some(g=>cat===g||cat.startsWith(g))||disc==='mini',cor=isMini?corMini:corPeter,maxV=Math.max(...at.map(a=>(a.voltas||[]).length),0);
     h+='<div class="bloco"><h3>'+esc(cat)+' · '+at.length+'</h3><div class="tw"><table><thead><tr><th>#</th><th class="l">Atleta</th>'+Array.from({length:maxV},(_,i)=>'<th>V'+(i+1)+'</th>').join('')+'<th>Total</th><th>Sit.</th></tr></thead><tbody>'+
       at.map((a,i)=>{const vz=isVzgN(a.clube)&&!VZG_EXC.includes(a.nome);const cel=Array.from({length:maxV},(_,k)=>{const v=(a.voltas||[])[k],n=num(v);return n===null?'<td><span class="v cv-null">–</span></td>':'<td><span class="v '+(n===126?'cv-gray':cor(n))+'">'+n+'</span></td>'}).join('');const nV=(a.voltas||[]).filter(v=>num(v)!==null).length;
-        return'<tr class="'+(i===0?'p1':i===1?'p2':i===2?'p3':'')+(vz?' vzg':'')+'"><td class="pos">'+(a.rank||'–')+'</td><td class="nome">'+esc(a.nome)+'<div style="font-size:.7rem;color:var(--text3);font-weight:500">'+esc(a.clube||'')+'</div></td>'+cel+'<td class="tot">'+(a.dnf?'<span class="b">DNF</span>':'<span class="v '+corTotalNac(a.total,nV,isMini?'mini':'peter')+'">'+(a.total||'–')+'</span>')+'</td><td>'+(a.dnf?'':(a.completo?'✅':'⏳'))+'</td></tr>'}).join('')+'</tbody></table></div></div>'});
+        return'<tr data-nat="'+esc(cat)+'|'+i+'" style="cursor:pointer" title="Ver as voltas deste atleta" class="'+(i===0?'p1':i===1?'p2':i===2?'p3':'')+(vz?' vzg':'')+'"><td class="pos">'+(a.rank||'–')+'</td><td class="nome">'+esc(a.nome)+'<div style="font-size:.7rem;color:var(--text3);font-weight:500">'+esc(a.clube||'')+'</div></td>'+cel+'<td class="tot">'+(a.dnf?'<span class="b">DNF</span>':'<span class="v '+corTotalNac(a.total,nV,isMini?'mini':'peter')+'">'+(a.total||'–')+'</span>')+'</td><td>'+(a.dnf?'':(a.completo?'✅':'⏳'))+'</td></tr>'}).join('')+'</tbody></table></div></div>'});
   const abertoAntes=document.getElementById('n-upd')?.open;w.innerHTML=h;if(abertoAntes)$('n-upd').open=true}
 const WORKER_URL='https://vzg-nacional.ruigoncalves1968.workers.dev';
 function extrairNome(url){const m=url.match(/\/([\w]+)\/result/);return m?m[1].toUpperCase()+' 2026':'Prova Nacional';}
@@ -1064,6 +1231,8 @@ async function nacAtualizar(){
     nacLog('✅ '+totalAtl+' atletas · '+vzg+' Vizelgolfe · '+Object.keys(cats).length+' categorias · '+new Date().toLocaleTimeString('pt-PT'));toast('✅ Nacional atualizado!');return true}
   catch(e){nacLog('❌ '+e.message);toast('Erro: '+e.message,true);return false}}
 $('sec-nac').addEventListener('click',async ev=>{
+  const tr=ev.target.closest('tr[data-nat]');
+  if(tr&&!ev.target.closest('[data-e],[data-na],details')){const[cat,i]=tr.dataset.nat.split('|'),ed=edicoesNac(),e=ed.find(x=>x.k===NACK)||ed[0];const a=e&&e.d.categorias[cat]&&e.d.categorias[cat][Number(i)];if(a){LEG.set(D,e.d,cat);window.abrirDetalheOuModal(a,(e.d.vertentes||{})[cat])}return}
   const b=ev.target.closest('[data-e],[data-na]');if(!b)return;
   if(b.dataset.e){NACK=b.dataset.e;renderNac();return}
   const a=b.dataset.na;
@@ -1076,9 +1245,10 @@ function renderCopia(){
   const w=$('copia-wrap'),nT=Object.keys(TORN).length;
   w.innerHTML='<h2>Cópia de segurança</h2><p class="nota">Guarda <b>tudo</b> num ficheiro: atletas, provas e resultados, desempates, ajustes, Nacional, controlo da TV e torneios livres. O ficheiro tem o mesmo formato do sistema antigo.</p>'+
     '<div class="card"><h3>🔧 Testar a ligação</h3><p class="nota">Confirma que o sistema consegue <b>ler e guardar</b> na base de dados. Faz isto na primeira vez, ou se aparecer "Não guardado".</p><button class="btn" data-ca="diag">Testar ligação</button> <div id="ca-diag" class="nota" style="margin-top:8px;line-height:1.7"></div></div>'+
+    '<div class="card"><h3>🕘 Pontos de restauro</h3><p class="nota">O sistema guarda <b>um ponto por dia</b> (ao abrir) e <b>um antes de cada importação de torneio</b>. Se algo correr mal, escolhe a hora e clica em <b>Repor</b>. Ficam os últimos '+MAX_PONTOS+'.</p><button class="btn p" data-ca="pontoNovo">➕ Guardar um ponto agora</button><div id="ca-pontos" style="margin-top:10px"></div></div>'+
     '<div class="card"><h3>Descarregar</h3><p class="nota">'+D.atletas.length+' atletas · '+D.provas.length+' provas · '+nT+' torneio'+(nT===1?'':'s')+' livre'+(nT===1?'':'s')+'. Faz sempre antes de importar um torneio para uma jornada.</p><button class="btn p" data-ca="baixar">💾 Descarregar cópia</button></div>'+
     '<div class="card"><h3>Repor de um ficheiro / Importar do sistema antigo</h3><p class="nota">Escolhe um ficheiro de cópia (do sistema antigo ou deste). <b>Substitui</b> os dados atuais. Antes de repor, o sistema descarrega automaticamente uma cópia do que existe agora.</p>'+
-    '<input type="file" id="ca-ficheiro" accept=".json,application/json"> <label style="display:block;margin:8px 0;font-size:.85rem"><input type="checkbox" id="ca-torn"> Repor também os <b>torneios livres</b> do ficheiro (só os que lá estão; os restantes não são apagados)</label><button class="btn" data-ca="repor">Repor</button> <span id="ca-msg" class="nota" style="margin-left:8px"></span></div>'}
+    '<input type="file" id="ca-ficheiro" accept=".json,application/json"> <label style="display:block;margin:8px 0;font-size:.85rem"><input type="checkbox" id="ca-torn"> Repor também os <b>torneios livres</b> do ficheiro (só os que lá estão; os restantes não são apagados)</label><button class="btn" data-ca="repor">Repor</button> <span id="ca-msg" class="nota" style="margin-left:8px"></span></div>';lerIndice().then(desenharPontos)}
 function descarregarCopia(){
   const out={geradoEm:new Date().toISOString(),origem:'sistema',incluiTodosOsTorneiosLivres:true,firestore:{dados:clone(D),nacional:NAC||null,ranking_portal:{ranking:M.rankingAnual(D),atualizadoEm:new Date().toISOString()},tv_controlo:CTRL||null},torneiosLivres:clone(TORN)};
   const d=new Date(),p=n=>String(n).padStart(2,'0'),nome='vizelgolfe-copia-'+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+'.json';
@@ -1106,8 +1276,1060 @@ async function diagnostico(){
   try{await setDoc(doc(fs,COL,'_teste'),{quando:new Date().toISOString()});out.push('✅ Guardar na base de dados: ok')}catch(e){out.push('❌ Guardar: '+((e&&e.code)||e)+dica(e&&e.code))}
   try{await get(ref(rt,ROOT));out.push('✅ Ler os torneios livres: ok')}catch(e){out.push('❌ Torneios livres: '+((e&&e.code)||e))}
   out.push('Conta: '+(auth.currentUser?auth.currentUser.email:'sem sessão'));el.innerHTML=out.map(esc).join('<br>')}
-$('sec-copia').addEventListener('click',ev=>{const b=ev.target.closest('[data-ca]');if(!b)return;if(b.dataset.ca==='baixar'){const n=descarregarCopia();toast('💾 '+n)}else if(b.dataset.ca==='diag')diagnostico();else reporCopia()});
+$('sec-copia').addEventListener('click',ev=>{const b=ev.target.closest('[data-ca]');if(!b)return;if(b.dataset.ca==='baixar'){const n=descarregarCopia();toast('💾 '+n)}else if(b.dataset.ca==='diag')diagnostico();else if(b.dataset.ca==='pontoNovo'){const n=prompt('Dá um nome a este ponto (opcional):','')||'';criarPonto('manual',n).then(()=>{desenharPontos();toast('✅ Ponto de restauro guardado.')}).catch(()=>toast('Não foi possível guardar.',true))}else if(b.dataset.ca==='pontoRepor')reporPonto(b.dataset.id);else reporCopia()});
 window.__SIS={get D(){return D},get TORN(){return TORN},get CTRL(){return CTRL},get NAC(){return NAC},M,ir};
+
+/* ---------- Início (resumo) e Estatísticas ---------- */
+function renderInicio(){if(!D)return;try{LEG.set(D,NAC&&NAC.bangolfe,null);LEG.renderDashboard()}catch(e){console.warn('resumo',e)}}
+function renderStatsSec(){if(!D)return;try{LEG.set(D,NAC&&NAC.bangolfe,null);LEG.renderStats()}catch(e){console.warn('estatísticas',e)}}
+
+/* ---------- Pontos de restauro (um por dia, um antes de cada importação, e os que quiseres) ---------- */
+const MAX_PONTOS=20;let PONTOS=null;
+async function lerIndice(){try{const s=await getDoc(doc(fs,COL,'copias'));PONTOS=s.exists()?(s.data().lista||[]):[]}catch(e){PONTOS=PONTOS||[]}return PONTOS}
+async function criarPonto(tipo,nome){
+  const lista=await lerIndice(),agora=new Date(),id='copia_'+agora.toISOString().replace(/[-:.TZ]/g,'').slice(0,14)+'_'+Math.random().toString(36).slice(2,6);
+  await setDoc(doc(fs,COL,id),{quando:agora.toISOString(),tipo,nome:nome||'',dados:clone(D)});
+  lista.unshift({id,quando:agora.toISOString(),tipo,nome:nome||'',atletas:D.atletas.length,provas:D.provas.length});
+  while(lista.length>MAX_PONTOS){const velho=lista.pop();try{await deleteDoc(doc(fs,COL,velho.id))}catch(e){}}
+  await setDoc(doc(fs,COL,'copias'),{lista});PONTOS=lista;return id}
+async function copiaDiaria(){
+  const hoje=new Date().toISOString().slice(0,10);if(ST.diaFeito===hoje||!DEXISTE||!D||!D.provas.length)return;ST.diaFeito=hoje;
+  try{const l=await lerIndice();if(!l.some(c=>c.tipo==='auto'&&String(c.quando).slice(0,10)===hoje&&c.nome==='Início do dia'))await criarPonto('auto','Início do dia')}catch(e){ST.diaFeito=null}}
+function desenharPontos(){
+  const el=$('ca-pontos');if(!el)return;const L=PONTOS||[];
+  el.innerHTML=L.length?'<div class="lst">'+L.map(c=>'<div class="lrow"><div class="t"><b style="color:var(--text)">'+new Date(c.quando).toLocaleString('pt-PT',{dateStyle:'short',timeStyle:'short'})+'</b> · '+(c.tipo==='auto'?'automático':'manual')+(c.nome?' · '+esc(c.nome):'')+'<small>'+c.atletas+' atletas · '+c.provas+' provas</small></div><button class="btn s" data-ca="pontoRepor" data-id="'+esc(c.id)+'">Repor</button></div>').join('')+'</div>':'<div class="nota">Ainda não há pontos de restauro. O primeiro cria-se sozinho ao abrir o sistema.</div>'}
+async function reporPonto(id){
+  const info=(PONTOS||[]).find(x=>x.id===id);if(!info||!confirm('Repor o estado de '+new Date(info.quando).toLocaleString('pt-PT',{dateStyle:'short',timeStyle:'short'})+'? Antes de repor, o estado atual fica guardado num novo ponto de restauro.'))return;
+  const msg=$('ca-msg');msg.textContent='A repor…';
+  try{const s=await getDoc(doc(fs,COL,id));if(!s.exists())throw new Error('o ponto já não existe');
+    await criarPonto('manual','Antes de repor');
+    const nd=normalizar(clone(s.data().dados));ST.sujo=false;clearTimeout(ST.tm);ST.v=Date.now();nd._v=ST.v;
+    await setDoc(doc(fs,COL,'dados'),clone(nd));D=nd;DEXISTE=true;
+    await setDoc(doc(fs,COL,'ranking_portal'),{ranking:M.rankingAnual(D),atualizadoEm:new Date().toISOString()});
+    iniciarContexto();msg.textContent='✅ Reposto o estado de '+new Date(info.quando).toLocaleString('pt-PT',{dateStyle:'short',timeStyle:'short'})+'.';toast('✅ Reposto.');renderEstado();desenharPontos()}
+  catch(e){msg.textContent='❌ '+((e&&e.message)||'erro');toast('Não foi possível repor.',true)}}
+
+/* ---------- Estatísticas, Resumo e detalhe do Nacional (código da Consola, isolado) ---------- */
+const LEG=(function(){
+  let dadosInt=null,dadosNac=null,nacAtivo=null;const db=fs;
+  const WORKER_URL='https://vzg-nacional.ruigoncalves1968.workers.dev';
+const ABANDONO = 126;
+
+const CATEGORIAS=['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos','Juniores'];
+
+const CAT_GRUPO={'Homens':'Homens','Juniores':'Homens','Senhoras':'Senhoras','Seniores Masculinos':'Seniores Masculinos','Veteranos Masculinos':'Veteranos Masculinos'};
+
+const PONTUACAO=[25,18,15,12,10,8,6,4,2,1];
+
+function _isCampVizela(p){return !!(p.nome&&p.nome.includes('Vizela')&&p.tipo==='campeonato');}
+
+let _statsModo = 'ranking';
+
+function bgVolta(campo, v) {
+  const n = Number(v); if (!n || n <= 0) return 'transparent';
+  const isMini = campo && campo.startsWith('m');
+  if (isMini) {
+    if (n <= 19) return 'rgba(37,99,235,0.1)'; if (n <= 24) return 'rgba(22,163,74,0.1)';
+    if (n <= 29) return 'rgba(220,38,38,0.1)'; return 'rgba(68,68,68,0.08)';
+  } else {
+    if (n <= 24) return 'rgba(37,99,235,0.1)'; if (n <= 29) return 'rgba(22,163,74,0.1)';
+    if (n <= 35) return 'rgba(220,38,38,0.1)'; return 'rgba(68,68,68,0.08)';
+  }
+}
+
+function calcPos(prova,j,atletaId,grupo,atletas,empates){
+  const jRes=prova.resultados?.[j]; if(!jRes) return 999;
+  const doGrupo=atletas.filter(a=>(CAT_GRUPO[a.categoria]||a.categoria)===grupo);
+  const totais=doGrupo.map(a=>{
+    const r=jRes[String(a.id)]||jRes[a.id];
+    const t=r?(calcTotal(prova,j,r)??9999):9999;
+    return{id:a.id,t};
+  }).filter(x=>x.t<9999);
+
+  // Ordenação estável: primeiro por total, depois por desempate gravado
+  totais.sort((a,b)=>{
+    if(a.t!==b.t) return a.t-b.t;
+    // Mesmo total — consultar desempate
+    const k=`${prova.id}_j${j}_pos_${grupo.replace(/ /g,'_')}_${a.t}`;
+    const v=empates?.[k];
+    if(v!=null){
+      // Formato array: ordem explícita ["id1","id2",...]
+      if(Array.isArray(v)){
+        const ia=v.indexOf(String(a.id)); const ib=v.indexOf(String(b.id));
+        if(ia!==-1&&ib!==-1) return ia-ib;
+        if(ia!==-1) return -1;
+        if(ib!==-1) return 1;
+      } else {
+        // Formato string/número: id do vencedor
+        const vid=String(v).trim();
+        const aVence=String(a.id)===vid;
+        const bVence=String(b.id)===vid;
+        if(aVence&&!bVence) return -1;
+        if(bVence&&!aVence) return 1;
+      }
+    }
+    return a.id-b.id;
+  });
+
+  const i=totais.findIndex(x=>x.id==atletaId||x.id===parseInt(atletaId));
+  return i>=0?i+1:999;
+}
+
+function calcTotal(prova,j,res){
+  if(!res)return null;
+  const esp=prova.jornadaEspecial?.[j];
+  const campos=esp?.tipo==='peter4voltas'?['pV1','pV2','pV3','pV4']:['mV1','mV2','pV1','pV2'];
+  const inativas=esp?.voltasInativas||[];
+  let soma=0, temValido=false, temVazio=false;
+  for(const c of campos){
+    if(inativas.includes(c))continue; // volta não jogada para toda a gente — ignorar
+    const v=Number(res[c]);
+    if(!isNaN(v)&&v>0){
+      soma+=v;   // 126 individual conta como penalização (126 tacadas)
+      temValido=true;
+    } else {
+      temVazio=true; // campo vazio = atleta ainda não inseriu
+    }
+  }
+  // Se nenhuma volta activa tem valor → atleta não participou
+  if(!temValido)return null;
+  // Se há campos vazios (sem dados inseridos) → total incompleto → null
+  if(temVazio)return null;
+  return soma;
+}
+
+function corPista(v) {
+  const n = Number(v); if (!n) return '';
+  if (n === 1) return '#16a34a'; if (n === 2) return '#dc2626'; return '#555';
+}
+
+function corVolta(campo, v) {
+  const n = Number(v); if (!n || n <= 0) return '';
+  const isMini = campo && campo.startsWith('m');
+  if (isMini) {
+    if (n <= 19) return '#2563eb'; if (n <= 24) return '#16a34a';
+    if (n <= 29) return '#dc2626'; return '#444';
+  } else {
+    if (n <= 24) return '#2563eb'; if (n <= 29) return '#16a34a';
+    if (n <= 35) return '#dc2626'; return '#444';
+  }
+}
+
+function emojiCor(campo, v) {
+  const n = Number(v); if (!n || n <= 0) return '';
+  const isMini = campo && campo.startsWith('m');
+  if (isMini) {
+    if (n <= 19) return '🔵'; if (n <= 24) return '🟢'; if (n <= 29) return '🔴'; return '⚫';
+  } else {
+    if (n <= 24) return '🔵'; if (n <= 29) return '🟢'; if (n <= 35) return '🔴'; return '⚫';
+  }
+}
+
+function isVzg(clube, nome) {
+  const c = (clube||'').toLowerCase();
+  // Detecta: "Vizelgolfe", "Vizelglfe" (erro tipográfico bangolfe), "vizela", "vzg"
+  return c.includes('vizelg') || c.includes('vizela') || c.includes('vzg');
+}
+
+function isGrupoA(cat) {
+  return cat === 'Homens' || cat === 'Senhoras' || cat === 'Infantis Masculinos' || cat === 'Infantis Femininos';
+}
+window.renderStats = function() {
+  const el = document.getElementById('stats-body');
+  if(!el) return;
+  const catFilt = document.getElementById('stats-cat')?.value||'';
+  const atlFilt = document.getElementById('stats-atleta')?.value||'';
+
+  const selAtl = document.getElementById('stats-atleta');
+  if(selAtl && selAtl.options.length<=1 && dadosInt){
+    (dadosInt.atletas||[]).slice().sort((a,b)=>a.nome.localeCompare(b.nome)).forEach(a=>{
+      const o=document.createElement('option');
+      o.value=a.id; o.textContent=a.nome;
+      selAtl.appendChild(o);
+    });
+  }
+
+  el.innerHTML='<div style="padding:40px;text-align:center;color:var(--dim)">⏳ A carregar...</div>';
+  const atlId = atlFilt?parseInt(atlFilt):null;
+
+  if(_statsModo==='ranking')   renderStatsRanking(el,catFilt);
+  else if(_statsModo==='metricas') renderStatsDashboard(el,catFilt);
+  else if(_statsModo==='atleta') renderStatsAtleta(el,catFilt,atlId);
+  else if(_statsModo==='provas') renderStatsProva(el,catFilt);
+  else if(_statsModo==='nacional') renderStatsHistorico(el,catFilt,atlId);
+}
+
+function calcMetricas(atl, provas, histNac) {
+  const todasVoltas = [], mediasPorProva = [], participacoes = [];
+  let aban = 0, bMini = 0, bPeter = 0, acesTotal = 0, voltasTotal = 0;
+
+  provas.forEach(p => {
+    if(p.estado === 'agendado') return;
+    Object.entries(p.resultados||{}).forEach(([j,rj]) => {
+      const res = rj[atl.id]; if(!res) return;
+      const vm = statsExtrairVoltas(res,'mini');
+      const vp = statsExtrairVoltas(res,'peter');
+      const todas = [...vm,...vp];
+      const validas = todas.filter(v=>v&&v!==ABANDONO);
+      if(statsTemAbandono(todas)) { aban++; return; }
+      if(!validas.length) return;
+      const media = validas.reduce((a,b)=>a+b,0)/validas.length;
+      todasVoltas.push(...validas);
+      mediasPorProva.push({media, prova:p.nome, j:parseInt(j), data:p.dataJornadas?.[j]||p.data||''});
+      voltasTotal += validas.length;
+      // Aces (1 tacada)
+      acesTotal += validas.filter(v=>v===1).length;
+      if(res.bonusMini||res.bonusMiniManha||res.bonusMiniTarde) bMini++;
+      if(res.bonusPeter||res.bonusPeterManha||res.bonusPeterTarde) bPeter++;
+      participacoes.push({media, prova:p.nome});
+    });
+  });
+
+  if(!todasVoltas.length) return null;
+
+  const mediaGlobal = todasVoltas.reduce((a,b)=>a+b,0)/todasVoltas.length;
+
+  // Desvio padrão (Consistency Index)
+  const variance = todasVoltas.reduce((a,v)=>(a+(v-mediaGlobal)**2),0)/todasVoltas.length;
+  const consistencia = Math.sqrt(variance);
+
+  // Handicap dinâmico (média das 8 melhores de todas as médias por prova)
+  const mediasOrdenadas = mediasPorProva.map(m=>m.media).sort((a,b)=>a-b);
+  const n8 = Math.min(8, mediasOrdenadas.length);
+  const handicap = n8 > 0 ? mediasOrdenadas.slice(0,n8).reduce((a,b)=>a+b,0)/n8 : null;
+
+  // Trend — últimas 5 provas (regressão linear simples)
+  const ultimas5 = mediasPorProva.slice(-5);
+  let trend = 0;
+  if(ultimas5.length >= 3) {
+    const n = ultimas5.length;
+    const xMean = (n-1)/2;
+    const yMean = ultimas5.reduce((a,m)=>a+m.media,0)/n;
+    let num=0, den=0;
+    ultimas5.forEach((m,i)=>{ num+=(i-xMean)*(m.media-yMean); den+=(i-xMean)**2; });
+    trend = den>0 ? num/den : 0;
+  }
+
+  // Strike Rate — % de voltas abaixo da média global
+  const strikeRate = voltasTotal>0 ? (todasVoltas.filter(v=>v<mediaGlobal).length/voltasTotal*100) : 0;
+
+  // Ace Rate
+  const aceRate = voltasTotal>0 ? (acesTotal/voltasTotal*100) : 0;
+
+  // Melhor e pior prova
+  const melhor = mediasPorProva.reduce((a,m)=>m.media<a.media?m:a, mediasPorProva[0]);
+  const pior = mediasPorProva.reduce((a,m)=>m.media>a.media?m:a, mediasPorProva[0]);
+
+  // Nacionais
+  const primNome = atl.nome.toLowerCase().split(' ')[0];
+  const nacPart = [], nacMelhorPos = [];
+  Object.entries(histNac).forEach(([chave,prov])=>{
+    Object.entries(prov.categorias||{}).forEach(([cat,ats])=>{
+      ats.forEach(a=>{
+        if(a.nome&&a.nome.toLowerCase().includes(primNome)){
+          nacPart.push({prova:prov.nome||chave,ano:prov.ano||'',pos:parseInt(a.pos||a.rank)||999});
+          nacMelhorPos.push(parseInt(a.pos||a.rank)||999);
+        }
+      });
+    });
+  });
+  const melhorPosNac = nacMelhorPos.length ? Math.min(...nacMelhorPos) : null;
+
+  return {
+    mediaGlobal, consistencia, handicap, trend,
+    strikeRate, aceRate, melhor, pior,
+    nProvas: mediasPorProva.length, aban, bMini, bPeter,
+    nacPart, melhorPosNac,
+    mediasPorProva
+  };
+}
+
+function calcMetricasClube(atletas, provas, histNac) {
+  const metricas = atletas.map(a => ({atl:a, m:calcMetricas(a,provas,histNac)})).filter(x=>x.m);
+  if(!metricas.length) return null;
+
+  // Club Handicap — média ponderada dos handicaps individuais
+  const handicaps = metricas.map(x=>x.m.handicap).filter(Boolean);
+  const clubHandicap = handicaps.length ? handicaps.reduce((a,b)=>a+b,0)/handicaps.length : null;
+
+  // Depth Index — quantos atletas têm handicap abaixo de 25 (Mini) ou 30 (Peter)
+  const depthIndex = handicaps.filter(h=>h<28).length;
+
+  // Top 5 Average
+  const top5 = metricas.sort((a,b)=>(a.m.mediaGlobal||999)-(b.m.mediaGlobal||999)).slice(0,5);
+  const top5Avg = top5.length ? top5.reduce((a,x)=>a+x.m.mediaGlobal,0)/top5.length : null;
+
+  // Most Consistent
+  const maisConsistente = metricas.reduce((a,x)=>x.m.consistencia<a.m.consistencia?x:a, metricas[0]);
+  const maisEmProgresso = metricas.filter(x=>x.m.trend<0).sort((a,b)=>a.m.trend-b.m.trend)[0];
+  const maisBonusMini = metricas.reduce((a,x)=>x.m.bMini>a.m.bMini?x:a, metricas[0]);
+  const maisBonusPeter = metricas.reduce((a,x)=>x.m.bPeter>a.m.bPeter?x:a, metricas[0]);
+  const melhorNacional = metricas.filter(x=>x.m.melhorPosNac).sort((a,b)=>(a.m.melhorPosNac||999)-(b.m.melhorPosNac||999))[0];
+
+  return { clubHandicap, depthIndex, top5Avg, maisConsistente, maisEmProgresso,
+           maisBonusMini, maisBonusPeter, melhorNacional, total: metricas.length };
+}
+
+function calcPontosAtletaEpoca(atletaId,categoria){
+  if(!dadosInt)return 0;
+  const provas=dadosInt.provas||[],atletas=dadosInt.atletas||[],empates=dadosInt.empates||{};
+  const ajustes=dadosInt.ajustesPontos||{};
+  const grupo=CAT_GRUPO[categoria]||categoria;let pts=0;
+  provas.forEach(p=>{
+    const isCViz=_isCampVizela(p);
+    for(let j=1;j<=(p.jornadas||1);j++){
+      // Verificar se há ajuste manual para esta jornada
+      const ajJ=ajustes?.[p.id]?.[atletaId]?.[j]??ajustes?.[p.id]?.[atletaId]?.[String(j)]??ajustes?.[p.id]?.[String(atletaId)]?.[j]??ajustes?.[p.id]?.[String(atletaId)]?.[String(j)];
+      if(ajJ!=null){
+        pts+=Number(ajJ);
+        continue;
+      }
+      const res=p.resultados?.[j]?.[atletaId]||p.resultados?.[j]?.[String(atletaId)];
+      if(!calcTotal(p,j,res))continue;
+      const pos=calcPos(p,j,atletaId,grupo,atletas,empates);
+      if(pos<1||pos>PONTUACAO.length)continue;
+      pts+=PONTUACAO[pos-1];
+      if(isCViz&&res){const b=p.bonusMini||1;if(res.bonusMini)pts+=b;if(res.bonusPeter)pts+=b;if(res.bonusPeterManha)pts+=b;if(res.bonusPeterTarde)pts+=b;}
+    }
+    if(isCViz&&p.bonusCompleto){const jPart=Object.keys(p.resultados||{}).filter(j=>{const r=p.resultados[j]?.[atletaId]||p.resultados[j]?.[String(atletaId)];return r&&calcTotal(p,parseInt(j),r)!=null;}).length;if(jPart>=(p.jornadas||1))pts+=(p.bonusCompleto||0);}
+  });
+  return pts;
+}
+
+function renderStatsAtleta(el, catFilt, atlId) {
+  getDoc(doc(fs,COL,'nacional')).then(snap=>{
+    const histNac=(snap.exists()&&snap.data().historico)?snap.data().historico:{};
+    const atletas=(dadosInt?.atletas||[]).filter(a=>(!catFilt||a.categoria===catFilt)&&(!atlId||a.id===atlId));
+    const provas=(dadosInt?.provas||[]).filter(p=>p.estado!=='agendado');
+
+    if(!atlId && atletas.length>8) {
+      el.innerHTML='<div style="padding:30px;text-align:center;color:var(--dim);font-size:0.9rem">Selecciona um atleta no filtro acima para ver o detalhe.</div>';
+      return;
+    }
+
+    let h='';
+    atletas.forEach(atl=>{
+      const linhas=[];
+      provas.forEach(p=>{
+        Object.entries(p.resultados||{}).forEach(([j,rj])=>{
+          const res=rj[atl.id]; if(!res) return;
+          const vm=statsExtrairVoltas(res,'mini');
+          const vp=statsExtrairVoltas(res,'peter');
+          const tM=vm.length?statsTotalValido(vm):null;
+          const tP=vp.length?statsTotalValido(vp):null;
+          const mM=statsMedia(vm); const mP=statsMedia(vp);
+          const abandono=statsTemAbandono([...vm,...vp]);
+          const bonus=[
+            res.bonusMini||res.bonusMiniManha||res.bonusMiniTarde?'Mini':'',
+            res.bonusPeter||res.bonusPeterManha||res.bonusPeterTarde?'Peter':''
+          ].filter(Boolean);
+          linhas.push({prova:p.nome,j:parseInt(j),tM,tP,mM,mP,abandono,bonus,
+            esp: p.jornadaEspecial?.[j]?.tipo });
+        });
+      });
+
+      const primNome=atl.nome.toLowerCase().split(' ')[0];
+      const linhasNac=[];
+      Object.entries(histNac).forEach(([chave,prov])=>{
+        Object.entries(prov.categorias||{}).forEach(([cat,ats])=>{
+          ats.forEach(a=>{
+            if(a.nome&&a.nome.toLowerCase().includes(primNome))
+              linhasNac.push({prova:prov.nome||chave,ano:prov.ano||'',
+                tipo:(prov.tipo||chave.split('_')[0]).toUpperCase(),
+                pos:a.pos||a.rank||'—',total:a.total||'—',cat});
+          });
+        });
+      });
+
+      if(!linhas.length&&!linhasNac.length) return;
+
+      // Calcular totais
+      const todasM=linhas.flatMap(l=>l.mM?[l.mM]:[]);
+      const todasP=linhas.flatMap(l=>l.mP?[l.mP]:[]);
+      const mediaM=todasM.length?(todasM.reduce((a,b)=>a+b,0)/todasM.length).toFixed(1):null;
+      const mediaP=todasP.length?(todasP.reduce((a,b)=>a+b,0)/todasP.length).toFixed(1):null;
+
+      h+=`<div class="card" style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--navy)">${atl.nome}</div>
+            <div style="font-size:0.75rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px">${atl.categoria}</div>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap">
+            ${mediaM?`<div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--orange)">${mediaM}</div><div style="font-size:0.65rem;color:var(--dim);text-transform:uppercase">Méd. Mini</div></div>`:''}
+            ${mediaP?`<div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--blue)">${mediaP}</div><div style="font-size:0.65rem;color:var(--dim);text-transform:uppercase">Méd. Peter</div></div>`:''}
+            <div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--navy)">${linhas.length}</div><div style="font-size:0.65rem;color:var(--dim);text-transform:uppercase">Provas</div></div>
+            ${linhasNac.length?`<div style="text-align:center"><div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--green)">${linhasNac.length}</div><div style="font-size:0.65rem;color:var(--dim);text-transform:uppercase">Nacionais</div></div>`:''}
+          </div>
+        </div>`;
+
+      if(linhas.length){
+        h+=`<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);margin-bottom:8px">🏠 Resultados Internos</div>
+        <div class="tabela-wrap"><table style="margin-bottom:16px">
+          <thead><tr>
+            <th>Prova</th>
+            <th class="c">Mini</th><th class="c">Méd.M</th>
+            <th class="c">Peter</th><th class="c">Méd.P</th>
+            <th class="c">Bónus</th><th class="c"></th>
+          </tr></thead><tbody>`;
+        linhas.forEach(l=>{
+          const provaNome = l.prova + (l.j>1?` <span style="font-size:0.7rem;color:var(--dim)">J${l.j}</span>`:'');
+          h+=`<tr>
+            <td>${provaNome}</td>
+            <td style="text-align:center;font-weight:700;color:${l.tM&&l.mM?corTotal(l.tM,Math.round(l.tM/l.mM),'mV1'):'var(--navy)'}">${l.tM||'—'}</td>
+            <td style="text-align:center;color:var(--dim)">${l.mM?l.mM.toFixed(1):'—'}</td>
+            <td style="text-align:center;font-weight:700;color:${l.tP&&l.mP?corTotal(l.tP,Math.round(l.tP/l.mP),'pV1'):'var(--navy)'}">${l.tP||'—'}</td>
+            <td style="text-align:center;color:var(--dim)">${l.mP?l.mP.toFixed(1):'—'}</td>
+            <td style="text-align:center;font-size:0.75rem;color:var(--green)">${l.bonus.length?'🥇 '+l.bonus.join(', '):'—'}</td>
+            <td style="text-align:center">${l.abandono?'<span class="badge" style="background:rgba(204,34,34,0.1);color:var(--red)">Abandono</span>':''}</td>
+          </tr>`;
+        });
+        h+=`</tbody></table></div>`;
+      }
+
+      if(linhasNac.length){
+        h+=`<div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:1.5px;color:var(--dim);margin-bottom:8px">🇵🇹 Histórico Nacional</div>
+        <div class="tabela-wrap"><table>
+          <thead><tr>
+            <th>Prova</th><th class="c">Ano</th><th class="c">Tipo</th>
+            <th class="c">Total</th><th class="c">Posição</th>
+          </tr></thead><tbody>`;
+        linhasNac.sort((a,b)=>b.ano-a.ano).forEach(l=>{
+          const pos=parseInt(l.pos)||999;
+          const posClass=pos===1?'pos-1':pos===2?'pos-2':pos===3?'pos-3':'';
+          h+=`<tr>
+            <td><strong>${l.prova}</strong><br><span style="font-size:0.7rem;color:var(--dim)">${l.cat}</span></td>
+            <td style="text-align:center">${l.ano}</td>
+            <td style="text-align:center"><span class="badge badge-ativo">${l.tipo}</span></td>
+            <td style="text-align:center;font-weight:700">${l.total}</td>
+            <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem" class="${posClass}">${l.pos}º</td>
+          </tr>`;
+        });
+        h+=`</tbody></table></div>`;
+      }
+      h+=`</div>`;
+    });
+    el.innerHTML=h||'<div style="padding:30px;text-align:center;color:var(--dim)">Sem dados para o filtro seleccionado.</div>';
+  }).catch(e=>{ el.innerHTML=`<div style="padding:20px;color:var(--red)">Erro: ${e.message}</div>`; });
+}
+
+function renderStatsDashboard(el, catFilt) {
+  getDoc(doc(fs,COL,'nacional')).then(snap=>{
+    const histNac=(snap.exists()&&snap.data().historico)?snap.data().historico:{};
+    const provas=(dadosInt?.provas||[]);
+    const atletas=(dadosInt?.atletas||[]).filter(a=>!catFilt||a.categoria===catFilt);
+    const cats = catFilt?[catFilt]:[...new Set(atletas.map(a=>a.categoria))];
+
+    // Clube completo
+    const mClube = calcMetricasClube(atletas, provas, histNac);
+
+    let h = '';
+
+    // ── PAINEL DO CLUBE ──
+    if(mClube && !catFilt) {
+      h += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:24px">`;
+      const kpis = [
+        {label:'Club Handicap', val:mClube.clubHandicap?mClube.clubHandicap.toFixed(1):'—', sub:'Média ponderada', cor:'var(--orange)'},
+        {label:'Top 5 Média', val:mClube.top5Avg?mClube.top5Avg.toFixed(1):'—', sub:'5 melhores atletas', cor:'var(--navy)'},
+        {label:'Depth Index', val:mClube.depthIndex, sub:'Atletas handicap <28', cor:'var(--green)'},
+        {label:'Total Atletas', val:mClube.total, sub:'Com resultados', cor:'var(--blue)'},
+      ];
+      kpis.forEach(k=>{
+        h+=`<div class="card" style="text-align:center;padding:16px">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:${k.cor}">${k.val}</div>
+          <div style="font-weight:700;font-size:0.78rem;color:var(--navy);margin:2px 0">${k.label}</div>
+          <div style="font-size:0.68rem;color:var(--dim)">${k.sub}</div>
+        </div>`;
+      });
+      h+=`</div>`;
+
+      // Destaques do clube
+      h+=`<div class="card" style="margin-bottom:20px">
+        <div class="card-titulo">🏅 Destaques do Clube</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">`;
+
+      const destaques = [
+        {icon:'🎯', label:'Mais Consistente', atleta:mClube.maisConsistente?.atl?.nome, val:mClube.maisConsistente?.m?.consistencia?.toFixed(2), sub:'Desvio padrão'},
+        {icon:'📈', label:'Maior Progresso', atleta:mClube.maisEmProgresso?.atl?.nome||'—', val:mClube.maisEmProgresso?'▼ '+Math.abs(mClube.maisEmProgresso.m.trend).toFixed(2):'—', sub:'Trend últimas 5 provas'},
+        {icon:'🥇', label:'Rei dos Bónus Mini', atleta:mClube.maisBonusMini?.m?.bMini>0?mClube.maisBonusMini?.atl?.nome:'—', val:mClube.maisBonusMini?.m?.bMini||'—', sub:'Bónus conquistados'},
+        {icon:'⛳', label:'Rei dos Bónus Peter', atleta:mClube.maisBonusPeter?.m?.bPeter>0?mClube.maisBonusPeter?.atl?.nome:'—', val:mClube.maisBonusPeter?.m?.bPeter||'—', sub:'Bónus conquistados'},
+        {icon:'🇵🇹', label:'Melhor Nacional', atleta:mClube.melhorNacional?.atl?.nome||'—', val:mClube.melhorNacional?.m?.melhorPosNac?mClube.melhorNacional.m.melhorPosNac+'º':'—', sub:'Melhor posição histórica'},
+      ];
+      destaques.forEach(d=>{
+        h+=`<div style="background:var(--bg);border-radius:8px;padding:12px;border:1px solid var(--sep)">
+          <div style="font-size:1.2rem;margin-bottom:4px">${d.icon}</div>
+          <div style="font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;color:var(--dim);margin-bottom:4px">${d.label}</div>
+          <div style="font-weight:700;color:var(--navy);font-size:0.9rem">${d.atleta||'—'}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--orange)">${d.val||'—'}</div>
+          <div style="font-size:0.68rem;color:var(--dim)">${d.sub}</div>
+        </div>`;
+      });
+      h+=`</div></div>`;
+    }
+
+    // ── MÉTRICAS POR CATEGORIA ──
+    cats.forEach(cat=>{
+      const grupoAtl = atletas.filter(a=>a.categoria===cat);
+      const grupo = grupoAtl.map(a=>({atl:a,m:calcMetricas(a,provas,histNac)}))
+        .filter(x=>x.m).sort((a,b)=>a.m.handicap-b.m.handicap);
+      if(!grupo.length) return;
+
+      h+=`<div class="card" style="margin-bottom:20px">
+        <div class="card-titulo">${cat}</div>
+        <div class="tabela-wrap"><table>
+          <thead><tr>
+            <th>Atleta</th>
+            <th class="c" title="Média das 8 melhores performances">Handicap</th>
+            <th class="c" title="Média global de todas as voltas">Média</th>
+            <th class="c" title="Desvio padrão — quanto menor mais consistente">Consist.</th>
+            <th class="c" title="Tendência das últimas 5 provas">Trend</th>
+            <th class="c" title="% voltas abaixo da média pessoal">Strike%</th>
+            <th class="c" title="% de holes-in-one">Ace%</th>
+            <th class="c">Provas</th>
+            <th class="c">Nac.</th>
+          </tr></thead>
+          <tbody>`;
+
+      grupo.forEach((x,i)=>{
+        const m = x.m;
+        const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
+        const trendIcon = m.trend<-0.2?'<span style="color:var(--green)">▲ '+Math.abs(m.trend).toFixed(1)+'</span>':
+                          m.trend>0.2?'<span style="color:var(--red)">▼ '+m.trend.toFixed(1)+'</span>':
+                          '<span style="color:var(--dim)">→</span>';
+        const nacStr = m.nacPart.length ? (m.melhorPosNac+'º / '+m.nacPart.length+'x') : '—';
+        h+=`<tr>
+          <td><strong class="${posClass}">${x.atl.nome}</strong>
+            ${m.aban?`<span class="badge" style="background:rgba(204,34,34,0.1);color:var(--red);margin-left:4px">${m.aban} ab.</span>`:''}
+          </td>
+          <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;color:var(--orange)">${m.handicap?m.handicap.toFixed(1):'—'}</td>
+          <td style="text-align:center;font-weight:700">${m.mediaGlobal.toFixed(1)}</td>
+          <td style="text-align:center;color:${m.consistencia<2?'var(--green)':m.consistencia>4?'var(--red)':'var(--text)'}">${m.consistencia.toFixed(2)}</td>
+          <td style="text-align:center">${trendIcon}</td>
+          <td style="text-align:center;color:var(--blue)">${m.strikeRate.toFixed(0)}%</td>
+          <td style="text-align:center;color:var(--dim)">${m.aceRate.toFixed(1)}%</td>
+          <td style="text-align:center">${m.nProvas}${m.aban?'<span style="color:var(--dim);font-size:0.75rem"> +'+m.aban+'</span>':''}</td>
+          <td style="text-align:center;font-size:0.82rem;color:${m.melhorPosNac&&m.melhorPosNac<=3?'var(--orange)':'var(--dim)'}">${nacStr}</td>
+        </tr>`;
+      });
+      h+=`</tbody></table></div>
+      <div style="margin-top:8px;font-size:0.68rem;color:var(--dim);display:flex;gap:16px;flex-wrap:wrap">
+        <span>📊 <strong>Handicap</strong>: média das 8 melhores performances</span>
+        <span>🎯 <strong>Consist.</strong>: desvio padrão — menor = mais consistente</span>
+        <span>📈 <strong>Trend</strong>: ▲ a melhorar · → estável · ▼ a regredir</span>
+        <span>⚡ <strong>Strike%</strong>: % voltas abaixo da média pessoal</span>
+      </div>
+      </div>`;
+    });
+
+    el.innerHTML=h||'<div style="padding:40px;text-align:center;color:var(--dim)">Sem dados suficientes para calcular métricas.</div>';
+  }).catch(e=>{el.innerHTML=`<div style="padding:20px;color:var(--red)">Erro: ${e.message}</div>`;});
+}
+
+function renderStatsHistorico(el, catFilt, atlId) {
+  getDoc(doc(fs,COL,'nacional')).then(snap=>{
+    if(!snap.exists()||!snap.data().historico){
+      el.innerHTML='<div style="padding:40px;text-align:center;color:var(--dim)">Sem histórico nacional carregado.</div>';
+      return;
+    }
+    const hist=snap.data().historico;
+    const chaves=Object.keys(hist).sort((a,b)=>{
+      const aA=parseInt(a.split('_')[1]||0),bA=parseInt(b.split('_')[1]||0);
+      return bA-aA||a.localeCompare(b);
+    });
+    const primNome=atlId?statsNome(atlId).toLowerCase().split(' ')[0]:null;
+
+    // Agrupar por tipo
+    const porTipo={};
+    chaves.forEach(chave=>{
+      const prov=hist[chave];
+      const tipo=(prov.tipo||chave.split('_')[0]).toUpperCase();
+      if(!porTipo[tipo]) porTipo[tipo]=[];
+      porTipo[tipo].push({chave,...prov});
+    });
+
+    let h=`<div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+      ${Object.entries(porTipo).map(([tipo,provs])=>`
+        <div class="card" style="flex:1;min-width:140px;padding:14px;text-align:center">
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:var(--orange)">${provs.length}</div>
+          <div style="font-size:0.7rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px">${tipo}</div>
+        </div>`).join('')}
+    </div>`;
+
+    Object.entries(porTipo).forEach(([tipo,provs])=>{
+      h+=`<div style="font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:3px;color:var(--navy);margin:20px 0 10px;padding-bottom:6px;border-bottom:2px solid var(--orange)">${tipo}</div>`;
+
+      provs.forEach(prov=>{
+        const cats=prov.categorias||{};
+        const vzgAtletas=[];
+        Object.entries(cats).forEach(([cat,ats])=>{
+          if(catFilt&&cat!==catFilt) return;
+          ats.forEach(a=>{
+            const isVzg=a.clube&&a.clube.toLowerCase().includes('vizela');
+            const matchAtl=!atlId||(a.nome&&a.nome.toLowerCase().includes(primNome));
+            if(!isVzg&&!matchAtl) return;
+            vzgAtletas.push({...a,cat});
+          });
+        });
+        if(!vzgAtletas.length) return;
+        vzgAtletas.sort((a,b)=>(parseInt(a.pos||a.rank)||999)-(parseInt(b.pos||b.rank)||999));
+
+        h+=`<div class="card" style="margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div>
+              <span style="font-weight:700;font-size:0.95rem;color:var(--navy)">${prov.nome||prov.chave}</span>
+              <span class="badge badge-ativo" style="margin-left:8px">${prov.ano||''}</span>
+            </div>
+            <span style="font-size:0.75rem;color:var(--dim)">${vzgAtletas.length} atleta(s) Vizelgolfe</span>
+          </div>
+          <div class="tabela-wrap"><table>
+            <thead><tr>
+              <th style="width:40px">Pos</th>
+              <th>Atleta</th>
+              <th>Categoria</th>
+              <th class="c">Total</th>
+            </tr></thead><tbody>`;
+
+        vzgAtletas.forEach(a=>{
+          const pos=parseInt(a.pos||a.rank)||999;
+          const posClass=pos===1?'pos-1':pos===2?'pos-2':pos===3?'pos-3':'';
+          const medalha=pos===1?'🥇':pos===2?'🥈':pos===3?'🥉':'';
+          h+=`<tr>
+            <td class="${posClass}" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem">${medalha||(pos+'º')}</td>
+            <td><strong style="color:var(--navy)">🟡 ${a.nome}</strong></td>
+            <td style="font-size:0.75rem;color:var(--dim)">${a.cat}</td>
+            <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.15rem;color:var(--orange)">${a.total||'—'}</td>
+          </tr>`;
+        });
+        h+=`</tbody></table></div></div>`;
+      });
+    });
+    el.innerHTML=h;
+  }).catch(e=>{ el.innerHTML=`<div style="padding:20px;color:var(--red)">Erro: ${e.message}</div>`; });
+}
+
+function renderStatsProva(el, catFilt) {
+  const provas=(dadosInt?.provas||[]).filter(p=>p.estado!=='agendado');
+  if(!provas.length){el.innerHTML='<div style="padding:40px;text-align:center;color:var(--dim)">Sem provas com resultados.</div>';return;}
+  let h='';
+
+  provas.forEach(prova=>{
+    Object.entries(prova.resultados||{}).forEach(([jNum,rj])=>{
+      if(!rj||!Object.keys(rj).length) return;
+      const linhas=[];
+      Object.entries(rj).forEach(([atlId,res])=>{
+        const id=parseInt(atlId);
+        const cat=statsCat(id);
+        if(catFilt&&cat!==catFilt) return;
+        const vm=statsExtrairVoltas(res,'mini');
+        const vp=statsExtrairVoltas(res,'peter');
+        const tM=vm.length?statsTotalValido(vm):null;
+        const tP=vp.length?statsTotalValido(vp):null;
+        linhas.push({id,nome:statsNome(id),cat,tM,tP,
+          tot:(tM||0)+(tP||0),abandono:statsTemAbandono([...vm,...vp])});
+      });
+      if(!linhas.length) return;
+      linhas.sort((a,b)=>(a.abandono?1:0)-(b.abandono?1:0)||a.tot-b.tot);
+
+      h+=`<div class="card" style="margin-bottom:20px">
+        <div class="card-titulo">${prova.nome}${prova.jornadas>1?` — Jornada ${jNum}`:''}</div>
+        <div class="tabela-wrap"><table>
+          <thead><tr>
+            <th style="width:40px">Pos</th>
+            <th>Atleta</th>
+            <th>Categoria</th>
+            <th class="c">Mini</th>
+            <th class="c">Peter</th>
+            <th class="c">Total</th>
+          </tr></thead><tbody>`;
+
+      linhas.forEach((l,i)=>{
+        const posClass=i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
+        const medalha=i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+        h+=`<tr>
+          <td class="${posClass}" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem">${medalha||((i+1)+'º')}</td>
+          <td><strong>${l.nome}</strong></td>
+          <td style="font-size:0.75rem;color:var(--dim)">${l.cat}</td>
+          <td style="text-align:center;font-weight:700">${l.tM||'—'}</td>
+          <td style="text-align:center;font-weight:700">${l.tP||'—'}</td>
+          <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.15rem">
+            ${l.abandono
+              ? '<span class="badge" style="background:rgba(204,34,34,0.1);color:var(--red)">Abandono</span>'
+              : ('<span style="color:' + (l.tM&&!l.tP?corTotal(l.tM,2,'mV1'):l.tP&&!l.tM?corTotal(l.tP,2,'pV1'):'var(--orange)') + ';font-weight:700">' + l.tot + '</span>')}
+          </td>
+        </tr>`;
+      });
+      h+=`</tbody></table></div></div>`;
+    });
+  });
+  el.innerHTML=h||'<div style="padding:40px;text-align:center;color:var(--dim)">Sem dados.</div>';
+}
+
+function renderStatsRanking(el, catFilt) {
+  const provas = (dadosInt?.provas||[]).filter(p=>p.estado!=='agendado');
+  const atletas = (dadosInt?.atletas||[]).filter(a=>!catFilt||a.categoria===catFilt);
+  const cats = catFilt?[catFilt]:[...new Set(atletas.map(a=>a.categoria))];
+  let h='';
+
+  cats.forEach(cat=>{
+    const grupo = atletas.filter(a=>a.categoria===cat).map(atl=>{
+      const todasVoltas=[];let part=0,aban=0,bMini=0,bPeter=0;
+      provas.forEach(p=>{
+        Object.values(p.resultados||{}).forEach(rj=>{
+          const res=rj[atl.id]; if(!res) return;
+          part++;
+          const vv=statsExtrairVoltas(res,'ambas');
+          if(statsTemAbandono(vv)) aban++;
+          else todasVoltas.push(...vv.filter(v=>v&&v!==ABANDONO));
+          if(res.bonusMini||res.bonusMiniManha||res.bonusMiniTarde) bMini++;
+          if(res.bonusPeter||res.bonusPeterManha||res.bonusPeterTarde) bPeter++;
+        });
+      });
+      const media=todasVoltas.length?todasVoltas.reduce((a,b)=>a+b,0)/todasVoltas.length:null;
+      return {...atl,part,aban,media,bMini,bPeter};
+    }).filter(a=>a.part>0).sort((a,b)=>(a.media||999)-(b.media||999));
+
+    if(!grupo.length) return;
+
+    h+=`<div class="card" style="margin-bottom:20px">
+      <div class="card-titulo">${cat}</div>
+      <div class="tabela-wrap"><table>
+        <thead><tr>
+          <th style="width:40px">Pos</th>
+          <th>Atleta</th>
+          <th class="c">Provas</th>
+          <th class="c">Média</th>
+          <th class="c">🥇 Mini</th>
+          <th class="c">🥇 Peter</th>
+          <th class="c">Abandon.</th>
+        </tr></thead>
+        <tbody>`;
+
+    grupo.forEach((a,i)=>{
+      const posClass = i===0?'pos-1':i===1?'pos-2':i===2?'pos-3':'';
+      const medalha = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+      h+=`<tr>
+        <td class="${posClass}" style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.1rem">${medalha||((i+1)+'º')}</td>
+        <td><strong>${a.nome}</strong></td>
+        <td style="text-align:center">${a.part}</td>
+        <td style="text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--orange)">${a.media?a.media.toFixed(1):'—'}</td>
+        <td style="text-align:center;color:var(--green)">${a.bMini||'—'}</td>
+        <td style="text-align:center;color:var(--green)">${a.bPeter||'—'}</td>
+        <td style="text-align:center;color:${a.aban?'var(--red)':'var(--dim)'}">${a.aban||'—'}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div></div>`;
+  });
+  el.innerHTML=h||'<div style="padding:40px;text-align:center;color:var(--dim)">Sem dados ainda.</div>';
+}
+
+function statsCat(id){ return (dadosInt?.atletas||[]).find(a=>a.id===id||a.id===parseInt(id))?.categoria||''; }
+
+function statsCorVoltas(campo, valor) {
+  if(campo.startsWith('m')) return corMini(valor);
+  return corPeter(valor);
+}
+
+function statsExtrairVoltas(res, vertente) {
+  const v = [];
+  if (vertente === 'mini' || vertente === 'ambas')
+    ['mV1','mV2','mV3','mV4'].forEach(k => { if(res[k]!=null) v.push(Number(res[k])); });
+  if (vertente === 'peter' || vertente === 'ambas')
+    ['pV1','pV2','pV3','pV4'].forEach(k => { if(res[k]!=null) v.push(Number(res[k])); });
+  return v;
+}
+
+function statsMedia(voltas){ const v=voltas.filter(x=>x&&x!==ABANDONO); return v.length?v.reduce((a,b)=>a+b,0)/v.length:null; }
+
+function statsNome(id){ return (dadosInt?.atletas||[]).find(a=>a.id===id||a.id===parseInt(id))?.nome||'#'+id; }
+
+function statsTemAbandono(voltas){ return voltas.some(v=>v===ABANDONO); }
+
+function statsTotalValido(voltas){ return voltas.filter(v=>v&&v!==ABANDONO).reduce((a,b)=>a+b,0); }
+
+function renderDashboard() {
+  if (!dadosInt) return;
+  const atletas = dadosInt.atletas || [];
+  const provas  = dadosInt.provas  || [];
+  const ativas  = provas.filter(p => p.estado === 'ativo');
+
+  document.getElementById('stats-row').innerHTML = [
+    {n: atletas.length, l: 'Atletas'},
+    {n: provas.length,  l: 'Provas'},
+    {n: ativas.length,  l: 'Ativas'},
+  ].map(s => `<div class="stat-box"><div class="stat-num">${s.n}</div><div class="stat-label">${s.l}</div></div>`).join('');
+
+  document.getElementById('dash-provas').innerHTML = ativas.length
+    ? ativas.map(p => `<div style="padding:10px 0;border-bottom:1px solid var(--sep);display:flex;align-items:center;gap:10px">
+        <strong>${p.nome}</strong>
+        <span class="badge badge-ativo">Ativo</span>
+        <span style="margin-left:auto;font-size:0.78rem;color:var(--dim)">${p.data||''}</span>
+      </div>`).join('')
+    : '<div style="color:var(--dim);font-size:0.85rem">Sem provas ativas.</div>';
+
+  // Líderes
+  let lideresHtml = '';
+  CATEGORIAS.forEach(cat => {
+    const catAtletas = atletas.filter(a => a.categoria === cat);
+    if (!catAtletas.length) return;
+    let melhor = null, melhorPts = 0;
+    catAtletas.forEach(a => {
+      const pts = calcPontosAtletaEpoca(a.id, cat);
+      if (pts > melhorPts) { melhorPts = pts; melhor = a; }
+    });
+    if (melhor && melhorPts > 0) {
+      lideresHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--sep)">
+        <span style="font-size:0.72rem;color:var(--dim);min-width:140px">${cat}</span>
+        <strong>${melhor.nome}</strong>
+        <span style="margin-left:auto;font-family:Bebas Neue,sans-serif;font-size:1.1rem;color:var(--orange)">${melhorPts} pts</span>
+      </div>`;
+    }
+  });
+  document.getElementById('dash-lideres').innerHTML = lideresHtml || '<div style="color:var(--dim);font-size:0.85rem">Sem dados de classificação.</div>';
+}
+
+window.abrirDetalheNacPistaAPista = async function(a, url, vertente) {
+  const vzg = isVzg(a.clube, a.nome);
+  document.getElementById('modal-nome').textContent = (vzg ? '🟡 ' : '') + a.nome;
+  document.getElementById('modal-meta').textContent = a.clube + ' · ' + (nacAtivo||'') + ' · A carregar...';
+  document.getElementById('modal-body').innerHTML = '<div style="padding:32px;text-align:center;color:var(--dim)">⏳ A carregar pista a pista...</div>';
+  document.getElementById('modal-overlay').classList.add('on');
+
+  try {
+    const workerUrl = WORKER_URL + '?url=' + encodeURIComponent(url);
+    const resp = await fetch(workerUrl, {signal: AbortSignal.timeout(15000)});
+    if (!resp.ok) throw new Error('Worker: ' + resp.status);
+    const htmlText = await resp.text();
+
+    // Parse da página individual do atleta (Bangolfe)
+    // Estrutura: tabela com linhas = pistas (1-18), colunas = voltas (E1..E7 ou B1..B6)
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlText, 'text/html');
+
+    // Encontrar a tabela com dados pista a pista
+    // A tabela tem: coluna 0 = nº pista, coluna 1 = nome pista, colunas 2+ = resultado por volta
+    // A penúltima linha é "Soma" com os totais por volta
+    let pistasPorVolta = []; // pistasPorVolta[voltaIdx][pistaIdx] = valor
+    let nVoltas = 0;
+    let nPistas = 0;
+    let somasPorVolta = []; // totais por volta
+
+    const tables = doc.querySelectorAll('table');
+    let encontrou = false;
+
+    for (const tbl of tables) {
+      if (encontrou) break;
+      const rows = Array.from(tbl.querySelectorAll('tr'));
+      if (rows.length < 5) continue;
+
+      // Detectar linha de cabeçalho com E1/E2.../B1/B2...
+      let headerRow = null;
+      let dataStartIdx = 0;
+      for (let ri = 0; ri < Math.min(rows.length, 5); ri++) {
+        const cells = Array.from(rows[ri].querySelectorAll('td,th')).map(c => c.textContent.trim());
+        if (cells.some(c => /^[EBF]\d+$/.test(c))) {
+          headerRow = cells;
+          dataStartIdx = ri + 1;
+          break;
+        }
+      }
+      if (!headerRow) continue;
+
+      // Identificar colunas de voltas (E1..E7 ou B1..B6 ou F1..F6)
+      const voltaCols = [];
+      headerRow.forEach((c, i) => {
+        if (/^[EBF]\d+$/.test(c)) voltaCols.push(i);
+      });
+      if (!voltaCols.length) continue;
+
+      nVoltas = voltaCols.length;
+      pistasPorVolta = Array.from({length: nVoltas}, () => []);
+
+      // Ler linhas de pistas
+      for (let ri = dataStartIdx; ri < rows.length; ri++) {
+        const cells = Array.from(rows[ri].querySelectorAll('td,th')).map(c => c.textContent.trim());
+        if (!cells.length) continue;
+
+        // Linha de Soma (totais por volta)
+        if (cells[0] === 'Soma' || cells[0] === 'Sum' || cells[0] === 'Total') {
+          somasPorVolta = voltaCols.map(ci => parseInt(cells[ci]) || 0);
+          encontrou = true;
+          break;
+        }
+
+        // Linha de pista: células[0] = nº pista (1-18)
+        const pistaNum = parseInt(cells[0]);
+        if (isNaN(pistaNum) || pistaNum < 1 || pistaNum > 18) continue;
+
+        voltaCols.forEach((ci, vi) => {
+          const val = parseInt(cells[ci]);
+          pistasPorVolta[vi].push(isNaN(val) ? null : val);
+        });
+        nPistas++;
+      }
+      if (encontrou) break;
+    }
+
+    document.getElementById('modal-meta').textContent = a.clube + ' · ' + (nacAtivo||'');
+
+    const vertCat = (dadosNac?.vertentes||{})[nacAtivo] || (isGrupoA(nacAtivo) ? 'mini' : 'peter');
+
+    let html = '';
+
+    if (encontrou && nPistas > 0 && nVoltas > 0) {
+      // Mostrar tabela pista a pista: linhas = pistas, colunas = voltas
+      const corPista = v => {
+        if (v === 1) return {c:'#16a34a', bg:'rgba(22,163,74,0.12)'};
+        if (v === 2) return {c:'#dc2626', bg:'rgba(220,38,38,0.10)'};
+        if (v != null && v >= 3) return {c:'#444', bg:'rgba(0,0,0,0.05)'};
+        return {c:'var(--dim)', bg:'transparent'};
+      };
+      const emPista = v => v===1?'🟢':v===2?'🔴':v!=null&&v>=3?'⚫':'—';
+
+      // Totais das voltas (da linha Soma ou calculados)
+      const totaisVoltas = somasPorVolta.length ? somasPorVolta
+        : pistasPorVolta.map(pv => pv.reduce((s,v) => s + (v||0), 0));
+
+      html += `<div style="overflow-x:auto;margin-bottom:12px">
+        <table style="width:100%;border-collapse:collapse;font-size:0.78rem">
+          <thead>
+            <tr style="background:#f0f3f8">
+              <th style="padding:6px 8px;text-align:left;color:var(--dim);font-size:0.65rem;letter-spacing:1px;border-bottom:2px solid var(--sep)">P</th>
+              ${Array.from({length:nVoltas},(_,i)=>`<th style="padding:6px 8px;text-align:center;color:var(--navy);font-size:0.65rem;letter-spacing:1px;border-bottom:2px solid var(--sep)">V${i+1}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>`;
+
+      for (let pi = 0; pi < nPistas; pi++) {
+        html += `<tr>
+          <td style="padding:5px 8px;font-weight:700;color:var(--dim);border-bottom:1px solid var(--sep)">${pi+1}</td>`;
+        for (let vi = 0; vi < nVoltas; vi++) {
+          const v = pistasPorVolta[vi]?.[pi];
+          const {c, bg} = corPista(v);
+          const em = emPista(v);
+          html += `<td style="padding:5px 8px;text-align:center;background:${bg};border-bottom:1px solid var(--sep)20;font-weight:700;color:${c}">${v != null ? em+' '+v : '—'}</td>`;
+        }
+        html += `</tr>`;
+      }
+
+      // Linha de totais por volta
+      html += `<tr style="border-top:2px solid var(--orange)20">
+        <td style="padding:6px 8px;font-weight:700;font-size:0.65rem;color:var(--dim);text-transform:uppercase;letter-spacing:1px">Total</td>`;
+      totaisVoltas.forEach(t => {
+        const campo = vertCat === 'mini' ? 'mV1' : 'pV1';
+        const cor = corVolta(campo, t);
+        const bg = bgVolta(campo, t);
+        const em = emojiCor(campo, t);
+        html += `<td style="padding:6px 8px;text-align:center;font-family:'Bebas Neue',sans-serif;font-size:1rem;color:${cor||'var(--orange)'};background:${bg||'transparent'}">${em} ${t}</td>`;
+      });
+      html += `</tr></tbody></table></div>`;
+
+      // Barra total geral
+      const totalGeral = a.total || totaisVoltas.reduce((s,t)=>s+t,0);
+      html += `<div style="background:var(--navy);border-radius:10px;padding:12px 18px;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:0.65rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">${nPistas} pistas · ${nVoltas} volta${nVoltas!==1?'s':''}</div>
+        <div style="text-align:right">
+          <div style="font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">Total</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--org2);line-height:1">${totalGeral}</div>
+        </div>
+      </div>`;
+
+    } else {
+      // Fallback: mostrar só totais por volta que já temos
+      abrirModalNac(a);
+      return;
+    }
+
+    html += `<div style="margin-top:10px;padding:10px;background:var(--bg);border-radius:8px;font-size:0.82rem;color:var(--silver)">
+      Posição: <strong>${a.rank}º</strong> · Total: <strong>${a.total}</strong> ·
+      ${a.dnf ? '<span style="color:var(--red)">Não terminou</span>' : a.completo ? '<span style="color:var(--green)">Completou</span>' : '<span style="color:var(--orange)">Em curso</span>'}
+      ${vzg ? ' · <span style="color:var(--orange)">🟡 Vizelgolfe</span>' : ''}
+    </div>`;
+
+    document.getElementById('modal-body').innerHTML = html;
+
+  } catch(e) {
+    // Fallback para modal simples com dados locais
+    document.getElementById('modal-overlay').classList.remove('on');
+    abrirModalNac(a);
+  }
+}
+window.abrirDetalheOuModal = function(a, vertente, provaUrl) {
+  if (a.linkAtleta) {
+    const base = provaUrl ? provaUrl.replace(/[^/]+$/, '') : (dadosNac?.url||'').replace(/[^/]+$/, '');
+    const urlCompleto = base + a.linkAtleta;
+    abrirDetalheNacPistaAPista(a, urlCompleto, vertente);
+  } else {
+    abrirModalNac(a);
+  }
+}
+
+window.statsTab = function(modo, btn) {
+  _statsModo = modo;
+  document.querySelectorAll('.stat-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  // Mostrar/esconder filtro atleta
+  const filtAtleta = document.getElementById('stats-filtro-atleta');
+  if(filtAtleta) filtAtleta.style.display = (modo==='atleta'||modo==='nacional') ? '' : 'none';
+  renderStats();
+}
+
+
+  /* — dependências adicionais — */
+window.abrirModalNac = function(a) {
+  const vzg = isVzg(a.clube, a.nome);
+  document.getElementById('modal-nome').textContent = (vzg ? '🟡 ' : '') + a.nome;
+  document.getElementById('modal-meta').textContent = a.clube + ' · ' + (nacAtivo||'');
+  const voltas = a.voltas||[];
+  const voltasDetalhe = a.voltasDetalhe||[];
+  const vertManual = (dadosNac?.vertentes||{})[nacAtivo];
+  const vertDefault = isGrupoA(nacAtivo) ? 'mini' : 'peter';
+
+  let html = '';
+  if (voltas.length) {
+    html += `<div style="margin-bottom:8px;font-size:0.65rem;color:var(--dim);letter-spacing:2px;text-transform:uppercase">Totais por Volta</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-bottom:14px">`;
+
+    voltas.forEach((v, i) => {
+      const vDet = voltasDetalhe[i];
+      const vert = vertManual || (vDet?.vertente) || vertDefault;
+      const campo = vert === 'mini' ? 'mV1' : 'pV1';
+      const cor = corVolta(campo, v);
+      const bg = bgVolta(campo, v) || 'rgba(0,0,0,0.04)';
+      const em = emojiCor(campo, v);
+      const label = vert === 'mini' ? 'Mini' : vert === 'felt' ? 'Felt' : 'Peter';
+      html += `<div style="background:${bg};border:1px solid ${cor||'var(--sep)'}40;border-radius:10px;padding:10px 8px;text-align:center">
+        <div style="font-size:0.6rem;color:var(--dim);letter-spacing:1px;text-transform:uppercase">V${i+1} ${label}</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.6rem;color:${cor||'var(--text)'};line-height:1.1">${em} ${v}</div>
+      </div>`;
+    });
+    html += `</div>`;
+
+    const totalGeral = a.total || voltas.reduce((s,v)=>s+Number(v),0);
+    html += `<div style="background:var(--navy);border-radius:10px;padding:12px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-size:0.7rem;color:rgba(255,255,255,0.5)">${voltas.join(' + ')}</div>
+      <div style="text-align:right">
+        <div style="font-size:0.6rem;color:rgba(255,255,255,0.5);letter-spacing:2px;text-transform:uppercase">Total</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--org2);line-height:1">${totalGeral}</div>
+      </div>
+    </div>`;
+  } else {
+    html += '<p style="color:var(--dim);padding:12px">Sem detalhe disponível.</p>';
+  }
+
+  html += `<div style="padding:10px;background:var(--bg);border-radius:8px;font-size:0.82rem;color:var(--silver)">
+    Posição: <strong>${a.rank}º</strong> · Total: <strong>${a.total}</strong> ·
+    ${a.dnf ? '<span style="color:var(--red)">Não terminou</span>' : a.completo ? '<span style="color:var(--green)">Completou</span>' : '<span style="color:var(--orange)">Em curso</span>'}
+    ${vzg ? ' · <span style="color:var(--orange)">🟡 Vizelgolfe</span>' : ''}
+  </div>`;
+
+  document.getElementById('modal-body').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('on');
+}
+  /* corTotal: a Consola antiga chamava-a mas nunca a definiu; aqui devolve a cor da média por volta */
+  function corTotal(total,media,campo){return corVolta(campo,media)||'var(--navy)'}
+  window.fecharModal=function(e){if(e&&e.target&&e.target.id==='modal-overlay')document.getElementById('modal-overlay').classList.remove('on')};
+  return{set(d,nac,cat){dadosInt=d;dadosNac=nac;nacAtivo=cat},renderStats:()=>window.renderStats(),renderDashboard:()=>renderDashboard()};
+})();
 
 </script>
 </body>
