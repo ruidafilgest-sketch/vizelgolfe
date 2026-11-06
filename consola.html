@@ -2157,7 +2157,18 @@ const _impIdDe = s => { s = (s || '').trim(); const m = s.match(/[?&]id=([^&#\s]
 let _imp = null;
 
 function _impCampos(prova, jornada) {
-  return prova.jornadaEspecial?.[jornada]?.tipo === 'peter4voltas' ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
+  const tp = (_imp && _imp.provaId == prova.id && _imp.jornada == jornada && _imp.tipo) ? _imp.tipo : prova.jornadaEspecial?.[jornada]?.tipo;
+  return tp === 'peter4voltas' ? ['pV1','pV2','pV3','pV4'] : ['mV1','mV2','pV1','pV2'];
+}
+window.impFormato = function(v) { if (!_imp) return; _imp.tipo = v; _impPasso2(); };
+window.impExigeHist = function(v) { if (!_imp) return; _imp.exigeHist = !!v; _impPasso2(); };
+// Já jogou alguma jornada ANTERIOR deste campeonato? (126 sozinho = «não jogou»)
+function _impJogouAntes(prova, atletaId, jornada) {
+  for (let k = 1; k < jornada; k++) {
+    const r = prova.resultados?.[k]?.[String(atletaId)] || prova.resultados?.[k]?.[atletaId];
+    if (r && ['mV1','mV2','pV1','pV2','pV3','pV4'].some(c => { const v = Number(r[c]); return v > 0 && v !== 126; })) return true;
+  }
+  return false;
 }
 function _impTemResultados(prova, jornada) {
   const j = prova.resultados?.[jornada]; if (!j) return false;
@@ -2220,6 +2231,10 @@ function _impCorresponder(nome, atletas) {
 
 function _impPasso2() {
   const prova = _impProva(), j = _imp.jornada, t = _imp.torneio;
+  if (_imp.tipo === undefined) {   // sugestão: 4 voltas Peter e nenhuma Mini -> formato «só Peter»; senão o que a jornada já tem
+    const vv = t.meta.voltas || [], nm = vv.filter(x => x.tipo === 'mini').length, np = vv.filter(x => x.tipo === 'peter').length;
+    _imp.tipo = prova.jornadaEspecial?.[j]?.tipo === 'peter4voltas' ? 'peter4voltas' : (np >= 4 && nm === 0 ? 'peter4voltas' : 'normal');
+  }
   const voltas = t.meta.voltas || [], campos = _impCampos(prova, j), p4 = campos[0] === 'pV1' && campos.length === 4;
   const minis = voltas.map((v, i) => ({ v, i })).filter(x => x.v.tipo === 'mini');
   const pets  = voltas.map((v, i) => ({ v, i })).filter(x => x.v.tipo === 'peter');
@@ -2235,21 +2250,36 @@ function _impPasso2() {
     </select></td></tr>`;
   });
   const atl = (dadosInt.atletas || []).slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
-  const jog = Object.entries(t.jogadores || {}).map(([key, g]) => ({ key, g, m: _impCorresponder(g.nome, atl) }));
-  jog.sort((a, b) => (b.m.id ? 1 : 0) - (a.m.id ? 1 : 0) || String(a.g.nome).localeCompare(String(b.g.nome), 'pt'));
-  const nOk = jog.filter(x => x.m.id).length;
+  const haAnteriores = Array.from({ length: Math.max(j - 1, 0) }, (_, i) => i + 1).some(k => _impTemResultados(prova, k));
+  if (_imp.exigeHist === undefined) _imp.exigeHist = haAnteriores;     // recomendado: só quem já joga o campeonato
+  const jog = Object.entries(t.jogadores || {}).map(([key, g]) => {
+    const m = _impCorresponder(g.nome, atl); let sel = m.id, motivo = m.id ? 'ok' : 'sem';
+    if (m.id && g.soTorneio) { sel = null; motivo = 'so'; }
+    else if (m.id && _imp.exigeHist && !_impJogouAntes(prova, m.id, j)) { sel = null; motivo = 'novo'; }
+    return { key, g, m, sel, motivo };
+  });
+  const ordM = { ok: 0, novo: 1, so: 2, sem: 3 };
+  jog.sort((a, b) => ordM[a.motivo] - ordM[b.motivo] || String(a.g.nome).localeCompare(String(b.g.nome), 'pt'));
+  const cont = { ok: 0, novo: 0, so: 0, sem: 0 }; jog.forEach(x => cont[x.motivo]++);
+  const nOk = cont.ok;
   let linhas = '';
   jog.forEach(x => {
     const vals = voltas.map((v, i) => { const n = Number(x.g.resultados?.[i]?.total); return n > 0 ? n : '–'; }).join(' · ');
     linhas += `<tr style="border-bottom:1px solid rgba(0,0,0,.08)"><td style="padding:5px 8px">${_impEsc(x.g.nome)}<div style="font-size:0.7rem;color:var(--dim)">${_impEsc(x.g.categoria || '')} · ${_impEsc(x.g.clube || '')} · ${vals}</div></td>
       <td style="padding:5px 8px"><select id="imp-j-${_impEsc(x.key)}" style="width:100%"><option value="">— ignorar —</option>
-        ${atl.map(a => `<option value="${a.id}" ${x.m.id === a.id ? 'selected' : ''}>${_impEsc(a.nome)}</option>`).join('')}</select>
-        ${x.m.id && !x.m.exato ? '<div style="font-size:0.7rem;color:#b36b00">⚠ nome aproximado: confirma</div>' : ''}</td></tr>`;
+        ${atl.map(a => `<option value="${a.id}" ${x.sel === a.id ? 'selected' : ''}>${_impEsc(a.nome)}</option>`).join('')}</select>
+        ${x.motivo === 'so' ? '<div style="font-size:0.7rem;color:#b42318">🚫 Só torneio (marcado no torneio): não é importado</div>' : ''}
+        ${x.motivo === 'novo' ? `<div style="font-size:0.7rem;color:#b36b00">⚠ Reconhecido como «${_impEsc((atl.find(a => a.id === x.m.id) || {}).nome)}», mas <b>ainda não jogou nenhuma jornada</b> do Campeonato: não é importado. Escolhe-o na lista se quiseres.</div>` : ''}
+        ${x.sel && !x.m.exato ? '<div style="font-size:0.7rem;color:#b36b00">⚠ nome aproximado: confirma</div>' : ''}</td></tr>`;
   });
   _impModal('📥 ' + _impEsc(t.meta.nome || 'Torneio'), prova.nome + ' · Jornada ' + j + (p4 ? ' · 4 voltas Peter' : ''),
-    `<div style="font-size:0.85rem;line-height:1.6;margin-bottom:8px"><b>1.</b> Liga as voltas do torneio às voltas da jornada. Onde escolheres «não se jogou», a volta fica inativa (como no ecrã normal).</div>
+    `<div style="font-size:0.85rem;line-height:1.8;margin-bottom:8px"><b>Formato desta jornada:</b>
+       <label style="margin-left:8px;white-space:nowrap"><input type="radio" name="imp-fmt" ${_imp.tipo !== 'peter4voltas' ? 'checked' : ''} onchange="impFormato('normal')"> Normal (2 Mini + 2 Peter)</label>
+       <label style="margin-left:8px;white-space:nowrap"><input type="radio" name="imp-fmt" ${_imp.tipo === 'peter4voltas' ? 'checked' : ''} onchange="impFormato('peter4voltas')"> Só Peter, 4 voltas</label></div>
+     <div style="font-size:0.85rem;line-height:1.6;margin-bottom:8px"><b>1.</b> Liga as voltas do torneio às voltas da jornada. Onde escolheres «não se jogou», a volta fica inativa (como no ecrã normal).</div>
      <table style="width:100%;font-size:0.85rem;margin-bottom:12px">${slots}</table>
-     <div style="font-size:0.85rem;line-height:1.6;margin-bottom:6px"><b>2.</b> Confirma os jogadores. <b>${nOk}</b> de ${jog.length} foram reconhecidos; quem fica em «ignorar» não é importado.</div>
+     <div style="font-size:0.85rem;line-height:1.6;margin-bottom:6px"><b>2.</b> Confirma os jogadores. <b>${nOk}</b> serão importados · ${cont.novo} sem nenhuma jornada anterior · ${cont.so} «só torneio» · ${cont.sem} sem correspondência (de ${jog.length}). Quem fica em «ignorar» não é importado.</div>
+     ${haAnteriores ? `<label style="display:block;font-size:0.85rem;line-height:1.5;margin-bottom:8px;padding:8px 10px;border:1px solid rgba(0,0,0,.14);border-radius:8px;background:rgba(184,137,43,.08)"><input type="checkbox" ${_imp.exigeHist ? 'checked' : ''} onchange="impExigeHist(this.checked)"> <b>Não importar quem ainda não jogou nenhuma jornada anterior deste campeonato</b> (recomendado: evita que convidados ou novos mudem as posições e os bónus de quem joga o campeonato todo).</label>` : ''}
      <div style="max-height:34vh;overflow:auto;border:1px solid rgba(0,0,0,.12);border-radius:8px"><table style="width:100%;font-size:0.85rem">${linhas}</table></div>
      <div class="btn-row" style="margin-top:12px"><button class="btn btn-primary" onclick="impConfirmar()">✅ Importar para a Jornada ${j}</button>
        <button class="btn btn-secondary" onclick="document.getElementById('modal-overlay').classList.remove('on')">Cancelar</button></div>`);
@@ -2280,6 +2310,8 @@ window.impConfirmar = async function() {
   if (!prova.jornadaEspecial[j]) prova.jornadaEspecial[j] = {};
   const esp = prova.jornadaEspecial[j];
   const antes = [...(esp.voltasInativas || [])];
+  const tipoAntes = esp.tipo || null;
+  if (_imp.tipo === 'peter4voltas') esp.tipo = 'peter4voltas'; else if (_imp.tipo === 'normal') delete esp.tipo;
   const inat = [...new Set([...antes.filter(c => !campos.includes(c)), ...campos.filter(c => mapa[c] === null)])];
   if (inat.length) esp.voltasInativas = inat; else delete esp.voltasInativas;
   if (!Object.keys(esp).length) delete prova.jornadaEspecial[j];
@@ -2297,7 +2329,7 @@ window.impConfirmar = async function() {
   });
   if (_isCampVizela(prova)) aplicarBonusNosResultados(prova, j, calcularBonusAuto(prova, j, atletas));
   if (!prova.origemJornada) prova.origemJornada = {};
-  prova.origemJornada[j] = { torneio: t.meta.nome || 'Torneio', id: _imp.id, importadoEm: new Date().toISOString(), jogadores: nImp, inativasAntes: antes };
+  prova.origemJornada[j] = { torneio: t.meta.nome || 'Torneio', id: _imp.id, importadoEm: new Date().toISOString(), jogadores: nImp, inativasAntes: antes, tipoAntes };
   try {
     await setDoc(doc(db, 'vizelgolfe', 'dados'), { ...dadosInt, _vzgKey: 'VZG-2026-SEC-K9x' });
     guardarRankingCalculado().catch(e => console.warn('Ranking portal não guardado:', e));
@@ -2312,7 +2344,7 @@ window.anularImportacao = async function(provaId, jornada) {
   if (!confirm(`Anular a importação de «${o.torneio}» na Jornada ${jornada}?\n\nIsto apaga TODOS os resultados desta jornada.`)) return;
   if (prova.resultados) delete prova.resultados[jornada];
   const esp = prova.jornadaEspecial?.[jornada];
-  if (esp) { if (o.inativasAntes && o.inativasAntes.length) esp.voltasInativas = [...o.inativasAntes]; else delete esp.voltasInativas; if (!Object.keys(esp).length) delete prova.jornadaEspecial[jornada]; }
+  if (esp) { if (o.inativasAntes && o.inativasAntes.length) esp.voltasInativas = [...o.inativasAntes]; else delete esp.voltasInativas; if (o.tipoAntes) esp.tipo = o.tipoAntes; else if ('tipoAntes' in o) delete esp.tipo; if (!Object.keys(esp).length) delete prova.jornadaEspecial[jornada]; }
   delete prova.origemJornada[jornada]; if (!Object.keys(prova.origemJornada).length) delete prova.origemJornada;
   try {
     await setDoc(doc(db, 'vizelgolfe', 'dados'), { ...dadosInt, _vzgKey: 'VZG-2026-SEC-K9x' });
@@ -3158,8 +3190,19 @@ function renderGerir() {
         <option value="ativo"${p.estado==='ativo'?' selected':''}>Ativo</option>
         <option value="concluido"${p.estado==='concluido'?' selected':''}>Concluído</option>
       </select>
+      ${(p.jornadas||1)>1 ? `<div style="flex-basis:100%;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:0.76rem;color:var(--dim)">Datas das jornadas: ${Array.from({length:p.jornadas},(_,i)=>i+1).map(j=>`<label style="display:inline-flex;align-items:center;gap:4px">J${j} <input type="date" value="${(p.dataJornadas&&p.dataJornadas[j])||p.data||''}" onchange="alterarDataJornada(${p.id},${j},this.value)" style="padding:3px 6px;border:1px solid var(--sep);border-radius:6px;font-size:0.76rem"></label>`).join('')}</div>` : ''}
     </div>`).join('');
 }
+
+window.alterarDataJornada = async function(id, j, val) {
+  if (!dadosInt) return;
+  const p = (dadosInt.provas||[]).find(p=>p.id==id); if (!p) return;
+  if (!p.dataJornadas) p.dataJornadas = {};
+  if (val) p.dataJornadas[j] = val; else delete p.dataJornadas[j];
+  await setDoc(doc(db,'vizelgolfe','dados'),{...dadosInt, _vzgKey:'VZG-2026-SEC-K9x'});
+  guardarRankingCalculado().catch(e=>console.warn('Ranking portal não guardado:',e));
+  mostrarNotif('Data da jornada '+j+' atualizada');
+};
 
 window.criarProva = async function() {
   if (!dadosInt) return;
