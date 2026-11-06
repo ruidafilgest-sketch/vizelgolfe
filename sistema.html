@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Vizelgolfe · Sistema</title>
+<style>
+:root{--navy:#060d18;--navy2:#0a1828;--navy3:#0f2240;--gold:#c9a84c;--gold2:#e8c675;--border:rgba(201,168,76,.22);--text:#e8eef8;--text2:#8faac8;--text3:#5a7a98;--err:#f08a7d;--ok:#7bd88f;--warn:#3a2c08}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--navy);color:var(--text);font-family:'Outfit',system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:15px;line-height:1.45;display:flex;flex-direction:column;height:100vh;height:100dvh;overflow:hidden}
+button{font:inherit;cursor:pointer}
+input,select{font:inherit;color:var(--text);background:var(--navy);border:1px solid var(--border);border-radius:8px;padding:7px 9px}
+input[type=checkbox],input[type=radio]{accent-color:var(--gold)}
+header{display:flex;align-items:center;gap:.6rem;padding:.5rem 1rem;border-bottom:1px solid var(--border);background:linear-gradient(180deg,#060d18,#0a1828)}
+header img{height:2.3rem;width:2.3rem;object-fit:contain;border-radius:50%;background:#fff}
+.ttl{font-family:'Bebas Neue',Impact,sans-serif;font-size:1.45rem;letter-spacing:.14em;color:var(--gold);line-height:1}
+.sub{font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-top:.1rem}
+.sp{flex:1}
+.hb{font-family:'Bebas Neue',Impact,sans-serif;font-size:.85rem;letter-spacing:.12em;color:#5dade2;border:1px solid rgba(46,134,193,.35);padding:.3rem .7rem;border-radius:4px;text-decoration:none;background:rgba(46,134,193,.08);white-space:nowrap}
+.hb.sair{color:var(--text2);border-color:var(--border);background:transparent}
+#estado{font-size:.74rem;color:var(--text3);white-space:nowrap}#estado.ok{color:var(--ok)}#estado.err{color:var(--err);font-weight:700}#estado.wait{color:var(--gold2)}
+#login{flex:1;display:flex;align-items:center;justify-content:center;padding:1rem}
+.cartao{width:100%;max-width:360px;background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:1.6rem 1.4rem;text-align:center}
+.cartao img{height:4rem;width:4rem;border-radius:50%;background:#fff;object-fit:contain;margin-bottom:.6rem}
+.cartao h1{font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:1.6rem;letter-spacing:.14em;color:var(--gold);margin-bottom:.2rem}
+.cartao p{font-size:.8rem;color:var(--text3);margin-bottom:1rem}
+.cartao input{width:100%;margin-bottom:.6rem}
+.cartao button{width:100%;font-weight:600;padding:.7rem;background:var(--gold);color:#060d18;border:0;border-radius:8px}
+#lmsg{min-height:1.3rem;font-size:.82rem;color:var(--err);margin-top:.6rem}
+#app{flex:1;display:none;flex-direction:column;min-height:0}
+#nav{display:flex;border-bottom:1px solid var(--border);background:rgba(6,13,24,.96);overflow-x:auto}
+#nav button{flex:1;min-width:74px;background:none;border:0;border-bottom:3px solid transparent;color:var(--text3);padding:.5rem .3rem .4rem;display:flex;flex-direction:column;align-items:center;gap:.05rem}
+#nav .ic{font-size:1.2rem;line-height:1}#nav b{font-family:'Bebas Neue',Impact,sans-serif;font-size:1rem;letter-spacing:.1em;font-weight:400;white-space:nowrap}
+#nav button.on{color:var(--gold);border-bottom-color:var(--gold);background:rgba(201,168,76,.06)}
+main{flex:1;position:relative;min-height:0}
+main>section{position:absolute;inset:0;overflow:auto;display:none;padding:1rem 1rem 4rem;-webkit-overflow-scrolling:touch}
+main>section.on{display:block}
+main>section.full{padding:0}
+main>section iframe{width:100%;height:100%;border:0;background:#fff}
+.wrap{max-width:1100px;margin:0 auto}
+h2{font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:1.35rem;letter-spacing:.08em;color:var(--gold2);margin:.2rem 0 .5rem}
+h3{font-size:1rem;color:var(--gold2);margin-bottom:.4rem}
+.nota{font-size:.82rem;color:var(--text2);margin-bottom:.8rem;line-height:1.5}
+.btn{border:1px solid var(--border);background:var(--navy2);color:var(--text);padding:7px 14px;border-radius:8px;font-size:.85rem;font-weight:600}
+.btn:hover{border-color:var(--gold)}.btn.p{background:var(--gold);color:#060d18;border-color:var(--gold)}.btn.s{padding:4px 10px;font-size:.78rem}.btn:disabled{opacity:.45;cursor:not-allowed}.btn.red{color:var(--err);border-color:#7a2a20}
+.pills{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem}
+.pills button{background:transparent;border:1px solid var(--border);color:var(--text2);border-radius:999px;padding:.3rem .95rem;font-size:.85rem}
+.pills button.on{background:var(--gold);color:#060d18;border-color:var(--gold);font-weight:600}
+.tabs2{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.8rem}
+.tabs2 button{border:1px solid var(--border);background:var(--navy2);color:var(--text2);border-radius:8px;padding:.45rem .9rem;font-weight:600;font-size:.88rem}
+.tabs2 button.on{background:var(--navy3);color:var(--gold);border-color:var(--gold)}
+.tabs2 .n{background:#d92d20;color:#fff;border-radius:20px;padding:0 7px;font-size:.72rem;margin-left:5px}
+.ctx{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:.8rem;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.ctx label{font-size:.68rem;color:var(--text3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;display:block;margin-bottom:2px}
+.cfg{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:.8rem;display:none;font-size:.88rem;color:var(--text2)}
+.cfg label.c{display:inline-flex;align-items:center;gap:6px;margin:4px 14px 4px 0}
+.al{border-radius:10px;padding:9px 13px;margin-bottom:.6rem;font-size:.88rem;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.al.w{background:var(--warn);border:1px solid var(--gold);color:var(--gold2)}.al.i{background:#10264f;border:1px solid #2c4d8a;color:#aac4f5}.al.o{background:#0f2a18;border:1px solid #1e8449;color:var(--ok)}
+.card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:.7rem}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip{border:1px solid var(--border);background:var(--navy);color:var(--text);border-radius:20px;padding:5px 12px;font-size:.84rem;font-weight:600}
+.chip.sel{background:var(--gold);color:#060d18;border-color:var(--gold)}
+.dec{color:var(--ok);font-weight:600;font-size:.88rem}
+.bloco{background:var(--navy2);border:1px solid var(--border);border-radius:12px;margin-bottom:.8rem;overflow:hidden}
+.bloco h3{margin:0;padding:8px 14px;font-size:.74rem;letter-spacing:2px;text-transform:uppercase;color:var(--gold);border-bottom:2px solid var(--gold);background:var(--navy3)}
+.tw{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{background:var(--navy3);color:var(--gold2);font-size:.72rem;padding:7px 6px;text-align:center;white-space:nowrap;letter-spacing:.4px}th.l,td.l{text-align:left}
+td{padding:5px 6px;border-top:1px solid var(--border);text-align:center;white-space:nowrap;vertical-align:middle;color:var(--text2)}
+tr:nth-child(even) td{background:rgba(15,34,64,.45)}
+td.nome{text-align:left;font-weight:600;white-space:normal;min-width:150px;color:var(--text)}td.nome em{font-style:normal;font-weight:500;font-size:.68rem;color:var(--gold);margin-left:4px}
+td.tot{font-weight:800;color:var(--text)}td.pos{font-weight:700;color:var(--text3);width:46px}td.pts{font-weight:800;color:var(--gold2);font-size:1rem}
+tr.p1 td.pos{color:#e8c675}tr.p2 td.pos{color:#b9c5d6}tr.p3 td.pos{color:#c98a5a}tr.inc td.pos{color:var(--gold);font-weight:600;font-size:.74rem}
+.vin{width:62px;text-align:center;font-weight:700;padding:6px 2px}.vin:focus{outline:2px solid var(--gold);border-color:var(--gold)}.vin.erro{border-color:#d92d20;background:#33110d}
+.inat{color:var(--text3)}
+.v{display:inline-block;min-width:34px;padding:2px 6px;border-radius:6px;font-weight:700;font-size:.84rem}
+.cv-blue{background:#12315f;color:#8db8ff}.cv-green{background:#0f3a22;color:#7bd88f}.cv-red{background:#4a1612;color:#ff9a8d}.cv-gray{background:#2a3446;color:#b6c0d0}.cv-null{color:var(--text3)}
+.b{display:inline-block;background:#3a2c08;color:var(--gold2);border:1px solid #6b5420;border-radius:20px;padding:1px 8px;font-size:.7rem;font-weight:700;margin:0 2px}
+.vzg td{background:rgba(201,168,76,.08)!important}
+.clube{display:inline-flex;align-items:center;gap:5px;font-weight:600;font-size:.82rem}.clube img{width:18px;height:18px;object-fit:contain}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem}
+.gcard{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:.25rem;cursor:pointer}
+.gcard:hover{border-color:var(--gold);background:var(--navy3)}.gcard i{font-style:normal;font-size:1.8rem;line-height:1.1}.gcard b{color:var(--gold2);font-size:1.05rem}.gcard small{color:var(--text2);font-size:.82rem}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:#0f2a18;color:#9be7ae;border:1px solid #1e8449;padding:9px 16px;border-radius:10px;font-size:.88rem;z-index:50;display:none;max-width:92vw;text-align:center}.toast.err{background:#33110d;color:#ffb4ab;border-color:#7a2a20}
+.sec-t{font-family:'Bebas Neue',Impact,sans-serif;letter-spacing:.1em;font-size:1.1rem;color:var(--gold);margin:1rem 0 .4rem;border-bottom:1px solid var(--border);padding-bottom:3px}
+.lst{display:flex;flex-direction:column;gap:6px}.lrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:8px 10px}.lrow .t{flex:1;min-width:10rem}.lrow .t small{display:block;color:var(--text3);font-size:.74rem}
+.code{background:var(--navy);color:var(--gold2);padding:.2rem .5rem;border-radius:6px;font-size:.86rem;font-family:ui-monospace,Menlo,Consolas,monospace}
+details{background:var(--navy2);border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem;padding:.1rem .9rem}summary{cursor:pointer;padding:.6rem 0;font-weight:600;color:var(--text)}details p{padding:0 0 .7rem;color:var(--text2);font-size:.88rem}
+.g-hero{background:linear-gradient(135deg,#0f2240,#0a1828);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:12px;padding:1.1rem 1.3rem;margin-bottom:1rem}.g-hero h1{font-family:'Bebas Neue',Impact,sans-serif;font-weight:400;font-size:2rem;letter-spacing:.08em;color:var(--gold);margin-bottom:.4rem}
+.g-table td b{color:var(--text)}.g-fases{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.9rem}.g-fase{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem}.g-fase ol{padding-left:1.3rem;display:flex;flex-direction:column;gap:.5rem;color:var(--text2);font-size:.88rem}.g-fase li b{color:var(--text)}
+@media (max-width:640px){main>section{padding:.7rem .6rem 4rem}.vin{width:54px}.g-table{display:block;overflow-x:auto}}
+</style>
+</head>
+<body>
+<header><img id="logo" alt=""><div><div class="ttl">VIZELGOLFE · SISTEMA</div><div class="sub">Tudo num só sítio</div></div><div class="sp"></div><span id="estado"></span><a class="hb" href="https://ruidafilgest-sketch.github.io/hub/vizelgolfe.html">HUB</a><button class="hb sair" id="bSair" style="display:none">⏻ SAIR</button></header>
+<div id="login"><div class="cartao"><img id="logo2" alt=""><h1>ENTRAR</h1><p id="lstatus">A verificar a sessão…</p><div id="lform" style="display:none"><input id="em" type="email" placeholder="Email de administrador" autocomplete="username"><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><button id="bEntrar">Entrar</button></div><div id="lmsg"></div></div></div>
+<div id="app"><nav id="nav"></nav><main>
+<section id="sec-inicio"><div class="wrap"><div class="g-hero"><h1>Bem-vindo ao Sistema Vizelgolfe</h1><p class="nota" style="margin:0;font-size:.95rem">Entras aqui <b>uma só vez</b> e tens <b>tudo</b>: Campeonato, Torneios, Nacional, TV, atletas e cópias, <b>na mesma base de dados</b> e sem pontes entre ferramentas. Este guia diz-te onde está cada coisa.</p></div>
+<h2>1 · O que queres fazer?</h2>
+<div class="grid">
+  <div class="gcard" data-ir="torneios"><i>🏌️</i><b>Fazer um torneio</b><small>Criar, inscrever, imprimir protocolos e lançar resultados.</small></div>
+  <div class="gcard" data-ir="camp"><i>🏆</i><b>Campeonato</b><small>Jornadas, bónus, desempates, ajustes, provas e classificações.</small></div>
+  <div class="gcard" data-ir="nac"><i>🇵🇹</i><b>Nacional</b><small>Ver e atualizar os resultados dos campeonatos nacionais.</small></div>
+  <div class="gcard" data-ir="ecras"><i>📺</i><b>TV e links dos atletas</b><small>O que se projeta, torneios publicados e links.</small></div>
+  <div class="gcard" data-ir="atletas"><i>👥</i><b>Atletas</b><small>A lista única de pessoas, com categoria e clube.</small></div>
+  <div class="gcard" data-ir="copia"><i>💾</i><b>Cópia de segurança</b><small>Guardar e repor tudo. Faz antes de importar para uma jornada.</small></div>
+</div>
+<h2>2 · Os teus endereços</h2>
+<div class="lst">
+  <div class="lrow"><div class="t"><b>Sistema</b> · onde mexes em tudo (pede login)<small>vizelgolfe.net/sistema.html</small></div><button class="btn s p" data-copia="https://vizelgolfe.net/sistema.html">Copiar</button></div>
+  <div class="lrow"><div class="t"><b>TV do projetor</b> · abre no PC do projetor, ecrã inteiro (F11)<small>vizelgolfe.net/publico.html?modo=tv</small></div><button class="btn s p" data-copia="https://vizelgolfe.net/publico.html?modo=tv">Copiar</button></div>
+  <div class="lrow"><div class="t"><b>Atletas e sócios</b> · o link para dar a toda a gente (só leitura)<small>vizelgolfe.net/publico.html</small></div><button class="btn s p" data-copia="https://vizelgolfe.net/publico.html">Copiar</button></div>
+</div>
+<h2>3 · Onde se vê, se altera, se insere e se passa de um lado para o outro</h2>
+<div class="bloco"><div class="tw"><table class="g-table"><thead><tr><th class="l">Quero…</th><th class="l">Vou a…</th><th class="l">Como</th></tr></thead><tbody>
+<tr><td class="l"><b>Criar</b> um torneio</td><td class="l">🏌️ Torneios</td><td class="l">Cartão "📅 Próximos torneios do calendário" → "➕ Criar torneio" (ou "+ Novo Torneio")</td></tr>
+<tr><td class="l"><b>Inscrever</b> jogadores</td><td class="l">🏌️ Torneios</td><td class="l">"👥 Lista de jogadores": marca e "Adicionar selecionados"; ou "Inscrever Jogador". Convidados: caixa 🚫 "Só torneio"</td></tr>
+<tr><td class="l"><b>Imprimir</b> protocolos</td><td class="l">🏌️ Torneios</td><td class="l">Dentro do torneio, "🖨️ Protocolos" → "🖨️ Imprimir"</td></tr>
+<tr><td class="l"><b>Lançar</b> resultados do torneio</td><td class="l">🏌️ Torneios</td><td class="l">Clica no jogador → "⛳ Por buraco" ou "Σ Por total"</td></tr>
+<tr><td class="l"><b>Mudar o formato</b> (2+2, 4 Peter…)</td><td class="l">🏌️ Torneios</td><td class="l">"⚙️ Configurar" → "Formato do dia"</td></tr>
+<tr><td class="l"><b>Passar</b> um torneio para a jornada</td><td class="l">🏆 Campeonato</td><td class="l">Jornadas → separador "📥 Importar torneio" (ou o botão "📥 Usar como jornada" dentro do torneio)</td></tr>
+<tr><td class="l"><b>Lançar</b> uma jornada à mão</td><td class="l">🏆 Campeonato</td><td class="l">Jornadas → "✍️ Lançar resultados"</td></tr>
+<tr><td class="l"><b>Decidir empates</b> / <b>ajustes</b></td><td class="l">🏆 Campeonato</td><td class="l">Jornadas → "⚖️ Desempates" e "🔧 Ajustes de pontos"</td></tr>
+<tr><td class="l"><b>Ver</b> classificações e ranking</td><td class="l">🏆 Campeonato</td><td class="l">Separador "📊 Classificações"</td></tr>
+<tr><td class="l"><b>Datas</b>, estado e nº de jornadas</td><td class="l">🏆 Campeonato</td><td class="l">Separador "🗂 Provas"</td></tr>
+<tr><td class="l"><b>Novo atleta</b></td><td class="l">👥 Atletas</td><td class="l">"Adicionar atleta"</td></tr>
+<tr><td class="l"><b>TV</b> do projetor / links</td><td class="l">📺 Ecrãs</td><td class="l">"1. O que mostrar" → "Enviar para a TV"</td></tr>
+<tr><td class="l"><b>Guardar</b> / <b>repor</b> tudo</td><td class="l">💾 Cópia</td><td class="l">"Descarregar cópia" / "Repor de um ficheiro"</td></tr>
+</tbody></table></div></div>
+<h2>4 · Dia de prova (exemplo: Magusto, que conta para a 4.ª jornada)</h2>
+<div class="g-fases">
+<div class="g-fase"><h3>Antes</h3><ol>
+<li><b>🏌️ Torneios</b> → "➕ Criar torneio" a partir do calendário. Confirma nome e data.</li>
+<li>Categorias e <b>"Formato do dia"</b> em ⚙️ Configurar (muda-se até haver resultados).</li>
+<li><b>Inscreve</b> os jogadores. Convidados e iniciantes: 🚫 <b>"Só torneio"</b>.</li>
+<li><b>🖨️ Protocolos</b>: A4, 2 por folha, escala 100%.</li></ol></div>
+<div class="g-fase"><h3>No campo</h3><ol start="5">
+<li><b>Lança</b> os resultados. Os atletas veem em direto no link deles.</li>
+<li>Chegou alguém? Inscreve-o e imprime só <b>"os que ainda não imprimi"</b>.</li>
+<li>Projetor: <b>📺 Ecrãs</b> → escolhe o torneio → "Enviar para a TV".</li></ol></div>
+<div class="g-fase"><h3>No fim</h3><ol start="8">
+<li><b>💾 Cópia</b> → "Descarregar cópia".</li>
+<li><b>🏆 Campeonato</b> → Jornadas → <b>Jornada 4</b> → "📥 Importar torneio" → escolhe o Magusto.</li>
+<li>Confirma o <b>formato</b>, as voltas e os jogadores (ficam de fora os "só torneio" e quem ainda não jogou nenhuma jornada) → "Importar".</li>
+<li><b>⚖️ Desempates</b> se houver aviso. Confere em <b>📊 Classificações</b>.</li></ol></div>
+</div>
+<h2>5 · A TV: quem gere e quem vê</h2>
+<div class="bloco"><div class="tw"><table class="g-table"><thead><tr><th></th><th class="l">Projetor no campo</th><th class="l">Atletas e sócios</th></tr></thead><tbody>
+<tr><td><b>Quem gere</b></td><td class="l">Só tu, em 📺 Ecrãs</td><td class="l">Ninguém: é só leitura</td></tr>
+<tr><td><b>Mostra</b></td><td class="l">O que escolheres e enviares</td><td class="l">Por defeito, a última jornada; cada pessoa escolhe o que ver</td></tr>
+<tr><td><b>Como</b></td><td class="l">Abrir o link da TV no PC do projetor (F11)</td><td class="l">Abrir o link; os torneios novos aparecem sozinhos</td></tr></tbody></table></div></div>
+<h2>6 · Perguntas rápidas</h2>
+<details><summary>Os protocolos saem sozinhos ao inscrever?</summary><p>Ficam sempre prontos: clicas em 🖨️ Protocolos e saem todos preenchidos (nome, clube, categoria, nº de saída, data e o ID do atleta). À mão só escreves os resultados.</p></details>
+<details><summary>O formato só se sabe no dia</summary><p>O cartão sai neutro. No dia escolhes o "Formato do dia" no torneio, e na importação escolhes "Normal" ou "Só Peter, 4 voltas".</p></details>
+<details><summary>Convidado, iniciante, ou alguém que nunca jogou o Campeonato</summary><p>Marca 🚫 "Só torneio". Quem não é atleta nunca é importado; quem é atleta mas ainda não jogou nenhuma jornada fica retido pela caixa recomendada na importação. A decisão final é sempre tua.</p></details>
+<details><summary>Importei por engano / corrigi o torneio depois</summary><p>Em Campeonato → Jornadas, clica "↩ Anular importação", corrige no torneio e importa outra vez. O Campeonato não se atualiza sozinho.</p></details>
+<details><summary>Falhou a internet</summary><p>Escreve nos cartões de papel e lança depois. O estado "A guardar…" no topo diz-te se tudo ficou guardado.</p></details>
+</div></section>
+<section id="sec-camp"><div class="wrap" id="camp-wrap"></div></section>
+<section id="sec-torneios" class="full"></section>
+<section id="sec-nac"><div class="wrap" id="nac-wrap"></div></section>
+<section id="sec-ecras"><div class="wrap" id="ecras-wrap"></div></section>
+<section id="sec-atletas"><div class="wrap" id="atl-wrap"></div></section>
+<section id="sec-copia"><div class="wrap" id="copia-wrap"></div></section>
+</main></div>
+<div class="toast" id="toast"></div>
+<script>
+/* ==========================================================================
+   MOTOR VIZELGOLFE — regras de pontuação, bónus, desempates e classificações
+   --------------------------------------------------------------------------
+   • Sem ecrãs, sem base de dados: funções puras. Recebem dados e devolvem resultados.
+   • Portado das regras que o sistema ATUAL aplica (Consola e Torneios Livres),
+     sem as alterar. Está provado por testes contra os dados reais e contra o código antigo.
+   • Um só motor para: Campeonato de Vizela, outras provas/torneios do clube, Torneios Livres.
+   ========================================================================== */
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.MotorVizelgolfe = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  /* ---------- REGRAS (configuráveis; os valores por defeito são os atuais) ---------- */
+  const REGRAS = {
+    pontuacao: [25, 18, 15, 12, 10, 8, 6, 4, 2, 1],             // pontos da 1.ª à 10.ª posição
+    grupos: {                                                    // categoria -> grupo em que se compete
+      'Homens': 'Homens', 'Juniores': 'Homens', 'Senhoras': 'Senhoras',
+      'Seniores Masculinos': 'Seniores Masculinos', 'Veteranos Masculinos': 'Veteranos Masculinos'
+    },
+    penalizacao: 126                                             // volta não jogada / abandono: conta 126
+  };
+
+  const grupoDe = (cat, regras = REGRAS) => regras.grupos[cat] || cat;
+  // Só o «Campeonato de Vizela» tem bónus (Mini, Peter, manhã/tarde e participação completa)
+  const ehCampVizela = p => !!(p.nome && p.nome.includes('Vizela') && p.tipo === 'campeonato');
+
+  /* ---------- TOTAL DA JORNADA ----------
+     Soma das voltas ATIVAS. Se faltar o valor de uma volta ativa, o atleta fica sem total (null).
+     Voltas inativas (jornadaEspecial.voltasInativas) não contam para ninguém. */
+  function camposDaJornada(prova, j) {
+    const esp = prova.jornadaEspecial?.[j];
+    return esp?.tipo === 'peter4voltas' ? ['pV1', 'pV2', 'pV3', 'pV4'] : ['mV1', 'mV2', 'pV1', 'pV2'];
+  }
+  function totalJornada(prova, j, res) {
+    if (!res) return null;
+    const inativas = prova.jornadaEspecial?.[j]?.voltasInativas || [];
+    let soma = 0, temValido = false, temVazio = false;
+    for (const c of camposDaJornada(prova, j)) {
+      if (inativas.includes(c)) continue;
+      const v = Number(res[c]);
+      if (!isNaN(v) && v > 0) { soma += v; temValido = true; } else temVazio = true;
+    }
+    if (!temValido) return null;
+    if (temVazio) return null;
+    return soma;
+  }
+
+  /* ---------- POSIÇÃO NA JORNADA (dentro do grupo) ----------
+     Menos pancadas = melhor. Empate: vale a decisão guardada em «Desempates»;
+     sem decisão, ganha o atleta com o número (id) mais baixo. */
+  function ordemGrupo(prova, j, grupo, atletas, empates, regras = REGRAS) {
+    const jRes = prova.resultados?.[j]; if (!jRes) return null;
+    const doGrupo = atletas.filter(a => grupoDe(a.categoria, regras) === grupo);
+    const totais = doGrupo.map(a => {
+      const r = jRes[String(a.id)] || jRes[a.id];
+      const t = r ? (totalJornada(prova, j, r) ?? 9999) : 9999;
+      return { id: a.id, t };
+    }).filter(x => x.t < 9999);
+    totais.sort((a, b) => {
+      if (a.t !== b.t) return a.t - b.t;
+      const k = `${prova.id}_j${j}_pos_${grupo.replace(/ /g, '_')}_${a.t}`;
+      const v = empates?.[k];
+      if (v != null) {
+        if (Array.isArray(v)) {                       // formato: ordem explícita ["id1","id2",...]
+          const ia = v.indexOf(String(a.id)), ib = v.indexOf(String(b.id));
+          if (ia !== -1 && ib !== -1) return ia - ib;
+          if (ia !== -1) return -1;
+          if (ib !== -1) return 1;
+        } else {                                      // formato: id do vencedor
+          const vid = String(v).trim();
+          const aVence = String(a.id) === vid, bVence = String(b.id) === vid;
+          if (aVence && !bVence) return -1;
+          if (bVence && !aVence) return 1;
+        }
+      }
+      return a.id - b.id;
+    });
+    return totais.map(x => x.id);
+  }
+  function posicao(prova, j, atletaId, grupo, atletas, empates, regras = REGRAS) {
+    const ordem = ordemGrupo(prova, j, grupo, atletas, empates, regras);
+    if (!ordem) return 999;
+    const i = ordem.findIndex(id => id == atletaId || id === parseInt(atletaId));
+    return i >= 0 ? i + 1 : 999;
+  }
+
+  /* ---------- BÓNUS (só Campeonato de Vizela) ----------
+     Em cada par de voltas, a melhor volta individual do grupo ganha o bónus.
+     Empate sem decisão guardada: fica em «empates» por resolver (não se atribui). */
+  function melhorVolta(res, c1, c2) {
+    const v = [Number(res[c1]) || 0, Number(res[c2]) || 0].filter(v => v > 0 && v !== 126);
+    return v.length ? Math.min(...v) : null;
+  }
+  function bonusJornada(prova, jornada, atletas, empates, regras = REGRAS) {
+    if (!ehCampVizela(prova)) return null;
+    const jRes = prova.resultados?.[jornada] || {}, empEx = empates || {};
+    const res = { bonusMini: {}, bonusPeter: {}, bonusManha: {}, bonusTarde: {}, empates: [] };
+    const grupos = [...new Set(atletas.map(a => grupoDe(a.categoria, regras)))];
+    grupos.forEach(grupo => {
+      const comRes = atletas.filter(a => grupoDe(a.categoria, regras) === grupo && (jRes[String(a.id)] || jRes[a.id]));
+      if (!comRes.length) return;
+      const p4 = prova.jornadaEspecial?.[jornada]?.tipo === 'peter4voltas';
+      const inativas = prova.jornadaEspecial?.[jornada]?.voltasInativas || [];
+      const pares = p4 ? [['bonusManha', 'pV1', 'pV2'], ['bonusTarde', 'pV3', 'pV4']] : [['bonusMini', 'mV1', 'mV2'], ['bonusPeter', 'pV1', 'pV2']];
+      pares.forEach(([key, c1, c2]) => {
+        if (inativas.includes(c1) && inativas.includes(c2)) return;
+        const rank = comRes.map(a => { const r = jRes[String(a.id)] || jRes[a.id] || {}; return { id: a.id, nome: a.nome, melhor: melhorVolta(r, c1, c2) }; })
+          .filter(x => x.melhor !== null).sort((a, b) => a.melhor - b.melhor);
+        if (!rank.length) return;
+        const mv = rank[0].melhor, emp = rank.filter(x => x.melhor === mv);
+        const keyEmp = `${prova.id}_j${jornada}_${key}_${grupo.replace(/ /g, '_')}`;
+        if (emp.length === 1) res[key][emp[0].id] = true;
+        else {
+          const rv = empEx[keyEmp];
+          if (rv) res[key][parseInt(rv)] = true;
+          else res.empates.push({ key: keyEmp, tipo: key, grupo, jornada, descricao: `Bónus J${jornada} — ${grupo}`, atletas: emp, total: mv, label: `Melhor volta: ${mv}` });
+        }
+      });
+    });
+    return res;
+  }
+  // Grava nas marcas dos resultados os bónus calculados (é daí que os pontos os leem)
+  function aplicarBonus(prova, jornada, bonusCalc) {
+    if (!bonusCalc) return; const jRes = prova.resultados?.[jornada]; if (!jRes) return;
+    Object.keys(jRes).forEach(id => { if (jRes[id]) { delete jRes[id].bonusMini; delete jRes[id].bonusPeter; delete jRes[id].bonusPeterManha; delete jRes[id].bonusPeterTarde; } });
+    const ap = (obj, campo) => Object.keys(obj || {}).forEach(id => { const r = jRes[id] || jRes[String(id)]; if (r) r[campo] = true; });
+    ap(bonusCalc.bonusMini, 'bonusMini'); ap(bonusCalc.bonusPeter, 'bonusPeter'); ap(bonusCalc.bonusManha, 'bonusPeterManha'); ap(bonusCalc.bonusTarde, 'bonusPeterTarde');
+  }
+  function recalcularBonus(estado, regras = REGRAS) {
+    const atletas = estado.atletas || [];
+    (estado.provas || []).forEach(prova => {
+      if (!ehCampVizela(prova)) return;
+      for (let j = 1; j <= (prova.jornadas || 1); j++) {
+        const jRes = prova.resultados?.[j]; if (!jRes || !Object.keys(jRes).length) continue;
+        aplicarBonus(prova, j, bonusJornada(prova, j, atletas, estado.empates, regras));
+      }
+    });
+  }
+
+  /* ---------- PONTOS ---------- */
+  const ajusteDe = (ajustes, provaId, id, j) =>
+    ajustes?.[provaId]?.[id]?.[j] ?? ajustes?.[provaId]?.[id]?.[String(j)] ?? ajustes?.[provaId]?.[String(id)]?.[j] ?? ajustes?.[provaId]?.[String(id)]?.[String(j)];
+
+  // Pontos de um atleta numa jornada: posição + bónus (ou o ajuste manual, que SUBSTITUI)
+  function pontosJornada(prova, j, atleta, estado, regras = REGRAS) {
+    const atletas = estado.atletas || [], empates = estado.empates || {}, ajustes = estado.ajustesPontos || {};
+    const rid = String(atleta.id);
+    const ajJ = ajusteDe(ajustes, prova.id, atleta.id, j);
+    const res = prova.resultados?.[j]?.[rid] || prova.resultados?.[j]?.[atleta.id];
+    const total = totalJornada(prova, j, res);
+    if (total == null && ajJ == null) return null;                       // não participou
+    const grupo = grupoDe(atleta.categoria, regras);
+    const pos = ajJ != null ? null : posicao(prova, j, atleta.id, grupo, atletas, empates, regras);
+    let pontos;
+    if (ajJ != null) pontos = Number(ajJ);
+    else {
+      pontos = (pos >= 1 && pos <= regras.pontuacao.length) ? regras.pontuacao[pos - 1] : 0;
+      if (ehCampVizela(prova) && res) {
+        const b = prova.bonusMini || 1;
+        if (res.bonusMini) pontos += b; if (res.bonusPeter) pontos += b;
+        if (res.bonusPeterManha) pontos += b; if (res.bonusPeterTarde) pontos += b;
+      }
+    }
+    return { prova: prova.nome, tipo: prova.tipo || 'torneio', jornada: j, data: prova.dataJornadas?.[j] || prova.data || '',
+             total: total ?? 0, pos: pos || null, pontos, ajuste: ajJ != null };
+  }
+  const bonusCompleto = (prova, atletaId) => {
+    if (!(ehCampVizela(prova) && prova.bonusCompleto)) return 0;
+    const jPart = Object.keys(prova.resultados || {}).filter(jk => {
+      const r = prova.resultados[jk]?.[String(atletaId)] || prova.resultados[jk]?.[atletaId];
+      return r && totalJornada(prova, parseInt(jk), r) != null;
+    }).length;
+    return jPart >= (prova.jornadas || 1) ? prova.bonusCompleto : 0;
+  };
+
+  /* ---------- RANKING ANUAL ----------
+     Soma os pontos de TODAS as provas (Campeonato e torneios), mais o bónus de participação completa. */
+  function rankingAnual(estado, regras = REGRAS) {
+    const ranking = {};
+    (estado.atletas || []).forEach(a => {
+      const participacoes = []; let totalPontos = 0;
+      (estado.provas || []).forEach(prova => {
+        for (let j = 1; j <= (prova.jornadas || 1); j++) {
+          const p = pontosJornada(prova, j, a, estado, regras);
+          if (!p) continue; participacoes.push(p); totalPontos += p.pontos;
+        }
+        totalPontos += bonusCompleto(prova, a.id);
+      });
+      if (participacoes.length > 0) ranking[String(a.id)] = { nome: a.nome, categoria: a.categoria, totalPontos, participacoes };
+    });
+    return ranking;
+  }
+  // Pontos acumulados de um atleta (usado em ecrãs de estatísticas)
+  function pontosAtletaEpoca(estado, atletaId, categoria, regras = REGRAS) {
+    const a = (estado.atletas || []).find(x => x.id == atletaId) || { id: atletaId, categoria };
+    let pts = 0;
+    (estado.provas || []).forEach(prova => {
+      for (let j = 1; j <= (prova.jornadas || 1); j++) { const p = pontosJornada(prova, j, { ...a, categoria }, estado, regras); if (p) pts += p.pontos; }
+      pts += bonusCompleto(prova, atletaId);
+    });
+    return pts;
+  }
+
+  /* ---------- CLASSIFICAÇÃO DE UMA JORNADA (para ecrãs) ---------- */
+  function classificacaoJornada(prova, j, estado, regras = REGRAS) {
+    const atletas = estado.atletas || [];
+    const grupos = [...new Set(atletas.map(a => grupoDe(a.categoria, regras)))];
+    return grupos.map(grupo => {
+      const ordem = ordemGrupo(prova, j, grupo, atletas, estado.empates || {}, regras) || [];
+      return { grupo, linhas: ordem.map((id, i) => {
+        const a = atletas.find(x => x.id === id), res = prova.resultados[j][String(id)] || prova.resultados[j][id];
+        const p = pontosJornada(prova, j, a, estado, regras);
+        return { pos: i + 1, id, nome: a.nome, categoria: a.categoria, total: totalJornada(prova, j, res), pontos: p ? p.pontos : 0,
+                 bonus: { mini: !!res.bonusMini, peter: !!res.bonusPeter, manha: !!res.bonusPeterManha, tarde: !!res.bonusPeterTarde } };
+      }) };
+    }).filter(g => g.linhas.length);
+  }
+
+  /* ==========================================================================
+     TORNEIOS LIVRES (categorias e voltas à escolha; sem pontos: ordena por pancadas)
+     ========================================================================== */
+  const totalVoltaLivre = (resultados, i) => parseInt(resultados?.[i]?.total) || 0;
+  const totalGeralLivre = (resultados, voltas) => voltas.reduce((acc, _, i) => acc + totalVoltaLivre(resultados, i), 0);
+  const voltasCompletadas = (resultados, voltas) => voltas.filter((v, i) => totalVoltaLivre(resultados, i) > 0).length;
+  // Volta «em curso»: lançada buraco a buraco e ainda sem os 18 buracos preenchidos
+  function estadoVoltaLivre(resultados, i) {
+    const r = resultados?.[i]; if (!r) return 'por jogar';
+    if (r.modo === 'total' || !Array.isArray(r.buracos)) return (parseInt(r.total) > 0) ? 'completa' : 'por jogar';
+    const n = r.buracos.filter(x => x !== '' && x != null).length;
+    return n === 0 ? 'por jogar' : n >= 18 ? 'completa' : 'em curso';
+  }
+  // Por categoria: mais voltas completadas primeiro; depois menos pancadas; sem resultados, por ordem de inscrição
+  function classificacaoLivre(torneio) {
+    const voltas = torneio.meta?.voltas || [], cats = torneio.meta?.categorias || [];
+    const jogadores = Object.entries(torneio.jogadores || {});
+    return cats.map(cat => {
+      const entradas = jogadores.filter(([, j]) => j.categoria === cat);
+      entradas.sort((a, b) => {
+        const compA = voltasCompletadas(a[1].resultados, voltas), compB = voltasCompletadas(b[1].resultados, voltas);
+        if (compA !== compB) return compB - compA;
+        if (compA === 0) return (a[1].criadoEm || '').localeCompare(b[1].criadoEm || '');
+        return totalGeralLivre(a[1].resultados, voltas) - totalGeralLivre(b[1].resultados, voltas);
+      });
+      return { categoria: cat, jogadores: entradas.map(([key, j], idx) => ({
+        key, pos: idx + 1, nome: j.nome, clube: j.clube || '', completadas: voltasCompletadas(j.resultados, voltas),
+        voltas: voltas.map((v, i) => totalVoltaLivre(j.resultados, i)), total: totalGeralLivre(j.resultados, voltas) })) };
+    });
+  }
+
+
+  /* ==========================================================================
+     DESEMPATES POR DECIDIR (posição e bónus) — o sistema novo AVISA sempre
+     ========================================================================== */
+  function desempatesJornada(prova, j, estado, regras = REGRAS) {
+    const atletas = estado.atletas || [], emp = estado.empates || {}, out = { posicoes: [], bonus: [] };
+    const jr = prova.resultados?.[j]; if (!jr) return out;
+    const grupos = [...new Set(atletas.map(a => grupoDe(a.categoria, regras)))];
+    grupos.forEach(grupo => {
+      const lista = atletas.filter(a => grupoDe(a.categoria, regras) === grupo).map(a => {
+        const r = jr[String(a.id)] || jr[a.id]; const t = r ? totalJornada(prova, j, r) : null;
+        return t == null ? null : { id: a.id, nome: a.nome, t };
+      }).filter(Boolean).sort((a, b) => a.t - b.t);
+      let i = 0;
+      while (i < lista.length) {
+        let k = i; while (k + 1 < lista.length && lista[k + 1].t === lista[i].t) k++;
+        if (k > i && i + 1 <= regras.pontuacao.length) {      // só interessa se há pontos em jogo
+          const key = `${prova.id}_j${j}_pos_${grupo.replace(/ /g, '_')}_${lista[i].t}`;
+          out.posicoes.push({ key, grupo, total: lista[i].t, inicio: i + 1, atletas: lista.slice(i, k + 1).map(x => ({ id: x.id, nome: x.nome })), decisao: emp[key] == null ? null : emp[key] });
+        }
+        i = k + 1;
+      }
+      if (ehCampVizela(prova)) {
+        const comRes = atletas.filter(a => grupoDe(a.categoria, regras) === grupo && (jr[String(a.id)] || jr[a.id]));
+        if (!comRes.length) return;
+        const p4 = prova.jornadaEspecial?.[j]?.tipo === 'peter4voltas', inat = prova.jornadaEspecial?.[j]?.voltasInativas || [];
+        const pares = p4 ? [['bonusManha', 'pV1', 'pV2'], ['bonusTarde', 'pV3', 'pV4']] : [['bonusMini', 'mV1', 'mV2'], ['bonusPeter', 'pV1', 'pV2']];
+        pares.forEach(([key, c1, c2]) => {
+          if (inat.includes(c1) && inat.includes(c2)) return;
+          const rank = comRes.map(a => { const r = jr[String(a.id)] || jr[a.id] || {}; return { id: a.id, nome: a.nome, melhor: melhorVolta(r, c1, c2) }; })
+            .filter(x => x.melhor !== null).sort((a, b) => a.melhor - b.melhor);
+          if (!rank.length) return;
+          const mv = rank[0].melhor, e = rank.filter(x => x.melhor === mv);
+          if (e.length > 1) { const k2 = `${prova.id}_j${j}_${key}_${grupo.replace(/ /g, '_')}`;
+            out.bonus.push({ key: k2, tipo: key, grupo, melhorVolta: mv, atletas: e.map(x => ({ id: x.id, nome: x.nome })), decisao: emp[k2] ? String(emp[k2]) : null }); }
+        });
+      }
+    });
+    return out;
+  }
+
+  /* ==========================================================================
+     IMPORTAR UM TORNEIO LIVRE PARA UMA JORNADA (as regras de associar voltas e jogadores)
+     ========================================================================== */
+  const normNome = s => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+  const CAMPOS_TODOS = ['mV1', 'mV2', 'pV1', 'pV2', 'pV3', 'pV4'];
+  function temResultados(prova, j) {
+    const jr = prova.resultados?.[j]; if (!jr) return false;
+    return Object.values(jr).some(r => r && CAMPOS_TODOS.some(c => { const v = Number(r[c]); return v > 0 && v !== 126; }));
+  }
+  // Liga um nome do torneio a um atleta: nome exato, ou nome contido (2+ palavras) se só houver um candidato
+  function casarJogador(nome, atletas) {
+    const n = normNome(nome); if (!n) return { id: null };
+    const exato = atletas.find(a => normNome(a.nome) === n); if (exato) return { id: exato.id, exato: true };
+    const tk = n.split(' ');
+    const cand = atletas.filter(a => { const an = normNome(a.nome).split(' '); const [c, l] = tk.length <= an.length ? [tk, an] : [an, tk]; return c.length >= 2 && c.every(x => l.includes(x)); });
+    return cand.length === 1 ? { id: cand[0].id, exato: false } : { id: null };
+  }
+  // Sugestão: Mini com Mini, Peter com Peter, pela ordem (null = «não se jogou»)
+  function sugerirMapa(torneio, prova, j) {
+    const campos = camposDaJornada(prova, j), voltas = torneio.meta?.voltas || [], p4 = campos.length === 4 && campos[0] === 'pV1';
+    const minis = voltas.map((v, i) => ({ v, i })).filter(x => x.v.tipo === 'mini'), pets = voltas.map((v, i) => ({ v, i })).filter(x => x.v.tipo === 'peter');
+    const sug = {};
+    if (p4) campos.forEach((c, k) => { sug[c] = pets[k] ? pets[k].i : null; });
+    else { sug.mV1 = minis[0] ? minis[0].i : null; sug.mV2 = minis[1] ? minis[1].i : null; sug.pV1 = pets[0] ? pets[0].i : null; sug.pV2 = pets[1] ? pets[1].i : null; }
+    return sug;
+  }
+
+  // Quem já jogou alguma jornada ANTERIOR desta prova? (126 sozinho não conta: é «não jogou»)
+  function jogouAntes(prova, atletaId, j) {
+    for (let k = 1; k < j; k++) {
+      const r = prova.resultados?.[k]?.[String(atletaId)] || prova.resultados?.[k]?.[atletaId];
+      if (r && CAMPOS_TODOS.some(c => { const v = Number(r[c]); return v > 0 && v !== 126; })) return true;
+    }
+    return false;
+  }
+  // O «travão» da importação: quem NÃO deve ser importado para a jornada, e porquê.
+  //   sem  = não é atleta da Consola (fica de fora)        so   = marcado «só torneio» no torneio
+  //   novo = é atleta, mas nunca jogou uma jornada anterior (se exigeHistorico)      ok = importa
+  function ligacoesSugeridas(torneio, estado, provaId, j, opc = {}) {
+    const prova = (estado.provas || []).find(p => p.id == provaId), atletas = estado.atletas || [];
+    const haAnteriores = prova ? Array.from({ length: Math.max(j - 1, 0) }, (_, i) => i + 1).some(k => temResultados(prova, k)) : false;
+    const exige = opc.exigeHistorico === undefined ? haAnteriores : !!opc.exigeHistorico;
+    const lig = {}, motivo = {}, reconhecido = {};
+    Object.entries(torneio.jogadores || {}).forEach(([key, g]) => {
+      const m = casarJogador(g.nome, atletas); reconhecido[key] = m.id || null;
+      if (!m.id) { lig[key] = ''; motivo[key] = 'sem'; }
+      else if (g.soTorneio) { lig[key] = ''; motivo[key] = 'so'; }
+      else if (exige && prova && !jogouAntes(prova, m.id, j)) { lig[key] = ''; motivo[key] = 'novo'; }
+      else { lig[key] = m.id; motivo[key] = 'ok'; }
+    });
+    return { lig, motivo, reconhecido, exigeHistorico: exige, haAnteriores };
+  }
+
+  // mapa: {campoDaJornada: índice da volta do torneio | null}; ligacoes: {chaveDoJogador: idDoAtleta | ''}
+  function importarTorneio(estado, provaId, j, torneio, torneioId, mapa, ligacoes, agora, opc) {
+    const prova = (estado.provas || []).find(p => p.id == provaId); if (!prova) return { ok: false, erro: 'Prova não encontrada.' };
+    if (temResultados(prova, j)) return { ok: false, erro: 'Esta jornada já tem resultados. A importação só funciona numa jornada vazia.' };
+    const tipoNovo = opc && opc.tipo;       // 'normal' | 'peter4voltas' | undefined (mantém o que a jornada já tem)
+    const provaT = tipoNovo ? { ...prova, jornadaEspecial: { ...(prova.jornadaEspecial || {}), [j]: { ...(prova.jornadaEspecial?.[j] || {}), tipo: tipoNovo === 'peter4voltas' ? 'peter4voltas' : undefined } } } : prova;
+    const campos = camposDaJornada(provaT, j), nulo = v => v === null || v === undefined || v === '';
+    const usados = campos.map(c => mapa[c]).filter(v => !nulo(v)).map(Number);
+    if (!usados.length) return { ok: false, erro: 'Liga pelo menos uma volta do torneio.' };
+    if (new Set(usados).size !== usados.length) return { ok: false, erro: 'A mesma volta do torneio está ligada a duas voltas da jornada.' };
+    const escolha = {}, vistos = new Set(); let repetido = false;
+    Object.entries(torneio.jogadores || {}).forEach(([key, g]) => {
+      const sel = ligacoes[key]; if (nulo(sel)) return;
+      if (vistos.has(String(sel))) { repetido = true; return; } vistos.add(String(sel));
+      const vals = {}; campos.forEach(c => { if (nulo(mapa[c])) return; const v = Number(g.resultados?.[Number(mapa[c])]?.total); if (v > 0) vals[c] = v; });
+      escolha[String(sel)] = vals;
+    });
+    if (repetido) return { ok: false, erro: 'Dois jogadores do torneio estão ligados ao mesmo atleta.' };
+    const nImp = Object.keys(escolha).length; if (!nImp) return { ok: false, erro: 'Nenhum jogador do torneio foi ligado a um atleta.' };
+    if (!prova.jornadaEspecial) prova.jornadaEspecial = {};
+    if (!prova.jornadaEspecial[j]) prova.jornadaEspecial[j] = {};
+    const esp = prova.jornadaEspecial[j], antes = [...(esp.voltasInativas || [])], tipoAntes = esp.tipo || null;
+    if (tipoNovo === 'peter4voltas') esp.tipo = 'peter4voltas'; else if (tipoNovo === 'normal') delete esp.tipo;
+    const inat = [...new Set([...antes.filter(c => !campos.includes(c)), ...campos.filter(c => nulo(mapa[c]))])];
+    if (inat.length) esp.voltasInativas = inat; else delete esp.voltasInativas;
+    if (!Object.keys(esp).length) delete prova.jornadaEspecial[j];
+    if (!prova.resultados) prova.resultados = {};
+    if (!prova.resultados[j]) prova.resultados[j] = {};
+    const jRes = prova.resultados[j], atletas = estado.atletas || [];
+    atletas.forEach(a => {
+      const vals = {}; let temAlgum = false;
+      campos.forEach(c => {
+        if (inat.includes(c)) { vals[c] = 126; temAlgum = true; return; }
+        const v = escolha[String(a.id)]?.[c]; if (v > 0) { vals[c] = v; temAlgum = true; }
+      });
+      if (temAlgum) { const existing = jRes[String(a.id)] || jRes[a.id] || {}; jRes[String(a.id)] = { ...existing, ...vals }; }
+      else { delete jRes[String(a.id)]; delete jRes[a.id]; }
+    });
+    if (ehCampVizela(prova)) aplicarBonus(prova, j, bonusJornada(prova, j, atletas, estado.empates));
+    if (!prova.origemJornada) prova.origemJornada = {};
+    prova.origemJornada[j] = { torneio: torneio.meta?.nome || 'Torneio', id: torneioId, importadoEm: agora || new Date().toISOString(), jogadores: nImp, inativasAntes: antes, tipoAntes };
+    return { ok: true, importados: nImp };
+  }
+  function anularImportacao(estado, provaId, j) {
+    const prova = (estado.provas || []).find(p => p.id == provaId); const o = prova?.origemJornada?.[j]; if (!o) return { ok: false, erro: 'Esta jornada não foi importada.' };
+    if (prova.resultados) delete prova.resultados[j];
+    const esp = prova.jornadaEspecial?.[j];
+    if (esp) { if (o.inativasAntes && o.inativasAntes.length) esp.voltasInativas = [...o.inativasAntes]; else delete esp.voltasInativas; if (o.tipoAntes) esp.tipo = o.tipoAntes; else if ('tipoAntes' in o) delete esp.tipo; if (!Object.keys(esp).length) delete prova.jornadaEspecial[j]; }
+    delete prova.origemJornada[j]; if (!Object.keys(prova.origemJornada).length) delete prova.origemJornada;
+    return { ok: true };
+  }
+
+  return { REGRAS, grupoDe, ehCampVizela, camposDaJornada, totalJornada, ordemGrupo, posicao, melhorVolta,
+           bonusJornada, aplicarBonus, recalcularBonus, pontosJornada, bonusCompleto, rankingAnual, pontosAtletaEpoca,
+           classificacaoJornada, desempatesJornada, normNome, temResultados, casarJogador, sugerirMapa, jogouAntes, ligacoesSugeridas, importarTorneio, anularImportacao, totalVoltaLivre, totalGeralLivre, voltasCompletadas, estadoVoltaLivre, classificacaoLivre };
+});
+
+</script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getDatabase, ref, get, update, remove, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+const CFG={apiKey:"AIzaSyBZEkEaZ1lb1O2mFLnlCV6pulBq4cDjAqQ",authDomain:"vizelgolfe-portal.firebaseapp.com",databaseURL:"https://vizelgolfe-portal-default-rtdb.europe-west1.firebasedatabase.app",projectId:"vizelgolfe-portal",storageBucket:"vizelgolfe-portal.firebasestorage.app",messagingSenderId:"651151089287",appId:"1:651151089287:web:d7f044bbb6c64f2e8fa222"};
+const ADMIN_UID='pId7gclO7OUpwwIjSr2cXOZvhq43',COL='sis',ROOT='/portal/torneiosLivres';
+const app=initializeApp(CFG),auth=getAuth(app),fs=getFirestore(app),rt=getDatabase(app);
+const M=window.MotorVizelgolfe;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const fdata=iso=>{const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})/);return m?m[3]+'/'+m[2]+'/'+m[1]:(iso||'')};
+const LOGO='data:image/png;base64,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';$('logo').src=LOGO;$('logo2').src=LOGO;
+let toastT=null;
+function toast(m,err){const t=$('toast');t.textContent=m;t.className='toast'+(err?' err':'');t.style.display='block';clearTimeout(toastT);toastT=setTimeout(()=>t.style.display='none',4200)}
+
+/* ---------- estado e guardar automático ---------- */
+let D=null,NAC=null,CTRL=null,TORN={},DEXISTE=false;
+const ST={sujo:false,aGuardar:false,erro:null,v:0,tm:null};
+const dadosVazio=()=>({atletas:[],provas:[],empates:{},ajustesPontos:{},proximoProvaId:1});
+function normalizar(d){d.atletas??=[];d.provas??=[];d.empates??={};d.ajustesPontos??={};d.provas.forEach(p=>{p.resultados??={}});return d}
+function renderEstado(){const e=$('estado');if(ST.erro){e.className='err';e.textContent='⚠ Não guardado: '+ST.erro}else if(ST.sujo||ST.aGuardar){e.className='wait';e.textContent='● A guardar…'}else{e.className='ok';e.textContent='● Tudo guardado'}}
+function marcarSujo(){ST.sujo=true;ST.erro=null;renderEstado();clearTimeout(ST.tm);ST.tm=setTimeout(guardar,1200)}
+async function guardar(){
+  if(ST.aGuardar||!ST.sujo)return;ST.aGuardar=true;ST.sujo=false;renderEstado();
+  try{ST.v=Date.now();D._v=ST.v;await setDoc(doc(fs,COL,'dados'),clone(D));
+    await setDoc(doc(fs,COL,'ranking_portal'),{ranking:M.rankingAnual(D),atualizadoEm:new Date().toISOString()});ST.erro=null;DEXISTE=true}
+  catch(e){ST.erro=(e&&e.code)||(e&&e.message)||'erro';ST.sujo=true}
+  ST.aGuardar=false;renderEstado();
+  if(ST.sujo){clearTimeout(ST.tm);ST.tm=setTimeout(guardar,ST.erro?8000:300)}
+}
+addEventListener('beforeunload',e=>{if(ST.sujo||ST.aGuardar){e.preventDefault();e.returnValue=''}});
+window.__guardarJa=async()=>{clearTimeout(ST.tm);await guardar()};
+
+/* ---------- login ---------- */
+async function entrar(){try{const c=await signInWithEmailAndPassword(auth,$('em').value.trim(),$('pw').value);if(c.user.uid!==ADMIN_UID){await signOut(auth);throw new Error('nao-admin')}}catch(e){$('lmsg').textContent='Email ou password incorretos, ou esta conta não é de administrador.'}}
+$('bEntrar').onclick=entrar;$('pw').addEventListener('keydown',e=>{if(e.key==='Enter')entrar()});$('bSair').onclick=()=>signOut(auth);
+function mostrarLogin(){$('login').style.display='flex';$('app').style.display='none';$('bSair').style.display='none';$('lstatus').textContent='Entra com a conta de administrador.';$('lform').style.display='block'}
+let ABERTO=false;
+onAuthStateChanged(auth,u=>{if(u&&u.uid===ADMIN_UID){if(!ABERTO)abrir()}else{ABERTO=false;mostrarLogin()}});
+function abrir(){ABERTO=true;$('login').style.display='none';$('app').style.display='flex';$('bSair').style.display='';try{sessionStorage.setItem('vzgAdmin','1')}catch(e){}
+  montarNav();ouvir();irHash();renderEstado()}
+
+/* ---------- ligação aos dados ---------- */
+const ctrlPadrao=()=>({fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},nacional:{chave:'atual'},categoria:'',publicados:[],ocultas:[]});
+function ouvir(){
+  const falha=e=>{ST.erro='sem ligação à base de dados ('+((e&&e.code)||'erro')+')';renderEstado()};
+  onSnapshot(doc(fs,COL,'dados'),s=>{if(ST.sujo||ST.aGuardar)return;const d=s.exists()?s.data():null;if(d&&d._v&&d._v===ST.v)return;D=normalizar(d||dadosVazio());DEXISTE=!!d;iniciarContexto();renderAtual();renderBanner()},falha);
+  onSnapshot(doc(fs,COL,'nacional'),s=>{NAC=s.exists()?s.data():null;if(SEC==='nac')renderNac();if(SEC==='ecras')renderEcras()},falha);
+  onSnapshot(doc(fs,COL,'tv_controlo'),s=>{CTRL=Object.assign(ctrlPadrao(),s.exists()?s.data():{});CTRL.publicados??=[];CTRL.ocultas??=[];if(SEC==='ecras')renderEcras();avaliarPublicacao()},falha);
+  onValue(ref(rt,ROOT),s=>{TORN=s.val()||{};if(SEC==='camp'&&CAMP.tab==='imp'&&CAMP.sub==='jorn')renderImportar();if(SEC==='ecras')renderEcras();avaliarPublicacao()},e=>{});
+}
+async function gravarCtrl(parcial){CTRL=Object.assign(CTRL||ctrlPadrao(),parcial);await setDoc(doc(fs,COL,'tv_controlo'),Object.assign({},clone(CTRL),{atualizadoEm:new Date().toISOString()}))}
+
+/* ---------- navegação ---------- */
+const SECS=[['inicio','🏠','Início'],['camp','🏆','Campeonato'],['torneios','🏌️','Torneios'],['nac','🇵🇹','Nacional'],['ecras','📺','Ecrãs'],['atletas','👥','Atletas'],['copia','💾','Cópia']];
+let SEC='inicio';
+function montarNav(){$('nav').innerHTML=SECS.map(([k,i,n])=>'<button data-s="'+k+'"><span class="ic">'+i+'</span><b>'+n+'</b></button>').join('');$('nav').onclick=e=>{const b=e.target.closest('[data-s]');if(b)ir(b.dataset.s)}}
+function ir(s){
+  if(!SECS.some(x=>x[0]===s))return;SEC=s;
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
+  document.querySelectorAll('main>section').forEach(x=>x.classList.toggle('on',x.id==='sec-'+s));
+  if(s==='torneios'&&!$('f-torneios')){const f=document.createElement('iframe');f.id='f-torneios';f.src='sistema-torneios.html';f.title='Torneios';f.allow='clipboard-write; fullscreen';$('sec-torneios').appendChild(f)}
+  renderAtual();try{history.replaceState(null,'','#'+s)}catch(e){}
+}
+function irHash(){const h=(location.hash||'').slice(1);ir(SECS.some(x=>x[0]===h)?h:'inicio')}
+function renderAtual(){
+  if(!D){const w={camp:'camp-wrap',nac:'nac-wrap',ecras:'ecras-wrap',atletas:'atl-wrap',copia:'copia-wrap'}[SEC];if(w)$(w).innerHTML='<div class="nota">A ligar à base de dados…</div>';return}
+  ({camp:renderCamp,nac:renderNac,ecras:renderEcras,atletas:renderAtletas,copia:renderCopia}[SEC]||(()=>{}))()}
+function renderBanner(){
+  let b=$('banner-vazio');
+  if(!DEXISTE&&D){if(!b){b=document.createElement('div');b.id='banner-vazio';b.className='al w';b.innerHTML='⚠️ <span>Ainda <b>não há dados</b> no sistema novo. Vai a <b>💾 Cópia → Importar do sistema antigo</b> para trazer o que já tens.</span> <button class="btn s p" data-ir="copia">Abrir Cópia</button>';$('sec-inicio').querySelector('.wrap').prepend(b)}}
+  else if(b)b.remove()}
+$('sec-inicio').addEventListener('click',ev=>{
+  const c=ev.target.closest('[data-copia]');if(c){const u=c.dataset.copia,o=c.textContent;navigator.clipboard.writeText(u).then(()=>{c.textContent='Copiado ✓'}).catch(()=>prompt('Copia o link:',u));setTimeout(()=>c.textContent=o,1800);return}
+  const d=ev.target.closest('[data-ir]');if(d)ir(d.dataset.ir)});
+
+/* ---------- Campeonato ---------- */
+const CAMP={sub:'jorn',p:null,j:1,tab:'lancar',cp:'__anual__',cv:'geral',ORD:{}};
+const IMP={id:null,mapa:{},lig:{},motivo:{},tipo:undefined,exige:undefined,hab:false};
+const NOME_V={mV1:'Mini 1',mV2:'Mini 2',pV1:'Peter 1',pV2:'Peter 2',pV3:'Peter 3',pV4:'Peter 4'};
+const NOME_V4={pV1:'Peter 1 (manhã)',pV2:'Peter 2 (manhã)',pV3:'Peter 3 (tarde)',pV4:'Peter 4 (tarde)'};
+const ORDEM_G=['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos'];
+const CATEGORIAS=['Homens','Senhoras','Seniores Masculinos','Veteranos Masculinos','Juniores'];
+const provaC=()=>D.provas.find(p=>p.id==CAMP.p);
+const nomeVolta=(p,j,c)=>(p.jornadaEspecial?.[j]?.tipo==='peter4voltas'?NOME_V4[c]:NOME_V[c])||c;
+const ativos=(p,j)=>{const inat=p.jornadaEspecial?.[j]?.voltasInativas||[];return M.camposDaJornada(p,j).filter(c=>!inat.includes(c))};
+const temRes=(p,j)=>!!p.resultados?.[j]&&Object.keys(p.resultados[j]).length>0;
+function iniciarContexto(){
+  if(!D.provas.length){CAMP.p=null;return}
+  if(!provaC()){const c=D.provas.find(p=>p.tipo==='campeonato'&&p.estado==='ativo')||D.provas.find(p=>p.tipo==='campeonato')||D.provas[0];CAMP.p=c.id;let j=1;for(let k=1;k<=(c.jornadas||1);k++){if(!M.temResultados(c,k)){j=k;break}j=k}CAMP.j=j}
+  const p=provaC();if(CAMP.j>(p.jornadas||1))CAMP.j=1}
+function renderCamp(){
+  const w=$('camp-wrap');
+  const sub=[['jorn','📅 Jornadas'],['cls','📊 Classificações'],['provas','🗂 Provas']];
+  w.innerHTML='<div class="pills" id="c-sub">'+sub.map(([k,n])=>'<button data-sub="'+k+'" class="'+(CAMP.sub===k?'on':'')+'">'+n+'</button>').join('')+'</div><div id="c-corpo"></div>';
+  if(CAMP.sub==='jorn')renderJornadas();else if(CAMP.sub==='cls')renderClass();else renderProvas()}
+
+/* ----- Jornadas ----- */
+function pendentes(){const d=M.desempatesJornada(provaC(),CAMP.j,D);return{d,n:d.posicoes.filter(x=>x.decisao==null).length+d.bonus.filter(x=>x.decisao==null).length}}
+function renderJornadas(){
+  const c=$('c-corpo');
+  if(!provaC()){c.innerHTML='<div class="card">Ainda não há provas. Cria uma em <b>🗂 Provas</b>.</div>';return}
+  const p=provaC();
+  c.innerHTML='<div class="ctx"><div><label>Prova</label><select id="c-prova">'+D.provas.map(x=>'<option value="'+x.id+'"'+(x.id==CAMP.p?' selected':'')+'>'+esc(x.nome)+'</option>').join('')+'</select></div>'+
+    '<div><label>Jornada</label><select id="c-jor">'+Array.from({length:p.jornadas||1},(_,i)=>i+1).map(j=>'<option value="'+j+'"'+(j==CAMP.j?' selected':'')+'>Jornada '+j+(p.dataJornadas?.[j]?' · '+fdata(p.dataJornadas[j]):'')+' — '+(M.temResultados(p,j)?'com resultados':'vazia')+'</option>').join('')+'</select></div>'+
+    '<div><button class="btn" id="c-bcfg">⚙ Configurar jornada</button></div></div><div class="cfg" id="c-cfg"></div><div id="c-alertas"></div><div class="tabs2" id="c-tabs"></div><div id="c-vista"></div>';
+  renderAlertas();renderTabs();renderVista()}
+function renderCfg(){
+  const p=provaC(),j=CAMP.j,esp=p.jornadaEspecial?.[j]||{},p4=esp.tipo==='peter4voltas',inat=esp.voltasInativas||[];
+  $('c-cfg').innerHTML='<b style="color:var(--text)">Configurar a Jornada '+j+'</b><div style="margin-top:8px"><label class="c"><input type="radio" name="tp" value="normal" '+(p4?'':'checked')+'> Normal: 2 Mini + 2 Peter</label><label class="c"><input type="radio" name="tp" value="p4" '+(p4?'checked':'')+'> Só Petergolfe, 4 voltas (manhã e tarde)</label></div><div style="margin-top:6px;font-size:.82rem">Voltas que não se jogaram (não contam para ninguém):</div><div>'+
+    M.camposDaJornada({jornadaEspecial:{[j]:{tipo:p4?'peter4voltas':undefined}}},j).map(c=>'<label class="c"><input type="checkbox" data-inat="'+c+'" '+(inat.includes(c)?'checked':'')+'> '+nomeVolta(p,j,c)+'</label>').join('')+'</div>'}
+function gravarCfg(){
+  const p=provaC(),j=CAMP.j;p.jornadaEspecial??={};const esp=p.jornadaEspecial[j]??={};
+  const p4=document.querySelector('#c-cfg input[name=tp]:checked').value==='p4';
+  if(p4)esp.tipo='peter4voltas';else delete esp.tipo;
+  const marc=[...document.querySelectorAll('#c-cfg [data-inat]:checked')].map(x=>x.dataset.inat).filter(c=>M.camposDaJornada({jornadaEspecial:{[j]:esp}},j).includes(c));
+  if(marc.length)esp.voltasInativas=marc;else delete esp.voltasInativas;
+  if(!Object.keys(esp).length)delete p.jornadaEspecial[j];
+  if(M.ehCampVizela(p))M.recalcularBonus(D);
+  marcarSujo();renderCfg();renderJornadas();$('c-cfg').style.display='block';renderCfg()}
+function renderAlertas(){
+  const p=provaC(),j=CAMP.j,{n}=pendentes(),o=p.origemJornada?.[j];let h='';
+  if(n)h+='<div class="al w">⚠️ <b>'+n+' empate'+(n===1?'':'s')+' por decidir</b> nesta jornada. Sem decisão, o sistema antigo escolhia sozinho pelo número do atleta.<button class="btn s" data-tab="emp">Decidir agora</button></div>';
+  if(o)h+='<div class="al i">📥 Esta jornada foi importada de «'+esc(o.torneio)+'» ('+o.jogadores+' resultados).<button class="btn s" data-act="anular">↩ Anular importação</button></div>';
+  $('c-alertas').innerHTML=h}
+function renderTabs(){const {n}=pendentes();$('c-tabs').innerHTML=[['lancar','✍️ Lançar resultados'],['emp','⚖️ Desempates'+(n?'<span class="n">'+n+'</span>':'')],['aj','🔧 Ajustes de pontos'],['imp','📥 Importar torneio']].map(([k,t])=>'<button data-tab="'+k+'" class="'+(CAMP.tab===k?'on':'')+'">'+t+'</button>').join('')}
+function renderVista(){if(CAMP.tab==='lancar')renderLancar();else if(CAMP.tab==='emp')renderEmpates();else if(CAMP.tab==='aj')renderAjustes();else renderImportar()}
+function renderLancar(){
+  const p=provaC(),j=CAMP.j,esp=p.jornadaEspecial?.[j]||{},inat=esp.voltasInativas||[],camp=M.ehCampVizela(p),campos=M.camposDaJornada(p,j);
+  const grupos={};D.atletas.filter(a=>a.ativo!==false).forEach(a=>{(grupos[M.grupoDe(a.categoria)]??=[]).push(a)});
+  let h='<h2>'+esc(p.nome)+' · Jornada '+j+'</h2><p class="nota">'+(esp.tipo==='peter4voltas'?'Só Petergolfe, 4 voltas (manhã e tarde). ':'')+(inat.length?'Voltas inativas: '+inat.map(c=>nomeVolta(p,j,c)).join(', ')+'. ':'')+'Escreve as pancadas de cada volta; o total, a posição, o bónus e os pontos atualizam sozinhos e <b>ficam guardados automaticamente</b>. 126 = volta não jogada (conta 126). Os Juniores competem com os Homens.</p>';
+  ORDEM_G.concat(Object.keys(grupos).filter(g=>!ORDEM_G.includes(g))).forEach(g=>{
+    if(!grupos[g])return;
+    h+='<div class="bloco"><h3>'+esc(g)+'</h3><div class="tw"><table><thead><tr><th class="l">Atleta</th>'+campos.map(c=>'<th>'+nomeVolta(p,j,c)+'</th>').join('')+'<th>Total</th><th>Pos.</th>'+(camp?'<th>Bónus</th>':'')+'<th>Pontos</th></tr></thead><tbody>'+
+      grupos[g].slice().sort((a,b)=>a.nome.localeCompare(b.nome,'pt')).map(a=>{const res=p.resultados?.[j]?.[String(a.id)]||{};
+        return'<tr data-id="'+a.id+'"><td class="nome">'+esc(a.nome)+(a.categoria==='Juniores'?'<em>(Juniores)</em>':'')+'</td>'+campos.map(c=>inat.includes(c)?'<td><span class="inat">—</span></td>':'<td><input class="vin" type="number" min="1" max="126" inputmode="numeric" data-id="'+a.id+'" data-c="'+c+'" value="'+(res[c]!=null&&res[c]!==''?res[c]:'')+'"></td>').join('')+'<td class="tot"></td><td class="pos"></td>'+(camp?'<td class="bon"></td>':'')+'<td class="pts"></td></tr>'}).join('')+'</tbody></table></div></div>'});
+  $('c-vista').innerHTML=h;atualizar()}
+function atualizar(){
+  const p=provaC(),j=CAMP.j,camp=M.ehCampVizela(p),ats=ativos(p,j),m={};
+  M.classificacaoJornada(p,j,D).forEach(g=>g.linhas.forEach(l=>m[l.id]=l));
+  document.querySelectorAll('#c-vista tr[data-id]').forEach(tr=>{
+    const id=tr.dataset.id,l=m[id],res=p.resultados?.[j]?.[id],algum=!!res&&ats.some(c=>res[c]!=null&&res[c]!=='');
+    tr.querySelector('.tot').textContent=l?l.total:'';tr.querySelector('.pos').textContent=l?l.pos+'º':(algum?'incompleto':'');tr.querySelector('.pts').textContent=l?l.pontos:'';
+    if(camp){const b=l?[l.bonus.mini&&'Mini',l.bonus.peter&&'Peter',l.bonus.manha&&'Manhã',l.bonus.tarde&&'Tarde'].filter(Boolean):[];tr.querySelector('.bon').innerHTML=b.map(x=>'<span class="b">'+x+'</span>').join('')}
+    tr.classList.toggle('inc',algum&&!l);tr.classList.toggle('p1',!!l&&l.pos===1);tr.classList.toggle('p2',!!l&&l.pos===2);tr.classList.toggle('p3',!!l&&l.pos===3)})}
+function aoEscrever(t){
+  const p=provaC(),j=CAMP.j,id=t.dataset.id,c=t.dataset.c,raw=t.value.trim();
+  p.resultados??={};p.resultados[j]??={};
+  if(raw===''){t.classList.remove('erro');const rec=p.resultados[j][id];if(rec){delete rec[c];if(!M.camposDaJornada(p,j).some(x=>rec[x]!=null))delete p.resultados[j][id]}}
+  else{const n=Number(raw);if(!(n>=1&&n<=126)){t.classList.add('erro');return}t.classList.remove('erro');(p.resultados[j][id]??={})[c]=n}
+  if(M.ehCampVizela(p))M.recalcularBonus(D);
+  marcarSujo();atualizar();renderAlertas();renderTabs()}
+function renderEmpates(){
+  const p=provaC(),j=CAMP.j,{d}=pendentes(),nome=id=>D.atletas.find(a=>a.id==id)?.nome||id;
+  let h='<h2>Desempates · Jornada '+j+'</h2><p class="nota">Quando dois atletas têm o mesmo total (ou a mesma melhor volta), decides tu quem fica à frente. O sistema avisa sempre.</p>';
+  if(!d.posicoes.length&&!d.bonus.length)h+='<div class="al o">✅ Não há empates com pontos em jogo nesta jornada.</div>';
+  d.posicoes.forEach(t=>{
+    const dec=t.decisao,sel=CAMP.ORD[t.key]||[];
+    h+='<div class="card"><h3>'+esc(t.grupo)+' · total '+t.total+' · posições '+t.inicio+'–'+(t.inicio+t.atletas.length-1)+'</h3>';
+    if(dec!=null){const o=M.ordemGrupo(p,j,t.grupo,D.atletas,D.empates).map(String).filter(x=>t.atletas.some(a=>String(a.id)===x));
+      h+='<div class="dec">✅ Decidido: '+o.map(nome).map(esc).join(' → ')+'</div><button class="btn s" data-act="limpar" data-key="'+esc(t.key)+'">Anular decisão</button>'}
+    else{h+='<div style="font-size:.86rem">Clica nos atletas <b>pela ordem de classificação</b> (primeiro o que fica à frente):</div><div class="chips">'+t.atletas.map(a=>'<button class="chip'+(sel.includes(String(a.id))?' sel':'')+'" data-act="ordem" data-key="'+esc(t.key)+'" data-id="'+a.id+'">'+(sel.includes(String(a.id))?(sel.indexOf(String(a.id))+1)+'º · ':'')+esc(a.nome)+'</button>').join('')+'</div>'+(sel.length?'<button class="btn s" data-act="reiniciar" data-key="'+esc(t.key)+'">Recomeçar</button>':'')}
+    h+='</div>'});
+  d.bonus.forEach(t=>{
+    h+='<div class="card"><h3>Bónus '+({bonusMini:'Mini',bonusPeter:'Peter',bonusManha:'Manhã',bonusTarde:'Tarde'}[t.tipo])+' · '+esc(t.grupo)+' · melhor volta '+t.melhorVolta+'</h3>';
+    if(t.decisao){h+='<div class="dec">✅ Bónus para: '+esc(nome(t.decisao))+'</div><button class="btn s" data-act="limpar" data-key="'+esc(t.key)+'">Anular decisão</button>'}
+    else h+='<div style="font-size:.86rem">Quem recebe o bónus?</div><div class="chips">'+t.atletas.map(a=>'<button class="chip" data-act="bonus" data-key="'+esc(t.key)+'" data-id="'+a.id+'">'+esc(a.nome)+'</button>').join('')+'</div>';
+    h+='</div>'});
+  $('c-vista').innerHTML=h}
+function depoisDecidir(){if(M.ehCampVizela(provaC()))M.recalcularBonus(D);marcarSujo();renderAlertas();renderTabs();renderVista()}
+const getAj=(p,id,j)=>D.ajustesPontos?.[p.id]?.[id]?.[j]??D.ajustesPontos?.[p.id]?.[id]?.[String(j)];
+function setAj(p,id,j,v){const a=D.ajustesPontos;if(v===undefined){if(a[p.id]?.[id]){delete a[p.id][id][j];delete a[p.id][id][String(j)];if(!Object.keys(a[p.id][id]).length)delete a[p.id][id]}return}(((a[p.id]??={})[id])??={})[j]=v}
+function renderAjustes(){
+  const p=provaC(),j=CAMP.j;
+  const linhas=D.atletas.filter(a=>M.pontosJornada(p,j,a,D)||getAj(p,a.id,j)!=null).sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
+  let h='<h2>Ajustes de pontos · '+esc(p.nome)+' · Jornada '+j+'</h2><p class="nota">Um ajuste <b>substitui</b> os pontos desta jornada para esse atleta. Deixa vazio para não ajustar.</p>';
+  if(!linhas.length)h+='<div class="card">Ainda não há atletas com resultados nesta jornada.</div>';
+  else h+='<div class="bloco"><div class="tw"><table><thead><tr><th class="l">Atleta</th><th>Pontos calculados</th><th>Ajuste</th><th>Pontos finais</th></tr></thead><tbody>'+linhas.map(a=>{
+    const cur=getAj(p,a.id,j);let calc='';{if(cur!=null)setAj(p,a.id,j,undefined);const r=M.pontosJornada(p,j,a,D);calc=r?r.pontos:'—';if(cur!=null)setAj(p,a.id,j,cur)}
+    const fin=M.pontosJornada(p,j,a,D);
+    return'<tr data-id="'+a.id+'"><td class="nome">'+esc(a.nome)+'</td><td>'+calc+'</td><td><input class="vin ajin" type="number" inputmode="numeric" data-id="'+a.id+'" value="'+(cur!=null?cur:'')+'"></td><td class="pts">'+(fin?fin.pontos:'—')+'</td></tr>'}).join('')+'</tbody></table></div></div>';
+  $('c-vista').innerHTML=h}
+function aoAjustar(t){const p=provaC(),j=CAMP.j,id=t.dataset.id,raw=t.value.trim();
+  if(raw===''){setAj(p,id,j,undefined)}else{const n=Number(raw);if(isNaN(n)){t.classList.add('erro');return}t.classList.remove('erro');setAj(p,id,j,n)}
+  marcarSujo();const a=D.atletas.find(x=>x.id==id),r=M.pontosJornada(p,j,a,D);t.closest('tr').querySelector('.pts').textContent=r?r.pontos:'—'}
+
+/* ----- Importar um torneio (direto da mesma base de dados, sem pontes) ----- */
+const torneiosLista=()=>Object.entries(TORN).filter(([id,t])=>t&&t.meta).map(([id,t])=>({id,t})).sort((a,b)=>String(b.t.meta.data||'').localeCompare(String(a.t.meta.data||'')));
+function provaComTipo(p,j,tipo){return tipo?{...p,jornadaEspecial:{...(p.jornadaEspecial||{}),[j]:{...(p.jornadaEspecial?.[j]||{}),tipo:tipo==='peter4voltas'?'peter4voltas':undefined}}}:p}
+function prepararImp(id){IMP.id=id;IMP.tipo=undefined;IMP.exige=undefined;sugerirImp(true)}
+function sugerirImp(tudo){
+  const t=TORN[IMP.id],p=provaC(),j=CAMP.j;if(!t)return;
+  if(IMP.tipo===undefined){const vv=t.meta.voltas||[],nm=vv.filter(x=>x.tipo==='mini').length,np=vv.filter(x=>x.tipo==='peter').length;IMP.tipo=p.jornadaEspecial?.[j]?.tipo==='peter4voltas'?'peter4voltas':(np>=4&&nm===0?'peter4voltas':'normal')}
+  IMP.mapa=M.sugerirMapa(t,provaComTipo(p,j,IMP.tipo),j);
+  if(tudo){const r=M.ligacoesSugeridas(t,D,p.id,j,{exigeHistorico:IMP.exige});IMP.lig=r.lig;IMP.motivo=r.motivo;IMP.exige=r.exigeHistorico;IMP.hab=r.haAnteriores}}
+function renderImportar(){
+  const p=provaC(),j=CAMP.j;let h='<h2>Importar torneio → Jornada '+j+'</h2><p class="nota">Copia os resultados de um torneio para esta jornada. O torneio <b>não é alterado</b>. Só funciona numa jornada <b>vazia</b>. Os jogadores são ligados aos atletas pelo nome; confirma sempre a lista.</p>';
+  if(M.temResultados(p,j)){$('c-vista').innerHTML=h+'<div class="al w">Esta jornada <b>já tem resultados</b>. Escolhe outra jornada, ou anula a importação se foi feita por engano.</div>';return}
+  if(!IMP.id||!TORN[IMP.id]){const L=torneiosLista();h+='<div class="card"><h3>Escolhe o torneio</h3><div class="chips">'+(L.length?L.map(x=>'<button class="chip" data-act="escolherT" data-id="'+esc(x.id)+'">'+esc(x.t.meta.nome)+' · '+fdata(x.t.meta.data)+' · '+Object.keys(x.t.jogadores||{}).length+' jogadores</button>').join(''):'Ainda não há torneios.')+'</div></div>';$('c-vista').innerHTML=h;return}
+  const t=TORN[IMP.id],voltas=t.meta.voltas||[],campos=M.camposDaJornada(provaComTipo(p,j,IMP.tipo),j);
+  const atl=D.atletas.slice().sort((a,b)=>a.nome.localeCompare(b.nome,'pt'));
+  const jog=Object.entries(t.jogadores||{}).map(([k,g])=>({k,g})).sort((a,b)=>{const o={ok:0,novo:1,so:2,sem:3};return(o[IMP.motivo[a.k]]??3)-(o[IMP.motivo[b.k]]??3)||String(a.g.nome).localeCompare(String(b.g.nome),'pt')});
+  const cont={ok:0,novo:0,so:0,sem:0};jog.forEach(x=>{cont[IMP.lig[x.k]?'ok':(IMP.motivo[x.k]||'sem')]++});
+  h+='<div class="card"><h3>Formato desta jornada</h3><label class="c" style="margin-right:14px"><input type="radio" name="imp-fmt" '+(IMP.tipo!=='peter4voltas'?'checked':'')+' data-fmt="normal"> Normal (2 Mini + 2 Peter)</label><label class="c"><input type="radio" name="imp-fmt" '+(IMP.tipo==='peter4voltas'?'checked':'')+' data-fmt="peter4voltas"> Só Peter, 4 voltas</label></div>';
+  h+='<div class="card"><h3>1. Liga as voltas de «'+esc(t.meta.nome)+'» às voltas da jornada</h3><table style="max-width:560px">'+campos.map(c=>'<tr><td class="l" style="width:170px">'+(IMP.tipo==='peter4voltas'?NOME_V4[c]:NOME_V[c])+' da jornada</td><td class="l"><select data-map="'+c+'" style="max-width:260px"><option value="">— não se jogou —</option>'+voltas.map((v,i)=>'<option value="'+i+'"'+(IMP.mapa[c]===i?' selected':'')+'>'+esc(v.label)+' ('+v.tipo+')</option>').join('')+'</select></td></tr>').join('')+'</table></div>';
+  h+='<div class="card"><h3>2. Confirma os jogadores</h3><p class="nota"><b>'+cont.ok+'</b> serão importados · '+cont.novo+' sem nenhuma jornada anterior · '+cont.so+' «só torneio» · '+cont.sem+' sem correspondência (de '+jog.length+'). Quem fica em «ignorar» não é importado.</p>'+
+    (IMP.hab?'<label style="display:block;font-size:.85rem;line-height:1.5;margin-bottom:8px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:rgba(201,168,76,.08)"><input type="checkbox" '+(IMP.exige?'checked':'')+' data-exige="1"> <b>Não importar quem ainda não jogou nenhuma jornada anterior deste campeonato</b> (recomendado: convidados e novos não mudam as posições e os bónus de quem joga o campeonato todo).</label>':'')+
+    '<div class="bloco" style="max-height:380px;overflow:auto;margin:0"><table><tbody>'+jog.map(x=>{const m=M.casarJogador(x.g.nome,D.atletas),mot=IMP.motivo[x.k],sel=IMP.lig[x.k];
+      return'<tr><td class="l" style="white-space:normal"><b style="color:var(--text)">'+esc(x.g.nome)+'</b><div style="font-size:.72rem;color:var(--text3)">'+esc(x.g.categoria||'')+' · '+esc(x.g.clube||'')+' · '+voltas.map((v,i)=>{const n=Number(x.g.resultados?.[i]?.total);return n>0?n:'–'}).join(' · ')+'</div></td><td class="l" style="white-space:normal"><select data-lig="'+esc(x.k)+'" style="max-width:240px"><option value="">— ignorar —</option>'+atl.map(a=>'<option value="'+a.id+'"'+(String(sel)===String(a.id)?' selected':'')+'>'+esc(a.nome)+'</option>').join('')+'</select>'+
+        (!sel&&mot==='so'?'<div style="font-size:.7rem;color:var(--err)">🚫 Só torneio: não é importado</div>':'')+
+        (!sel&&mot==='novo'?'<div style="font-size:.7rem;color:var(--gold)">⚠ Ainda não jogou nenhuma jornada do Campeonato: não é importado. Escolhe-o na lista se quiseres.</div>':'')+
+        (sel&&m.id===sel&&!m.exato?'<div style="font-size:.7rem;color:var(--gold)">⚠ nome aproximado: confirma</div>':'')+'</td></tr>'}).join('')+'</tbody></table></div></div>';
+  h+='<button class="btn p" data-act="importar">✅ Importar para a Jornada '+j+'</button> <button class="btn" data-act="outroT">Escolher outro torneio</button>';
+  $('c-vista').innerHTML=h}
+
+/* ----- Classificações ----- */
+const num=v=>{const n=Number(v);return isNaN(n)||n<=0?null:n};
+const corMini=n=>n===null?'cv-null':n<=19?'cv-blue':n<=24?'cv-green':n<=29?'cv-red':'cv-gray';
+const corPeter=n=>n===null?'cv-null':n<=24?'cv-blue':n<=29?'cv-green':n<=35?'cv-red':'cv-gray';
+function tabelaPontos(cat,linhas){if(!linhas.length)return'';return'<div class="bloco"><h3>'+esc(cat)+'</h3><div class="tw"><table><thead><tr><th>Pos</th><th class="l">Atleta</th><th>Jornadas</th><th>Pontos</th></tr></thead><tbody>'+linhas.map((a,i)=>'<tr class="'+(i===0?'p1':i===1?'p2':i===2?'p3':'')+'"><td class="pos">'+(i+1)+'º</td><td class="nome">'+esc(a.nome)+'</td><td>'+a.jPart+'</td><td class="pts">'+a.pts+'</td></tr>').join('')+'</tbody></table></div></div>'}
+function renderClass(){
+  const c=$('c-corpo'),R=M.rankingAnual(D),ps=D.provas.filter(p=>Object.values(p.resultados||{}).some(j=>j&&Object.keys(j).length));
+  if(CAMP.cp!=='__anual__'&&!D.provas.some(p=>p.id==CAMP.cp))CAMP.cp='__anual__';
+  let h='<div class="ctx"><div><label>Ver</label><select id="k-prova"><option value="__anual__"'+(CAMP.cp==='__anual__'?' selected':'')+'>🏆 Ranking anual</option>'+ps.map(p=>'<option value="'+p.id+'"'+(p.id==CAMP.cp?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+'</select></div>';
+  let p=null;if(CAMP.cp!=='__anual__'){p=D.provas.find(x=>x.id==CAMP.cp);
+    h+='<div><label>Vista</label><select id="k-vista"><option value="geral"'+(CAMP.cv==='geral'?' selected':'')+'>Geral</option>'+Array.from({length:p.jornadas||1},(_,i)=>i+1).filter(j=>temRes(p,j)).map(j=>'<option value="'+j+'"'+(String(CAMP.cv)===String(j)?' selected':'')+'>Jornada '+j+(p.dataJornadas?.[j]?' · '+fdata(p.dataJornadas[j]):'')+'</option>').join('')+'</select></div>'}
+  h+='</div>';
+  if(CAMP.cp==='__anual__'){
+    h+='<h2>Ranking anual</h2><p class="nota">Pontos acumulados de todas as provas da época (Campeonato de Vizela com bónus; torneios só com pontos de posição).</p>';
+    CATEGORIAS.forEach(cat=>{const l=D.atletas.filter(a=>a.categoria===cat).map(a=>{const r=R[String(a.id)];return{nome:a.nome,pts:r?r.totalPontos:0,jPart:r?r.participacoes.length:0}}).filter(a=>a.pts>0).sort((a,b)=>b.pts-a.pts);h+=tabelaPontos(cat,l)})}
+  else if(CAMP.cv==='geral'){
+    h+='<h2>'+esc(p.nome)+' · Geral</h2>';
+    CATEGORIAS.forEach(cat=>{const l=D.atletas.filter(a=>a.categoria===cat).map(a=>{const r=R[String(a.id)];const x=r?r.participacoes.filter(y=>y.prova===p.nome):[];return{nome:a.nome,pts:x.reduce((s,y)=>s+y.pontos,0)+M.bonusCompleto(p,a.id),jPart:x.length}}).filter(a=>a.jPart>0).sort((a,b)=>b.pts-a.pts);h+=tabelaPontos(cat,l)})}
+  else h+=vistaJornada(p,Number(CAMP.cv));
+  c.innerHTML=h}
+function vistaJornada(p,j){
+  const esp=p.jornadaEspecial?.[j]||{},p4=esp.tipo==='peter4voltas',inat=esp.voltasInativas||[],camp=M.ehCampVizela(p),campos=M.camposDaJornada(p,j).filter(c=>!inat.includes(c));
+  const grupos=M.classificacaoJornada(p,j,D);
+  const cel=(res,c)=>{const n=num(res[c]);const cor=c[0]==='m'?corMini(n):corPeter(n);return'<td><span class="v '+(res[c]==126?'cv-gray':cor)+'">'+(res[c]==null||res[c]===''?'–':esc(res[c]))+'</span></td>'};
+  let h='<h2>'+esc(p.nome)+' · Jornada '+j+(p.dataJornadas?.[j]?' · '+fdata(p.dataJornadas[j]):'')+'</h2><p class="nota">'+(p4?'Só Petergolfe, 4 voltas. ':'')+(inat.length?'Voltas inativas: '+inat.map(c=>nomeVolta(p,j,c)).join(', ')+'. ':'')+'126 = volta não jogada (conta 126). Posição dentro do grupo; os Juniores competem com os Homens.</p>';
+  grupos.forEach(g=>{h+='<div class="bloco"><h3>'+esc(g.grupo)+'</h3><div class="tw"><table><thead><tr><th>Pos</th><th class="l">Atleta</th>'+campos.map(c=>'<th>'+nomeVolta(p,j,c)+'</th>').join('')+'<th>Total</th>'+(camp?'<th>Bónus</th>':'')+'<th>Pontos</th></tr></thead><tbody>'+
+    g.linhas.map(l=>{const res=p.resultados[j][String(l.id)]||p.resultados[j][l.id];const b=[l.bonus.mini&&'Mini',l.bonus.peter&&'Peter',l.bonus.manha&&'Manhã',l.bonus.tarde&&'Tarde'].filter(Boolean);
+      return'<tr class="'+(l.pos===1?'p1':l.pos===2?'p2':l.pos===3?'p3':'')+'"><td class="pos">'+l.pos+'º</td><td class="nome">'+esc(l.nome)+(l.categoria==='Juniores'?'<em>(Juniores)</em>':'')+'</td>'+campos.map(c=>cel(res,c)).join('')+'<td class="tot">'+l.total+'</td>'+(camp?'<td>'+b.map(x=>'<span class="b">'+x+'</span>').join('')+'</td>':'')+'<td class="pts">'+l.pontos+'</td></tr>'}).join('')+'</tbody></table></div></div>'});
+  const jun=[];grupos.forEach(g=>g.linhas.forEach(l=>{if(l.categoria==='Juniores')jun.push(l)}));
+  if(jun.length){jun.sort((a,b)=>a.total-b.total);h+='<div class="bloco"><h3>Juniores · classificação própria</h3><div class="tw"><table><thead><tr><th>Pos</th><th class="l">Atleta</th><th>Total</th><th>Posição nos Homens</th><th>Pontos</th></tr></thead><tbody>'+jun.map((l,i)=>'<tr><td class="pos">'+(i+1)+'º</td><td class="nome">'+esc(l.nome)+'</td><td class="tot">'+l.total+'</td><td>'+l.pos+'º</td><td class="pts">'+l.pontos+'</td></tr>').join('')+'</tbody></table></div></div>'}
+  if(!grupos.length)h+='<div class="card">Sem resultados nesta jornada.</div>';
+  return h}
+
+/* ----- Provas ----- */
+function renderProvas(){
+  const c=$('c-corpo');
+  let h='<h2>Provas</h2><p class="nota">Aqui crias provas e mudas o estado, as datas e o número de jornadas. Tudo se guarda sozinho.</p><div class="lst">'+D.provas.map(p=>{
+    const nr=Object.values(p.resultados||{}).filter(j=>j&&Object.keys(j).length).length;
+    return'<div class="card" data-prova="'+p.id+'"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b style="flex:1;min-width:10rem;color:var(--text)">'+esc(p.nome)+'</b>'+
+      '<select data-pf="tipo"><option value="campeonato"'+(p.tipo==='campeonato'?' selected':'')+'>Campeonato</option><option value="torneio"'+(p.tipo==='torneio'?' selected':'')+'>Torneio</option><option value="taca"'+(p.tipo==='taca'?' selected':'')+'>Taça</option></select>'+
+      '<select data-pf="estado"><option value="agendado"'+(p.estado==='agendado'?' selected':'')+'>Agendado</option><option value="ativo"'+(p.estado==='ativo'?' selected':'')+'>Ativo</option><option value="concluido"'+(p.estado==='concluido'?' selected':'')+'>Concluído</option></select>'+
+      '<input type="date" data-pf="data" value="'+esc(p.data||'')+'" title="Data da prova"><label style="font-size:.78rem;color:var(--text3)">Jornadas <input type="number" min="1" max="12" data-pf="jornadas" value="'+(p.jornadas||1)+'" style="width:58px"></label></div>'+
+      ((p.jornadas||1)>1?'<div style="margin-top:8px;font-size:.76rem;color:var(--text3);display:flex;gap:8px;flex-wrap:wrap;align-items:center">Datas das jornadas: '+Array.from({length:p.jornadas},(_,i)=>i+1).map(j=>'<label>J'+j+' <input type="date" data-pj="'+j+'" value="'+esc((p.dataJornadas&&p.dataJornadas[j])||p.data||'')+'"></label>').join('')+'</div>':'')+
+      '<details style="margin-top:8px"><summary style="font-size:.8rem">Pontuação e bónus</summary><div style="padding:6px 0 10px;display:flex;gap:10px;flex-wrap:wrap;font-size:.8rem;color:var(--text2)"><label>Pontos 1.º <input type="number" data-pf="pts1" value="'+(p.pts1??25)+'" style="width:60px"></label><label>Bónus <input type="number" data-pf="bonusMini" value="'+(p.bonusMini??1)+'" style="width:60px"></label><label>Bónus participação completa <input type="number" data-pf="bonusCompleto" value="'+(p.bonusCompleto??0)+'" style="width:60px"></label></div></details>'+
+      '<div style="margin-top:6px;font-size:.74rem;color:var(--text3)">'+nr+' jornada'+(nr===1?'':'s')+' com resultados'+(nr===0?' · <button class="btn s red" data-act="apagarProva" data-id="'+p.id+'">Apagar prova</button>':'')+'</div></div>'}).join('')+'</div>'+
+    '<div class="card"><h3>Nova prova</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end"><div><label class="nota" style="margin:0">Nome</label><br><input id="np-nome" placeholder="Ex.: Campeonato de Vizela 2027" style="min-width:260px"></div><div><label class="nota" style="margin:0">Tipo</label><br><select id="np-tipo"><option value="campeonato">Campeonato</option><option value="torneio" selected>Torneio</option><option value="taca">Taça</option></select></div><div><label class="nota" style="margin:0">Data</label><br><input type="date" id="np-data"></div><div><label class="nota" style="margin:0">Jornadas</label><br><input type="number" id="np-jor" min="1" max="12" value="1" style="width:70px"></div><button class="btn p" data-act="criarProva">Criar prova</button></div></div>';
+  c.innerHTML=h}
+function aoMudarProva(t){
+  const card=t.closest('[data-prova]'),p=D.provas.find(x=>x.id==card.dataset.prova),f=t.dataset.pf;
+  if(t.dataset.pj){p.dataJornadas??={};if(t.value)p.dataJornadas[t.dataset.pj]=t.value;else delete p.dataJornadas[t.dataset.pj];marcarSujo();return}
+  if(f==='jornadas'){const n=Math.max(1,Math.min(12,parseInt(t.value)||1));
+    const maior=Math.max(0,...Object.keys(p.resultados||{}).filter(k=>temRes(p,k)).map(Number));
+    if(n<maior){toast('Não dá para ter menos jornadas do que a última com resultados (J'+maior+').',true);t.value=p.jornadas;return}
+    if(n>(p.jornadas||1)&&M.ehCampVizela(p)&&p.bonusCompleto&&!confirm('Acrescentar jornadas muda quem recebe o bónus de participação completa (é preciso jogar todas). Continuar?')){t.value=p.jornadas;return}
+    p.jornadas=n;marcarSujo();renderProvas();return}
+  if(['pts1','bonusMini','bonusCompleto'].includes(f)){p[f]=Number(t.value)||0;if(f==='bonusMini')p.bonusPeter=p[f];marcarSujo();return}
+  p[f]=t.value;marcarSujo();if(f==='estado'||f==='tipo')renderProvas()}
+
+/* ----- eventos do Campeonato ----- */
+const CW=document.getElementById('sec-camp');
+CW.addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-sub],[data-tab],[data-act],#c-bcfg');if(!b)return;
+  if(b.dataset.sub){CAMP.sub=b.dataset.sub;renderCamp();return}
+  if(b.id==='c-bcfg'){const c=$('c-cfg');c.style.display=c.style.display==='block'?'none':'block';renderCfg();return}
+  if(b.dataset.tab){CAMP.tab=b.dataset.tab;renderTabs();renderVista();return}
+  const a=b.dataset.act,p=provaC(),j=CAMP.j;
+  if(a==='ordem'){const k=b.dataset.key,id=String(b.dataset.id);(CAMP.ORD[k]??=[]);if(!CAMP.ORD[k].includes(id))CAMP.ORD[k].push(id);
+    const t=M.desempatesJornada(p,j,D).posicoes.find(x=>x.key===k);if(t&&CAMP.ORD[k].length===t.atletas.length){D.empates[k]=CAMP.ORD[k].slice();delete CAMP.ORD[k];depoisDecidir();toast('Desempate decidido.')}else renderEmpates()}
+  else if(a==='reiniciar'){delete CAMP.ORD[b.dataset.key];renderEmpates()}
+  else if(a==='bonus'){D.empates[b.dataset.key]=String(b.dataset.id);depoisDecidir();toast('Bónus atribuído.')}
+  else if(a==='limpar'){delete D.empates[b.dataset.key];delete CAMP.ORD[b.dataset.key];depoisDecidir()}
+  else if(a==='escolherT'){prepararImp(b.dataset.id);renderImportar()}
+  else if(a==='outroT'){IMP.id=null;renderImportar()}
+  else if(a==='importar'){const t=TORN[IMP.id];const r=M.importarTorneio(D,p.id,j,t,IMP.id,IMP.mapa,IMP.lig,undefined,{tipo:IMP.tipo});
+    if(!r.ok){toast(r.erro,true);return}if(M.ehCampVizela(p))M.recalcularBonus(D);IMP.id=null;CAMP.tab='lancar';marcarSujo();renderJornadas();toast('✅ '+r.importados+' resultados importados para a Jornada '+j+'.')}
+  else if(a==='anular'){if(!confirm('Anular a importação desta jornada? Isto apaga TODOS os resultados desta jornada.'))return;const r=M.anularImportacao(D,p.id,j);if(r.ok){marcarSujo();renderJornadas();toast('↩ Importação anulada.')}else toast(r.erro,true)}
+  else if(a==='criarProva'){const nome=$('np-nome').value.trim();if(!nome){toast('Escreve o nome da prova.',true);return}
+    const tipo=$('np-tipo').value,id=D.proximoProvaId||(Math.max(0,...D.provas.map(x=>x.id))+1),nj=Math.max(1,Math.min(12,parseInt($('np-jor').value)||1));
+    D.provas.push({id,nome,tipo,estado:'agendado',data:$('np-data').value,jornadas:nj,pts1:25,bonusMini:1,bonusPeter:1,bonusCompleto:0,resultados:{}});D.proximoProvaId=id+1;marcarSujo();renderProvas();toast('✅ Prova criada.')}
+  else if(a==='apagarProva'){const pr=D.provas.find(x=>x.id==b.dataset.id);if(!pr||!confirm('Apagar a prova «'+pr.nome+'»?'))return;D.provas=D.provas.filter(x=>x.id!=pr.id);if(CAMP.p==pr.id)CAMP.p=null;iniciarContexto();marcarSujo();renderProvas()}});
+CW.addEventListener('change',ev=>{const t=ev.target;
+  if(t.id==='c-prova'){CAMP.p=Number(t.value);CAMP.j=1;IMP.id=null;iniciarContexto();renderJornadas();return}
+  if(t.id==='c-jor'){CAMP.j=Number(t.value);IMP.id=null;renderJornadas();return}
+  if(t.closest('#c-cfg')){gravarCfg();return}
+  if(t.id==='k-prova'){CAMP.cp=t.value;CAMP.cv='geral';renderClass();return}
+  if(t.id==='k-vista'){CAMP.cv=t.value;renderClass();return}
+  if(t.dataset.fmt){IMP.tipo=t.dataset.fmt;sugerirImp(false);renderImportar();return}
+  if(t.dataset.exige){IMP.exige=t.checked;sugerirImp(true);renderImportar();return}
+  if(t.dataset.map!==undefined&&t.dataset.map){IMP.mapa[t.dataset.map]=t.value===''?null:Number(t.value);return}
+  if(t.dataset.lig!==undefined){if(t.value==='')IMP.lig[t.dataset.lig]='';else IMP.lig[t.dataset.lig]=Number(t.value);return}
+  if(t.closest('[data-prova]')&&(t.dataset.pf||t.dataset.pj)){aoMudarProva(t)}});
+CW.addEventListener('input',ev=>{const t=ev.target;if(t.classList.contains('ajin'))aoAjustar(t);else if(t.classList.contains('vin'))aoEscrever(t)});
+addEventListener('message',ev=>{
+  if(ev.origin!==location.origin)return;const d=ev.data;if(!d||d.vzg!=='importar'||!d.id||!D)return;
+  CAMP.sub='jorn';CAMP.tab='imp';ir('camp');if(TORN[d.id])prepararImp(d.id);else IMP.id=d.id;renderCamp()});
+
+/* ---------- Atletas ---------- */
+const CLUBES=['VZG','NFC','CMP','MCL','MCP','ADA','CN','IND'];
+let ATLF='';
+function atletaTemResultados(id){return D.provas.some(p=>Object.values(p.resultados||{}).some(j=>j&&(j[String(id)]||j[id])&&Object.values(j[String(id)]||j[id]).some(v=>Number(v)>0&&Number(v)!==126)))}
+function renderAtletas(){
+  const w=$('atl-wrap'),q=ATLF.toLowerCase();
+  const L=D.atletas.slice().sort((a,b)=>a.nome.localeCompare(b.nome,'pt')).filter(a=>!q||a.nome.toLowerCase().includes(q));
+  w.innerHTML='<h2>Atletas</h2><p class="nota">A lista única de pessoas do Campeonato. Quem aparece aqui pode ser importado de um torneio para uma jornada (o ID dos protocolos vem daqui). '+D.atletas.length+' atletas.</p>'+
+    '<div class="card"><h3>Adicionar atleta</h3><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end"><input id="at-nome" placeholder="Nome completo" style="min-width:240px"><select id="at-cat">'+CATEGORIAS.map(c=>'<option>'+c+'</option>').join('')+'</select><select id="at-clube">'+CLUBES.map(c=>'<option'+(c==='VZG'?' selected':'')+'>'+c+'</option>').join('')+'</select><button class="btn p" data-aa="add">Adicionar</button></div></div>'+
+    '<div class="ctx"><div><label>Procurar</label><input id="at-q" value="'+esc(ATLF)+'" placeholder="nome…"></div></div>'+
+    '<div class="bloco"><div class="tw"><table><thead><tr><th>ID</th><th class="l">Nome</th><th>Categoria</th><th>Clube</th><th>Ativo</th><th></th></tr></thead><tbody>'+L.map(a=>'<tr data-aid="'+a.id+'"><td>'+a.id+'</td><td class="l"><input data-af="nome" value="'+esc(a.nome)+'" style="min-width:220px"></td><td><select data-af="categoria">'+CATEGORIAS.map(c=>'<option'+(c===a.categoria?' selected':'')+'>'+c+'</option>').join('')+'</select></td><td><select data-af="clube"><option value="">—</option>'+CLUBES.map(c=>'<option'+(c===a.clube?' selected':'')+'>'+c+'</option>').join('')+'</select></td><td><input type="checkbox" data-af="ativo" '+(a.ativo!==false?'checked':'')+' title="Desmarcar esconde o atleta das listas de lançamento, sem apagar o histórico"></td><td>'+(atletaTemResultados(a.id)?'':'<button class="btn s red" data-aa="del" data-id="'+a.id+'">Apagar</button>')+'</td></tr>').join('')+'</tbody></table></div></div>'}
+$('sec-atletas').addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-aa]');if(!b)return;
+  if(b.dataset.aa==='add'){const nome=$('at-nome').value.trim();if(!nome){toast('Escreve o nome.',true);return}
+    if(D.atletas.some(a=>M.normNome(a.nome)===M.normNome(nome))&&!confirm('Já existe um atleta com este nome. Adicionar mesmo assim?'))return;
+    const id=Math.max(0,...D.atletas.map(a=>Number(a.id)||0))+1;D.atletas.push({id,nome,categoria:$('at-cat').value,clube:$('at-clube').value});marcarSujo();renderAtletas();toast('✅ Atleta adicionado.')}
+  else if(b.dataset.aa==='del'){const a=D.atletas.find(x=>x.id==b.dataset.id);if(!a||!confirm('Apagar «'+a.nome+'»?'))return;D.atletas=D.atletas.filter(x=>x.id!=a.id);marcarSujo();renderAtletas()}});
+$('sec-atletas').addEventListener('change',ev=>{const t=ev.target;if(!t.dataset.af)return;const a=D.atletas.find(x=>x.id==t.closest('tr').dataset.aid);if(!a)return;
+  if(t.dataset.af==='ativo'){if(t.checked)delete a.ativo;else a.ativo=false}else a[t.dataset.af]=t.dataset.af==='nome'?t.value.trim():t.value;marcarSujo()});
+$('sec-atletas').addEventListener('input',ev=>{if(ev.target.id==='at-q'){ATLF=ev.target.value;const p=ev.target.selectionStart;renderAtletas();const i=$('at-q');i.focus();i.setSelectionRange(p,p)}});
+
+/* ---------- Ecrãs (o que a TV mostra) ---------- */
+const PUSH='-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
+const quando=id=>{id=String(id);if(id.length<8)return 0;let t=0;for(const c of id.slice(0,8)){const k=PUSH.indexOf(c);if(k<0)return 0;t=t*64+k}return t};
+let PUBLICANDO=false;
+async function publicar(ids,auto){
+  if(PUBLICANDO)return;PUBLICANDO=true;
+  try{const lista=[...CTRL.publicados],nomes=[];
+    ids.forEach(id=>{if(!lista.some(p=>p.id===id)){const m=TORN[id]?.meta||{};lista.push({id,nome:m.nome||'Torneio',data:m.data||'',prova:m.provaCalendario||''});nomes.push(m.nome||'Torneio')}});
+    if(nomes.length){await gravarCtrl({publicados:lista});toast('✓ '+(auto?'Publicado automaticamente: ':'Publicado: ')+nomes.map(n=>'«'+n+'»').join(', '))}}
+  catch(e){toast('Não foi possível publicar ('+((e&&e.code)||'erro')+').',true)}
+  PUBLICANDO=false}
+let TORNOK=false;
+async function avaliarPublicacao(){
+  if(!CTRL||!ABERTO||PUBLICANDO)return;TORNOK=true;
+  if(CTRL.autoPublicar===undefined){PUBLICANDO=true;try{await gravarCtrl({autoPublicar:true,autoPublicarDesde:Date.now()})}catch(e){}PUBLICANDO=false;return}
+  // um torneio eliminado deixa de aparecer aos atletas (e sai do projetor)
+  const gone=CTRL.publicados.filter(p=>!TORN[p.id]);
+  if(gone.length&&Object.keys(TORN).length>=0){PUBLICANDO=true;try{const parc={publicados:CTRL.publicados.filter(p=>TORN[p.id])};if(CTRL.fonte==='livre'&&gone.some(g=>g.id===CTRL.livre?.id)){parc.fonte='camp';parc.camp={prova:'__anual__',vista:'geral'};parc.livre={id:''}}await gravarCtrl(parc);toast('Torneio eliminado: já não aparece aos atletas.')}catch(e){}PUBLICANDO=false;return}
+  if(!CTRL.autoPublicar)return;
+  const pub=new Set(CTRL.publicados.map(p=>p.id)),nao=new Set(CTRL.naoPublicar||[]),desde=CTRL.autoPublicarDesde||Infinity;
+  const novos=Object.entries(TORN).filter(([id,t])=>t&&t.meta&&!pub.has(id)&&!nao.has(id)&&quando(id)>=desde).map(x=>x[0]);
+  if(novos.length)publicar(novos,true)}
+const ECR={fonte:null,prova:'__anual__',vista:'geral',nac:'atual',tsel:'',cat:''};
+function ecrDeCtrl(){const c=CTRL;ECR.fonte=c.fonte==='livre'||c.fonte==='prova'?'torneios':(c.fonte||'camp');ECR.prova=c.camp?.prova||'__anual__';ECR.vista=String(c.camp?.vista||'geral');ECR.nac=c.nacional?.chave||'atual';ECR.cat=c.categoria||'';ECR.tsel=c.fonte==='livre'?'livre:'+(c.livre?.id||''):(c.fonte==='prova'?'prova:'+c.camp.prova:'');ECR._ini=true}
+function descreverCtrl(c){
+  if(c.fonte==='nacional')return'Nacional';
+  if(c.fonte==='livre'){const p=(c.publicados||[]).find(x=>x.id===c.livre?.id);return'Torneio livre · '+(p?p.nome:(c.livre?.id?'(torneio não publicado)':'(nenhum escolhido)'))}
+  if(c.fonte==='prova')return'Torneio · '+c.camp.prova;
+  return c.camp?.prova==='__anual__'?'Campeonato de Vizela · Ranking anual':(c.camp?.prova||'')+' · '+(c.camp?.vista==='geral'?'Classificação geral':'Jornada '+c.camp?.vista)}
+function renderEcras(){
+  const w=$('ecras-wrap');if(!CTRL){w.innerHTML='<div class="nota">A ligar…</div>';return}
+  if(!ECR._ini)ecrDeCtrl();
+  const camps=D.provas.filter(p=>p.tipo==='campeonato'),pr=D.provas.find(p=>p.nome===ECR.prova);
+  const clube=D.provas.filter(p=>p.tipo!=='campeonato');
+  let h='<h2>Ecrãs</h2><div class="al i">📺 <b>Agora na TV:</b> '+esc(descreverCtrl(CTRL))+(CTRL.categoria?' · '+esc(CTRL.categoria):'')+'</div>';
+  h+='<div class="sec-t">1. O que mostrar</div><div class="card"><div class="ctx" style="border:0;padding:0;background:none;margin:0"><div><label>Fonte</label><select id="e-fonte"><option value="camp"'+(ECR.fonte==='camp'?' selected':'')+'>Campeonato</option><option value="nacional"'+(ECR.fonte==='nacional'?' selected':'')+'>Nacional</option><option value="torneios"'+(ECR.fonte==='torneios'?' selected':'')+'>Torneio</option></select></div>';
+  if(ECR.fonte==='camp'){h+='<div><label>Prova</label><select id="e-prova"><option value="__anual__"'+(ECR.prova==='__anual__'?' selected':'')+'>Ranking anual</option>'+camps.map(p=>'<option value="'+esc(p.nome)+'"'+(p.nome===ECR.prova?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+'</select></div>';
+    if(ECR.prova!=='__anual__'&&pr)h+='<div><label>Vista</label><select id="e-vista"><option value="geral"'+(ECR.vista==='geral'?' selected':'')+'>Classificação geral</option>'+Array.from({length:pr.jornadas||1},(_,i)=>i+1).map(j=>'<option value="'+j+'"'+(ECR.vista===String(j)?' selected':'')+'>Jornada '+j+'</option>').join('')+'</select></div>';
+    h+='<div><label>Categoria</label><select id="e-cat"><option value="">Todas</option>'+CATEGORIAS.map(c=>'<option'+(c===ECR.cat?' selected':'')+'>'+c+'</option>').join('')+'</select></div>'}
+  else if(ECR.fonte==='nacional'){h+='<div><label>Edição</label><select id="e-nac">'+edicoesNac().map(e=>'<option value="'+esc(e.k)+'"'+(e.k===ECR.nac?' selected':'')+'>'+esc(e.rot)+'</option>').join('')+'</select></div>'}
+  else{h+='<div><label>Torneio</label><select id="e-ts"><option value="">— escolhe —</option>'+CTRL.publicados.map(p=>'<option value="livre:'+esc(p.id)+'"'+(ECR.tsel==='livre:'+p.id?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+clube.filter(p=>!CTRL.ocultas.includes(p.nome)).map(p=>'<option value="prova:'+esc(p.nome)+'"'+(ECR.tsel==='prova:'+p.nome?' selected':'')+'>'+esc(p.nome)+' (clube)</option>').join('')+'</select></div>'}
+  h+='</div><div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn p" data-ea="enviar">Enviar para a TV</button><button class="btn" data-ea="repor">Repor: Campeonato · última jornada</button></div></div>';
+  h+='<div class="sec-t">2. Torneios publicados</div><p class="nota">Os torneios novos publicam-se sozinhos (<b>publicação automática</b>). Aqui podes retirar ou publicar à mão.</p><div class="lst">'+
+    (CTRL.publicados.map(p=>'<div class="lrow"><div class="t"><b style="color:var(--text)">'+esc(p.nome)+'</b><small>'+fdata(p.data)+'</small></div><button class="btn s red" data-ea="retirar" data-id="'+esc(p.id)+'">Retirar</button></div>').join('')||'<div class="nota">Nenhum publicado.</div>')+'</div>'+
+    (()=>{const nao=torneiosLista().filter(x=>!CTRL.publicados.some(p=>p.id===x.id));return nao.length?'<div class="lst" style="margin-top:6px">'+nao.map(x=>'<div class="lrow"><div class="t"><span>'+esc(x.t.meta.nome)+'</span><small>'+fdata(x.t.meta.data)+' · não publicado</small></div><button class="btn s p" data-ea="publicar" data-id="'+esc(x.id)+'">Publicar</button></div>').join('')+'</div>':''})()+
+    '<div style="margin-top:8px"><button class="btn" data-ea="auto">Publicação automática: '+(CTRL.autoPublicar?'ligada':'desligada')+'</button></div>';
+  h+='<div class="sec-t">3. Provas do clube (Taça, Magusto, Natal…)</div><p class="nota">Esconder tira a prova da lista dos atletas.</p><div class="lst">'+(clube.map(p=>{const o=CTRL.ocultas.includes(p.nome);return'<div class="lrow"><div class="t"><span>'+esc(p.nome)+'</span><small>'+fdata(p.data)+' · '+esc(p.estado||'')+(o?' · escondido':'')+'</small></div><button class="btn s" data-ea="ocultar" data-nome="'+esc(p.nome)+'">'+(o?'Mostrar':'Esconder')+'</button></div>'}).join('')||'<div class="nota">Sem provas de clube.</div>')+'</div>';
+  h+='<div class="sec-t">4. Links</div><div class="lst"><div class="lrow"><div class="t"><b style="color:var(--text)">TV do projetor</b><small class="code" style="display:inline-block;margin-top:3px">vizelgolfe.net/publico.html?modo=tv</small></div><button class="btn s p" data-copia="https://vizelgolfe.net/publico.html?modo=tv">Copiar</button></div><div class="lrow"><div class="t"><b style="color:var(--text)">Atletas e sócios</b><small class="code" style="display:inline-block;margin-top:3px">vizelgolfe.net/publico.html</small></div><button class="btn s p" data-copia="https://vizelgolfe.net/publico.html">Copiar</button></div><div class="lrow"><div class="t"><b style="color:var(--text)">Ver como os atletas veem</b></div><a class="btn s" href="publico.html" target="_blank" rel="noopener">Abrir ↗</a></div></div>';
+  w.innerHTML=h}
+$('sec-ecras').addEventListener('change',ev=>{const t=ev.target;
+  if(t.id==='e-fonte'){ECR.fonte=t.value;renderEcras()}else if(t.id==='e-prova'){ECR.prova=t.value;ECR.vista='geral';renderEcras()}else if(t.id==='e-vista')ECR.vista=t.value;else if(t.id==='e-cat')ECR.cat=t.value;else if(t.id==='e-nac')ECR.nac=t.value;else if(t.id==='e-ts')ECR.tsel=t.value});
+$('sec-ecras').addEventListener('click',async ev=>{
+  const c=ev.target.closest('[data-copia]');if(c){const u=c.dataset.copia,o=c.textContent;navigator.clipboard.writeText(u).then(()=>{c.textContent='Copiado ✓'}).catch(()=>prompt('Copia o link:',u));setTimeout(()=>c.textContent=o,1800);return}
+  const b=ev.target.closest('[data-ea]');if(!b)return;const a=b.dataset.ea;
+  try{
+    if(a==='enviar'){let fonte=ECR.fonte,prova=ECR.prova,vista=ECR.vista,livre='';
+      if(ECR.fonte==='torneios'){if(!ECR.tsel){toast('Escolhe um torneio.',true);return}if(ECR.tsel.startsWith('livre:')){fonte='livre';livre=ECR.tsel.slice(6)}else{fonte='prova';prova=ECR.tsel.slice(5);vista='geral'}}
+      await gravarCtrl({fonte,camp:{prova,vista:String(vista)},livre:{id:livre},nacional:{chave:ECR.nac||'atual'},categoria:ECR.fonte==='camp'?ECR.cat:''});toast('✅ Enviado para a TV.')}
+    else if(a==='repor'){const c=D.provas.find(p=>p.tipo==='campeonato'&&p.estado==='ativo')||D.provas.find(p=>p.tipo==='campeonato');let j='geral';if(c){let m=0;for(let k=1;k<=(c.jornadas||1);k++)if(temRes(c,k))m=k;if(m)j=String(m)}
+      await gravarCtrl({fonte:'camp',camp:{prova:c?c.nome:'__anual__',vista:j},livre:{id:''},categoria:''});ECR._ini=false;toast('✅ Reposto.')}
+    else if(a==='retirar'){await gravarCtrl({publicados:CTRL.publicados.filter(p=>p.id!==b.dataset.id),naoPublicar:[...(CTRL.naoPublicar||[]),b.dataset.id]});toast('Retirado.')}
+    else if(a==='publicar'){await publicar([b.dataset.id],false)}
+    else if(a==='auto'){const lig=!CTRL.autoPublicar;await gravarCtrl(lig?{autoPublicar:true,autoPublicarDesde:Date.now()}:{autoPublicar:false});toast(lig?'Publicação automática ligada.':'Publicação automática desligada.')}
+    else if(a==='ocultar'){const n=b.dataset.nome,o=CTRL.ocultas.includes(n);await gravarCtrl({ocultas:o?CTRL.ocultas.filter(x=>x!==n):[...CTRL.ocultas,n]})}
+  }catch(e){toast('Não foi possível guardar ('+((e&&e.code)||'erro')+').',true)}});
+
+/* ---------- Nacional ---------- */
+const CAT_NAC=['Homens','Senhoras','Juniores Masculinos','Juniores Femininos','Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos','Veteranos Masculinos','Veteranos Femininos'];
+const VZG_EXC=['Jose Tropa','José Tropa'];
+const isVzgN=c=>{const x=(c||'').toLowerCase();return x.includes('vizelgolfe')||x.includes('vizelglfe')||x.includes('vizela')};
+const ordenar=(cats,ord)=>[...cats].sort((a,b)=>{const ia=ord.indexOf(a),ib=ord.indexOf(b);return(ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b,'pt')});
+let NACK='atual',NACTIM=null,NACLOG='';
+function edicoesNac(){const out=[];if(NAC&&NAC.bangolfe)out.push({k:'atual',rot:'Atual · '+(NAC.bangolfe.nome||'Nacional'),d:NAC.bangolfe});
+  Object.entries((NAC&&NAC.historico)||{}).sort((a,b)=>String(b[1].atualizadoEm||b[1].importadoEm||'').localeCompare(String(a[1].atualizadoEm||a[1].importadoEm||''))).forEach(([k,h])=>out.push({k,rot:(h.nome||k)+' · '+fdata(String(h.atualizadoEm||h.importadoEm||'').slice(0,10)),d:h}));return out}
+function corTotalNac(total,nV,tipo){const n=Number(total);if(isNaN(n)||n<=0||!nV)return'cv-null';const m=n/nV;if(tipo==='mini')return m<=19?'cv-blue':m<=24?'cv-green':m<=29?'cv-red':'cv-gray';return m<=24?'cv-blue':m<=29?'cv-green':m<=35?'cv-red':'cv-gray'}
+function renderNac(){
+  const w=$('nac-wrap'),ed=edicoesNac(),e=ed.find(x=>x.k===NACK)||ed[0];
+  let h='<h2>Nacional</h2><div class="pills" id="n-ed">'+ed.map(x=>'<button data-e="'+esc(x.k)+'" class="'+(e&&x.k===e.k?'on':'')+'">'+esc(x.rot)+'</button>').join('')+'</div>';
+  h+='<details id="n-upd"><summary>🔄 Atualizar do site da Federação</summary><div style="padding:6px 0 12px"><p class="nota">Cola o endereço da página de resultados. O sistema lê a tabela e guarda a edição (as anteriores ficam no histórico).</p><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end"><div><label class="nota" style="margin:0">Endereço dos resultados</label><br><input id="n-url" style="min-width:320px" placeholder="http://www.fp-minigolfe.com/resultados/2026/cni/result.htm"></div><div><label class="nota" style="margin:0">Nome</label><br><input id="n-nome" style="width:120px" placeholder="CNI 2026"></div><div><label class="nota" style="margin:0">Ano</label><br><input id="n-ano" style="width:80px" value="'+new Date().getFullYear()+'"></div><div><label class="nota" style="margin:0">Tipo</label><br><select id="n-tipo"><option>CNI</option><option>CNC</option><option>Taça</option><option>Outro</option></select></div></div>'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:8px"><div><label class="nota" style="margin:0">Grupo A (Homens, Senhoras, Infantis)</label><br><select id="n-ga"><option value="mini">Mini</option><option value="peter">Peter</option></select> <input id="n-gav" type="number" value="7" style="width:60px"> voltas</div><div><label class="nota" style="margin:0">Grupo B (restantes)</label><br><select id="n-gb"><option value="peter">Peter</option><option value="mini">Mini</option></select> <input id="n-gbv" type="number" value="6" style="width:60px"> voltas</div></div>'+
+    '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn p" data-na="agora">Atualizar agora</button><select id="n-mins"><option value="0">só uma vez</option><option value="1">de 1 em 1 min</option><option value="2">de 2 em 2 min</option><option value="5">de 5 em 5 min</option></select><button class="btn" data-na="auto">Atualizar automaticamente</button><button class="btn red" data-na="parar" style="display:'+(NACTIM?'':'none')+'">Parar</button><span id="n-log" class="nota" style="margin:0">'+esc(NACLOG)+'</span></div></div></details>';
+  if(!e){w.innerHTML=h+'<div class="card">Ainda sem dados do Nacional.</div>';return}
+  const d=e.d,cats=d.categorias||{},vert=d.vertentes||{};
+  h+='<p class="nota">'+(d.atualizadoEm||d.importadoEm?'Atualizado em '+new Date(d.atualizadoEm||d.importadoEm).toLocaleString('pt-PT',{dateStyle:'short',timeStyle:'short'})+'. ':'')+'Os atletas do Vizelgolfe aparecem destacados.</p>';
+  ordenar(Object.keys(cats).filter(c=>(cats[c]||[]).length),CAT_NAC).forEach(cat=>{
+    const at=cats[cat],disc=vert[cat]||'mini',isMini=['Homens','Senhoras','H','S'].some(g=>cat===g||cat.startsWith(g))||disc==='mini',cor=isMini?corMini:corPeter,maxV=Math.max(...at.map(a=>(a.voltas||[]).length),0);
+    h+='<div class="bloco"><h3>'+esc(cat)+' · '+at.length+'</h3><div class="tw"><table><thead><tr><th>#</th><th class="l">Atleta</th>'+Array.from({length:maxV},(_,i)=>'<th>V'+(i+1)+'</th>').join('')+'<th>Total</th><th>Sit.</th></tr></thead><tbody>'+
+      at.map((a,i)=>{const vz=isVzgN(a.clube)&&!VZG_EXC.includes(a.nome);const cel=Array.from({length:maxV},(_,k)=>{const v=(a.voltas||[])[k],n=num(v);return n===null?'<td><span class="v cv-null">–</span></td>':'<td><span class="v '+(n===126?'cv-gray':cor(n))+'">'+n+'</span></td>'}).join('');const nV=(a.voltas||[]).filter(v=>num(v)!==null).length;
+        return'<tr class="'+(i===0?'p1':i===1?'p2':i===2?'p3':'')+(vz?' vzg':'')+'"><td class="pos">'+(a.rank||'–')+'</td><td class="nome">'+esc(a.nome)+'<div style="font-size:.7rem;color:var(--text3);font-weight:500">'+esc(a.clube||'')+'</div></td>'+cel+'<td class="tot">'+(a.dnf?'<span class="b">DNF</span>':'<span class="v '+corTotalNac(a.total,nV,isMini?'mini':'peter')+'">'+(a.total||'–')+'</span>')+'</td><td>'+(a.dnf?'':(a.completo?'✅':'⏳'))+'</td></tr>'}).join('')+'</tbody></table></div></div>'});
+  const abertoAntes=document.getElementById('n-upd')?.open;w.innerHTML=h;if(abertoAntes)$('n-upd').open=true}
+const WORKER_URL='https://vzg-nacional.ruigoncalves1968.workers.dev';
+function extrairNome(url){const m=url.match(/\/([\w]+)\/result/);return m?m[1].toUpperCase()+' 2026':'Prova Nacional';}
+function parseBangolfe(html) {
+  const parser=new DOMParser();
+  const d=parser.parseFromString(html,'text/html');
+  const categorias={};
+  const CATS=['Homens','Senhoras','Juniores Masculinos','Juniores Femininos',
+    'Infantis Masculinos','Infantis Femininos','Seniores Masculinos','Seniores Femininos',
+    'Veteranos Masculinos','Veteranos Femininos'];
+  const VERT_MAP = {'B':'peter','E':'mini','F':'felt'};
+  let catAtual=null;
+  let vertencesCat={};
+  d.querySelectorAll('table tr').forEach(row=>{
+    const cells=Array.from(row.querySelectorAll('td,th')).map(c=>c.textContent.trim());
+    if (!cells.length) return;
+    const catMatch=CATS.find(c=>cells[0]===c||(cells[0].includes(c)&&cells.length<4));
+    if (catMatch){catAtual=catMatch;if(!categorias[catAtual])categorias[catAtual]=[];vertencesCat={};return;}
+    if(cells[0]==='Rank'&&cells[1]==='Nome'){
+      vertencesCat={};
+      cells.forEach((c,i)=>{if(i<3) return;const letra=c.replace(/\d+/g,'').trim();if(VERT_MAP[letra]) vertencesCat[i]=VERT_MAP[letra];});
+      return;
+    }
+    const rank=parseInt(cells[0]);
+    if (!catAtual||isNaN(rank)||rank<1||rank>500) return;
+    if (cells.length<4) return;
+    const nome=cells[1]||'—';
+    const clube=cells[2]||'—';
+    const ultimaCell=cells[cells.length-1];
+    const dnf=ultimaCell.includes('terminou');
+    const voltas=[];
+    const voltasDetalhe=[];
+    const colIndices=Object.keys(vertencesCat).map(Number).sort((a,b)=>a-b);
+    if(colIndices.length>0){
+      colIndices.forEach(i=>{const v=parseInt(cells[i]);if(!isNaN(v)&&v>=10&&v<=126){voltas.push(v);voltasDetalhe.push({valor:v, vertente:vertencesCat[i]});}});
+    } else {
+      for(let i=3;i<cells.length-4;i++){const v=parseInt(cells[i]);if(!isNaN(v)&&v>=10&&v<=126) voltas.push(v);}
+    }
+    const totalCalculado = voltas.filter(v=>v>0).reduce((a,b)=>a+b,0);
+    const totalStr=dnf?cells[cells.length-2]:cells[cells.length-1];
+    const totalBangolfe=parseInt(totalStr)||0;
+    const total = totalCalculado > 0 ? totalCalculado : totalBangolfe;
+    const linkCell = row.querySelector('td a');
+    const linkHref = linkCell ? linkCell.getAttribute('href') : null;
+    const linkAtleta = linkHref ? linkHref : null;
+    categorias[catAtual].push({rank,nome,clube,voltas,voltasDetalhe,total,completo:!dnf,dnf,linkAtleta});
+  });
+  return categorias;
+}
+const isGrupoA=cat=>cat==='Homens'||cat==='Senhoras'||cat==='Infantis Masculinos'||cat==='Infantis Femininos';
+const nacLog=t=>{NACLOG=t;const e=$('n-log');if(e)e.textContent=t};
+async function nacAtualizar(){
+  const url=$('n-url').value.trim();if(!url){toast('Cola o endereço dos resultados.',true);return false}
+  nacLog('A buscar resultados…');
+  try{
+    const resp=await fetch(WORKER_URL+'?url='+encodeURIComponent(url),{signal:AbortSignal.timeout(15000)});
+    if(!resp.ok)throw new Error('O servidor intermédio falhou');
+    const cats=parseBangolfe(await resp.text()),totalAtl=Object.values(cats).reduce((s,a)=>s+a.length,0);
+    if(!totalAtl)throw new Error('Sem atletas encontrados');
+    const nome=$('n-nome').value.trim()||extrairNome(url),ano=$('n-ano').value.trim()||new Date().getFullYear().toString(),tipo=$('n-tipo').value;
+    const gaV=$('n-ga').value,gaN=parseInt($('n-gav').value||'7'),gbV=$('n-gb').value,gbN=parseInt($('n-gbv').value||'6');
+    const vertentes={};CAT_NAC.forEach(c=>{vertentes[c]=isGrupoA(c)?gaV:gbV});
+    const dn={url,nome,ano,tipo,vertentes,grupoA:{vertente:gaV,voltas:gaN},grupoB:{vertente:gbV,voltas:gbN},atualizadoEm:new Date().toISOString(),categorias:cats};
+    // Substitui a edição por completo (em vez de misturar categorias antigas com as novas) e mantém as outras edições do histórico
+    const chave=tipo+'_'+ano,out={...(NAC||{}),historico:{...((NAC&&NAC.historico)||{}),[chave]:dn}};
+    if(ano===new Date().getFullYear().toString())out.bangolfe=dn;
+    await setDoc(doc(fs,COL,'nacional'),out);
+    const vzg=Object.values(cats).reduce((s,a)=>s+a.filter(x=>isVzgN(x.clube)).length,0);
+    nacLog('✅ '+totalAtl+' atletas · '+vzg+' Vizelgolfe · '+Object.keys(cats).length+' categorias · '+new Date().toLocaleTimeString('pt-PT'));toast('✅ Nacional atualizado!');return true}
+  catch(e){nacLog('❌ '+e.message);toast('Erro: '+e.message,true);return false}}
+$('sec-nac').addEventListener('click',async ev=>{
+  const b=ev.target.closest('[data-e],[data-na]');if(!b)return;
+  if(b.dataset.e){NACK=b.dataset.e;renderNac();return}
+  const a=b.dataset.na;
+  if(a==='agora')await nacAtualizar();
+  else if(a==='auto'){const m=parseInt($('n-mins').value);const ok=await nacAtualizar();if(!ok||!m)return;clearInterval(NACTIM);NACTIM=setInterval(nacAtualizar,m*60000);toast('Atualização automática ligada.');renderNac();$('n-upd').open=true}
+  else if(a==='parar'){clearInterval(NACTIM);NACTIM=null;nacLog('⏹ Atualização parada');renderNac();$('n-upd').open=true}});
+
+/* ---------- Cópia de segurança e migração ---------- */
+function renderCopia(){
+  const w=$('copia-wrap'),nT=Object.keys(TORN).length;
+  w.innerHTML='<h2>Cópia de segurança</h2><p class="nota">Guarda <b>tudo</b> num ficheiro: atletas, provas e resultados, desempates, ajustes, Nacional, controlo da TV e torneios livres. O ficheiro tem o mesmo formato do sistema antigo.</p>'+
+    '<div class="card"><h3>🔧 Testar a ligação</h3><p class="nota">Confirma que o sistema consegue <b>ler e guardar</b> na base de dados. Faz isto na primeira vez, ou se aparecer "Não guardado".</p><button class="btn" data-ca="diag">Testar ligação</button> <div id="ca-diag" class="nota" style="margin-top:8px;line-height:1.7"></div></div>'+
+    '<div class="card"><h3>Descarregar</h3><p class="nota">'+D.atletas.length+' atletas · '+D.provas.length+' provas · '+nT+' torneio'+(nT===1?'':'s')+' livre'+(nT===1?'':'s')+'. Faz sempre antes de importar um torneio para uma jornada.</p><button class="btn p" data-ca="baixar">💾 Descarregar cópia</button></div>'+
+    '<div class="card"><h3>Repor de um ficheiro / Importar do sistema antigo</h3><p class="nota">Escolhe um ficheiro de cópia (do sistema antigo ou deste). <b>Substitui</b> os dados atuais. Antes de repor, o sistema descarrega automaticamente uma cópia do que existe agora.</p>'+
+    '<input type="file" id="ca-ficheiro" accept=".json,application/json"> <label style="display:block;margin:8px 0;font-size:.85rem"><input type="checkbox" id="ca-torn"> Repor também os <b>torneios livres</b> do ficheiro (só os que lá estão; os restantes não são apagados)</label><button class="btn" data-ca="repor">Repor</button> <span id="ca-msg" class="nota" style="margin-left:8px"></span></div>'}
+function descarregarCopia(){
+  const out={geradoEm:new Date().toISOString(),origem:'sistema',incluiTodosOsTorneiosLivres:true,firestore:{dados:clone(D),nacional:NAC||null,ranking_portal:{ranking:M.rankingAnual(D),atualizadoEm:new Date().toISOString()},tv_controlo:CTRL||null},torneiosLivres:clone(TORN)};
+  const d=new Date(),p=n=>String(n).padStart(2,'0'),nome='vizelgolfe-copia-'+d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+'.json';
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(out)],{type:'application/json'}));a.download=nome;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);return nome}
+async function reporCopia(){
+  const f=$('ca-ficheiro').files[0],msg=$('ca-msg');if(!f){toast('Escolhe primeiro o ficheiro.',true);return}
+  let j;try{j=JSON.parse(await f.text())}catch(e){toast('Este ficheiro não é uma cópia válida.',true);return}
+  const fx=j.firestore||{};const dados=fx.dados||j.dados;if(!dados||!Array.isArray(dados.atletas)||!Array.isArray(dados.provas)){toast('Este ficheiro não tem os dados do Campeonato (atletas e provas).',true);return}
+  if(!confirm('Repor '+dados.atletas.length+' atletas e '+dados.provas.length+' provas? Isto SUBSTITUI os dados atuais do Campeonato.'))return;
+  msg.textContent='A guardar…';
+  try{
+    if(DEXISTE&&D.provas.length)descarregarCopia();
+    const nd=normalizar(clone(dados));delete nd._vzgKey;ST.sujo=false;clearTimeout(ST.tm);ST.v=Date.now();nd._v=ST.v;
+    await setDoc(doc(fs,COL,'dados'),clone(nd));D=nd;DEXISTE=true;
+    await setDoc(doc(fs,COL,'ranking_portal'),{ranking:M.rankingAnual(D),atualizadoEm:new Date().toISOString()});
+    if(fx.nacional){const n=clone(fx.nacional);delete n._vzgKey;await setDoc(doc(fs,COL,'nacional'),n)}
+    if(fx.tv_controlo){const c=clone(fx.tv_controlo);delete c._vzgKey;await setDoc(doc(fs,COL,'tv_controlo'),c)}
+    let nt=0;if($('ca-torn').checked&&j.torneiosLivres&&typeof j.torneiosLivres==='object'){await update(ref(rt,ROOT),clone(j.torneiosLivres));nt=Object.keys(j.torneiosLivres).length}
+    iniciarContexto();renderBanner();msg.textContent='✅ Reposto: '+D.atletas.length+' atletas, '+D.provas.length+' provas'+(nt?' e '+nt+' torneios':'')+'.';toast('✅ Dados repostos.');renderEstado()}
+  catch(e){msg.textContent='❌ '+((e&&e.message)||'erro');toast('Não foi possível repor: '+((e&&e.code)||(e&&e.message)||'erro'),true)}}
+async function diagnostico(){
+  const out=[],el=$('ca-diag');el.textContent='A testar…';
+  const dica=c=>c==='permission-denied'?' → as regras de segurança ainda não estão publicadas, ou esta não é a conta de administrador':c==='unavailable'||c==='failed-precondition'?' → a base de dados Firestore ainda não foi criada neste projeto, ou não há internet':'';
+  try{await getDoc(doc(fs,COL,'dados'));out.push('✅ Ler os dados do sistema: ok')}catch(e){out.push('❌ Ler os dados: '+((e&&e.code)||e)+dica(e&&e.code))}
+  try{await setDoc(doc(fs,COL,'_teste'),{quando:new Date().toISOString()});out.push('✅ Guardar na base de dados: ok')}catch(e){out.push('❌ Guardar: '+((e&&e.code)||e)+dica(e&&e.code))}
+  try{await get(ref(rt,ROOT));out.push('✅ Ler os torneios livres: ok')}catch(e){out.push('❌ Torneios livres: '+((e&&e.code)||e))}
+  out.push('Conta: '+(auth.currentUser?auth.currentUser.email:'sem sessão'));el.innerHTML=out.map(esc).join('<br>')}
+$('sec-copia').addEventListener('click',ev=>{const b=ev.target.closest('[data-ca]');if(!b)return;if(b.dataset.ca==='baixar'){const n=descarregarCopia();toast('💾 '+n)}else if(b.dataset.ca==='diag')diagnostico();else reporCopia()});
+window.__SIS={get D(){return D},get TORN(){return TORN},get CTRL(){return CTRL},get NAC(){return NAC},M,ir};
+
+</script>
+</body>
+</html>
