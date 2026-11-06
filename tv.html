@@ -166,7 +166,7 @@ let FS=null,RT=null,fsDb=null,rtDb=null;
 const D={rank:null,rankHora:null,atletas:{},provas:[],nac:null,livre:{},erro:{}};
 let CTRL={fonte:'camp',camp:{prova:'__anual__',vista:'geral'},livre:{id:''},nac:{chave:'atual'},categoria:'',publicados:[],ocultas:[]};
 let SEL={ver:'camp',prova:'__anual__',vista:'geral',id:'',nac:'atual',cat:''};
-let userSel=false;
+let userSel=false,seguir=false;   // seguir: o público só acompanha o projetor se o pedir
 const subs={};
 function marcarCtrl(c){CTRL={fonte:c?.fonte||'camp',camp:{prova:c?.camp?.prova||'__anual__',vista:String(c?.camp?.vista||'geral')},livre:{id:c?.livre?.id||''},nac:{chave:c?.nacional?.chave||'atual'},categoria:c?.categoria||'',publicados:Array.isArray(c?.publicados)?c.publicados:[],ocultas:Array.isArray(c?.ocultas)?c.ocultas:[]}}
 
@@ -374,7 +374,7 @@ function mostrar(i){
 
 /* ---------- menu (acompanhar) ---------- */
 function sincronizarURL(){
-  if(MODO_TV)return;const q=new URLSearchParams();q.set('ver',SEL.ver);
+  if(MODO_TV||!userSel||seguir)return;const q=new URLSearchParams();q.set('ver',SEL.ver);
   if(SEL.ver==='camp'||SEL.ver==='prova'){q.set('prova',SEL.prova);q.set('vista',SEL.vista)}
   if(SEL.ver==='livre'&&SEL.id)q.set('id',SEL.id);
   if(SEL.ver==='nacional'&&SEL.nac&&SEL.nac!=='atual')q.set('nac',SEL.nac);
@@ -390,7 +390,7 @@ function construirMenu(){
   const emTorneios=SEL.ver==='livre'||SEL.ver==='prova';
   const tabs=[['camp','Campeonato',SEL.ver==='camp'],['nacional','Nacional',SEL.ver==='nacional']];
   if(CTRL.publicados.length||torneios.length||emTorneios)tabs.push(['torneios','Torneios',emTorneios]);
-  let h='<div class="tabs">'+tabs.map(([k,n,on])=>'<button class="tab'+(on?' on':'')+'" data-v="'+k+'">'+n+'</button>').join('')+'</div>';
+  let h='<div class="tabs">'+tabs.map(([k,n,on])=>'<button class="tab'+((on&&!seguir)?' on':'')+'" data-v="'+k+'">'+n+'</button>').join('')+'<button class="tab'+(seguir?' on':'')+'" id="bSeguir" title="Mostra o que está no ecrã do projetor">📺 Projetor</button></div>';
   if(SEL.ver==='camp'){
     h+='<select id="selP"><option value="__anual__">Ranking anual</option>'+campProvas.map(p=>'<option value="'+esc(p.nome)+'"'+(p.nome===SEL.prova?' selected':'')+'>'+esc(p.nome)+'</option>').join('')+'</select>';
     const p=campProvas.find(x=>x.nome===SEL.prova);
@@ -403,27 +403,39 @@ function construirMenu(){
       torneios.map(p=>'<button class="tab'+(SEL.ver==='prova'&&p.nome===SEL.prova?' on':'')+'" data-p="'+esc(p.nome)+'">'+(EST_ROT[p.estado]?EST_ROT[p.estado]+' ':'')+esc(p.nome)+'</button>').join('')+'</div>'}
   m.innerHTML=h;
   m.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const k=b.dataset.v;
-    if(k==='camp')escolher({ver:'camp',prova:'__anual__',vista:'geral'});
+    if(k==='camp'){selDefeito();escolher({ver:'camp',prova:SEL.prova,vista:SEL.vista})}   // o Ranking anual fica à escolha, no seletor
     else if(k==='nacional')escolher({ver:'nacional',nac:'atual'});
     else if(CTRL.publicados[0])escolher({ver:'livre',id:CTRL.publicados[0].id});
     else if(torneios[0])escolher({ver:'prova',prova:torneios[0].nome,vista:'geral'})});
   m.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>escolher({ver:'livre',id:b.dataset.t}));
   m.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>escolher({ver:'prova',prova:b.dataset.p,vista:'geral'}));
+  $('bSeguir').onclick=()=>{seguir=!seguir;if(seguir)userSel=false;SEL.cat='';aplicar()};
   const sp=$('selP');if(sp)sp.onchange=()=>escolher({prova:sp.value,vista:'geral'});
   const sv=$('selV');if(sv)sv.onchange=()=>escolher({vista:sv.value});
   const sn=$('selN');if(sn)sn.onchange=()=>escolher({nac:sn.value});
 }
-function escolher(o){userSel=true;SEL.cat='';Object.assign(SEL,o);garantir(SEL.ver,SEL.id);aplicar()}
+function escolher(o){userSel=true;seguir=false;SEL.cat='';Object.assign(SEL,o);garantir(SEL.ver,SEL.id);aplicar()}
 
 /* ---------- aplicar ---------- */
+// Ecrã por defeito de quem abre o link (independente do projetor): a última jornada com resultados do Campeonato ativo.
+// O ranking anual fica à escolha de quem o quiser ver.
+function selDefeito(){
+  const cs=listaProvas().filter(ehCampeonato);
+  if(!cs.length){SEL.ver='camp';SEL.prova=(D.provas.length||D.rank)?'__anual__':'__pendente__';SEL.vista='geral';return}
+  const p=cs.find(x=>x.estado==='ativo')||cs[0];let max=0;
+  Object.values(D.rank||{}).forEach(r=>(r.participacoes||[]).forEach(x=>{if(x.prova===p.nome&&Number(x.jornada)>max)max=Number(x.jornada)}));
+  SEL.ver='camp';SEL.prova=p.nome;SEL.vista=(p.njor>1&&max)?String(max):'geral';
+}
 function selDeCtrl(){SEL.ver=CTRL.fonte;SEL.prova=CTRL.camp.prova;SEL.vista=CTRL.camp.vista;SEL.id=CTRL.livre.id;SEL.nac=CTRL.nac.chave}
 function aplicar(){
   try{
-    if(MODO_TV||!userSel)selDeCtrl();
+    if(MODO_TV||seguir)selDeCtrl();
+    else if(!userSel)selDefeito();
     garantir(SEL.ver,SEL.id);
     let v;if(!FS)v={msg:'Sem ligação à base de dados. Verifica a internet.'};
     else v=SEL.ver==='nacional'?viewNac():SEL.ver==='livre'?viewLivre():SEL.ver==='prova'?viewProva(SEL.prova,SEL.vista):viewCamp();
     construirMenu();desenhar(v);sincronizarURL();
+    if(seguir&&!MODO_TV)$('info').textContent=($('info').textContent?$('info').textContent+' · ':'')+'A seguir o projetor';
   }catch(e){$('stage').innerHTML='<div class="empty">Ocorreu um erro ao mostrar os resultados. A tentar de novo…</div>';console.warn(e)}
 }
 
