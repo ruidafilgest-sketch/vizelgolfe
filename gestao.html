@@ -62,6 +62,52 @@ header img{height:2.3rem;width:2.3rem;object-fit:contain;border-radius:50%;backg
  #barra.mostra .txt{display:block;order:9}#bAjuda{display:inline-block}
  #subtabs{padding:.4rem .6rem;overflow-x:auto}
 }
+
+/* ---------- Início (guia) ---------- */
+#inicio{position:absolute;inset:0;overflow:auto;background:var(--navy);display:none;padding:1.2rem 1rem 4rem;-webkit-overflow-scrolling:touch}
+#inicio.on{display:block}
+#inicio .g-wrap{max-width:1000px;margin:0 auto;color:var(--text);font-size:.95rem;line-height:1.55}
+#inicio .g-hero{background:linear-gradient(135deg,#0f2240,#0a1828);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:12px;padding:1.1rem 1.3rem;margin-bottom:1.2rem}
+#inicio .g-hero h1{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:2rem;letter-spacing:.08em;color:var(--gold);line-height:1.1;margin-bottom:.4rem}
+#inicio h2{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:1.45rem;letter-spacing:.08em;color:var(--gold2);margin:1.6rem 0 .7rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+#inicio h2 span{background:var(--gold);color:#060d18;border-radius:50%;width:1.7rem;height:1.7rem;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;font-family:'Outfit',sans-serif;font-weight:700}
+#inicio h2 small{font-family:'Outfit',sans-serif;font-size:.78rem;letter-spacing:0;color:var(--text3);font-weight:400}
+.g-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.8rem}
+.g-card{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:.25rem}
+.g-card i{font-style:normal;font-size:1.8rem;line-height:1.1}.g-card b{font-size:1.05rem;color:var(--gold2)}.g-card small{color:var(--text2);font-size:.82rem;line-height:1.4}
+.g-card em{font-style:normal;color:var(--gold);font-size:.82rem;font-weight:600;margin-top:.3rem}
+#inicio.on .g-card[data-ir]{cursor:pointer;transition:border-color .15s,background .15s}#inicio.on .g-card[data-ir]:hover{border-color:var(--gold);background:var(--navy3)}
+.g-links{display:flex;flex-direction:column;gap:.6rem}
+.g-link{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:.7rem .9rem}
+.g-link>div{flex:1;min-width:14rem;color:var(--text2);font-size:.88rem}.g-link b{color:var(--text)}
+.g-link code,.g-table code{background:var(--navy);color:var(--gold2);padding:.2rem .5rem;border-radius:6px;font-size:.86rem;font-family:ui-monospace,Menlo,Consolas,monospace}
+.g-link button{font:inherit;font-size:.8rem;font-weight:600;background:var(--gold);color:#060d18;border:0;border-radius:6px;padding:.35rem .9rem;cursor:pointer}
+.g-table{width:100%;border-collapse:separate;border-spacing:0;background:var(--navy2);border:1px solid var(--border);border-radius:10px;overflow:hidden;font-size:.88rem}
+.g-table th{background:var(--navy3);color:var(--gold2);text-align:left;padding:.55rem .7rem;font-weight:600}
+.g-table td{padding:.5rem .7rem;border-top:1px solid var(--border);vertical-align:top;color:var(--text2)}
+.g-table td b{color:var(--text)}
+.g-fases{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.9rem}
+.g-fase{background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:.9rem 1rem}
+.g-fase h3{color:var(--gold);font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:1.25rem;letter-spacing:.08em;margin-bottom:.5rem}
+.g-fase ol{padding-left:1.3rem;display:flex;flex-direction:column;gap:.5rem;color:var(--text2);font-size:.88rem}.g-fase li b{color:var(--text)}
+.g-nota{background:rgba(201,168,76,.08);border-left:3px solid var(--gold);border-radius:6px;padding:.55rem .8rem;margin-top:.7rem;font-size:.84rem;color:var(--text2)}
+#inicio details{background:var(--navy2);border:1px solid var(--border);border-radius:10px;margin-bottom:.5rem;padding:.1rem .9rem}
+#inicio summary{cursor:pointer;padding:.6rem 0;font-weight:600;color:var(--text)}
+#inicio details p{padding:0 0 .7rem;color:var(--text2);font-size:.88rem}
+@media (max-width:640px){.g-table{display:block;overflow-x:auto}#inicio .g-hero h1{font-size:1.6rem}}
+@media print{
+  html,body{height:auto!important;overflow:visible!important;display:block!important;background:#fff!important;color:#000!important}
+  header,#tabs,#subtabs,#barra,#toast,#avisos,#login,.app-only,#frames iframe{display:none!important}
+  #app{display:block!important}#frames{position:static!important;height:auto!important;background:#fff!important}
+  #inicio{position:static!important;display:block!important;background:#fff!important;padding:0!important;overflow:visible!important}
+  #inicio .g-wrap{color:#111!important;max-width:none!important;font-size:10pt}
+  #inicio .g-hero,.g-card,.g-link,.g-table,.g-fase,#inicio details{background:#fff!important;border-color:#bbb!important}
+  #inicio .g-hero h1,#inicio h2,.g-card b,.g-fase h3{color:#0a1f44!important}
+  #inicio h2 span{background:#0a1f44!important;color:#fff!important}
+  .g-table th{background:#0a1f44!important;color:#fff!important}.g-table td,.g-card small,.g-fase ol,#inicio details p,.g-link>div{color:#222!important}.g-table td b,.g-link b,.g-fase li b{color:#000!important}
+  .g-link code,.g-table code{background:#eee!important;color:#000!important}
+  h2,.g-fase,.g-card,details,tr{break-inside:avoid}
+}
 </style>
 </head>
 <body>
@@ -93,7 +139,101 @@ header img{height:2.3rem;width:2.3rem;object-fit:contain;border-radius:50%;backg
   <nav id="tabs"></nav>
   <div id="subtabs"></div>
   <div id="barra"></div>
-  <div id="frames"></div>
+  <div id="frames"><div id="inicio"><div class="g-wrap">
+<div class="g-hero">
+  <h1>Bem-vindo à Gestão Vizelgolfe</h1>
+  <p>Entras aqui <b>uma só vez</b> e chegas a tudo: Campeonato, Nacional, Torneios, TV e cópias de segurança. Este guia diz-te <b>onde está cada coisa e como se faz</b>, como se fosse uma máquina nova.</p>
+</div>
+
+<h2><span>1</span> O que queres fazer agora?</h2>
+<div class="g-grid">
+  <div class="g-card" data-ir="torneios"><i>🏌️</i><b>Fazer um torneio</b><small>Magusto, Natal, Taça… criar, inscrever, imprimir protocolos e lançar resultados.</small><em class="app-only">Abrir Torneios livres →</em></div>
+  <div class="g-card" data-ir="camp"><i>🏆</i><b>Campeonato e Nacional</b><small>Jornadas, bónus, desempates, ajustes de pontos, classificações e datas.</small><em class="app-only">Abrir Campeonato →</em></div>
+  <div class="g-card" data-ir="ecras"><i>📺</i><b>TV e links dos atletas</b><small>Escolher o que se projeta, publicar torneios e copiar os links.</small><em class="app-only">Abrir Ecrãs →</em></div>
+  <div class="g-card" data-ir="copia"><i>💾</i><b>Cópia de segurança</b><small>Guarda tudo num ficheiro. Faz sempre antes de importar para uma jornada.</small><em class="app-only">Abrir Cópia →</em></div>
+</div>
+
+<h2><span>2</span> Os teus 3 endereços</h2>
+<div class="g-links">
+  <div class="g-link"><div><b>Gestão</b> · onde mexes em tudo (pede login)</div><code>vizelgolfe.net/gestao.html</code><button class="app-only" data-copia="https://vizelgolfe.net/gestao.html">Copiar</button></div>
+  <div class="g-link"><div><b>TV do projetor</b> · abre-se no PC ligado ao projetor, em ecrã inteiro (F11)</div><code>vizelgolfe.net/tv.html?modo=tv</code><button class="app-only" data-copia="https://vizelgolfe.net/tv.html?modo=tv">Copiar</button></div>
+  <div class="g-link"><div><b>Atletas e sócios</b> · o link que dás a toda a gente (só leitura)</div><code>vizelgolfe.net</code><button class="app-only" data-copia="https://vizelgolfe.net/">Copiar</button></div>
+</div>
+
+<h2><span>3</span> Onde se vê, se altera, se insere e se passa de um lado para o outro</h2>
+<table class="g-table">
+  <thead><tr><th>Quero…</th><th>Vou a…</th><th>Como</th></tr></thead>
+  <tbody>
+    <tr><td><b>Ver</b> o que os atletas veem</td><td>📺 Ecrãs</td><td>Botão <b>"Ver como os atletas veem ↗"</b></td></tr>
+    <tr><td><b>Criar</b> um torneio</td><td>🏆 Competições → Torneios livres</td><td>No cartão <b>"📅 Próximos torneios do calendário"</b>, clica <b>"➕ Criar torneio"</b> (ou <b>"+ Novo Torneio"</b>)</td></tr>
+    <tr><td><b>Inscrever</b> jogadores</td><td>Dentro do torneio</td><td><b>"👥 Lista de jogadores"</b>: marca e clica <b>"Adicionar selecionados"</b>. Quem não está na lista: <b>"Inscrever Jogador"</b> (nome, categoria, clube) → <b>"Inscrever"</b></td></tr>
+    <tr><td><b>Imprimir</b> os protocolos</td><td>Dentro do torneio</td><td>Botão <b>"🖨️ Protocolos"</b> → confirma os números de saída → <b>"🖨️ Imprimir"</b></td></tr>
+    <tr><td><b>Lançar</b> resultados do torneio</td><td>Dentro do torneio</td><td>Clica no jogador → <b>"⛳ Por buraco"</b> ou <b>"Σ Por total"</b></td></tr>
+    <tr><td><b>Mudar o formato</b> das voltas (2+2, 4 Peter…)</td><td>Dentro do torneio</td><td><b>"⚙️ Configurar"</b> → <b>"Formato do dia"</b> (só antes de haver resultados). Depois: ✏️ muda o nome, ⇄ troca Mini/Peter, 🗑️ remove</td></tr>
+    <tr><td><b>Passar</b> um torneio para a jornada do Campeonato</td><td>Dentro do torneio</td><td>Botão <b>"📥 Usar como jornada do Campeonato"</b> (abre a Consola já no sítio certo)</td></tr>
+    <tr><td><b>Lançar à mão</b> uma jornada, corrigir resultados</td><td>🏆 Campeonato e Nacional</td><td>Menu <b>"✏️ Inserir Result."</b></td></tr>
+    <tr><td><b>Decidir empates</b> / dar <b>ajustes de pontos</b></td><td>🏆 Campeonato e Nacional</td><td>Menus <b>"⚖️ Desempates"</b> e <b>"🎯 Ajuste Pontos"</b></td></tr>
+    <tr><td><b>Ver classificações</b> e ranking</td><td>🏆 Campeonato e Nacional</td><td>Menu <b>"📊 Classificações"</b></td></tr>
+    <tr><td><b>Mudar datas</b> de provas e de jornadas</td><td>🏆 Campeonato e Nacional</td><td>Menu <b>"⚙️ Gerir Provas"</b></td></tr>
+    <tr><td><b>Novo atleta</b> do Campeonato</td><td>🏆 Campeonato e Nacional</td><td>Menu <b>"👥 Atletas"</b></td></tr>
+    <tr><td><b>Nacional</b></td><td>🏆 Campeonato e Nacional</td><td>Menus <b>"🇵🇹 Resultados"</b> e <b>"⚙️ Config. Nacional"</b></td></tr>
+    <tr><td><b>Eliminar</b> um torneio de teste</td><td>Torneios livres</td><td><b>🗑️</b> no cartão do torneio (ou <b>"🗑️ Eliminar torneio"</b> lá dentro)</td></tr>
+    <tr><td><b>Guardar tudo</b> num ficheiro</td><td>💾 CÓPIA (canto de cima)</td><td><b>"Gerar e descarregar cópia"</b></td></tr>
+  </tbody>
+</table>
+
+<h2><span>4</span> Dia de prova, passo a passo <small>(exemplo: Torneio de Magustos, que conta para a 4.ª jornada)</small></h2>
+<div class="g-fases">
+  <div class="g-fase"><h3>Antes (na véspera ou de manhã)</h3>
+    <ol>
+      <li><b>Torneios livres</b> → no cartão "📅 Próximos torneios do calendário", em Magustos, clica <b>"➕ Criar torneio"</b>. Confirma o nome e a data (07/11/2026, se for o caso).</li>
+      <li>Escolhe as <b>categorias</b> e o <b>formato das voltas</b>: <b>"⚙️ Configurar"</b> → "Formato do dia" (2 Mini + 2 Peter, 4 Peter…). Pode mudar-se até começarem os resultados.</li>
+      <li><b>Inscreve</b> os jogadores (ver quadro acima). <b>Convidados, iniciantes e quem só vem ao convívio:</b> marca <b>🚫 "Só torneio"</b> para nunca entrarem no Campeonato.</li>
+      <li><b>🖨️ Protocolos</b>: confirma os números de saída e imprime em <b>A4, 2 por folha, escala 100%</b>. Os cartões saem <b>já preenchidos</b> (nome, clube, categoria, nº de saída, data e, para os atletas da Consola, o ID).</li>
+      <li><i>(Opcional)</i> <b>📺 Ecrãs</b> → "1. O que mostrar" → escolhe o torneio → <b>"Enviar para a TV"</b>.</li>
+    </ol></div>
+  <div class="g-fase"><h3>No campo</h3>
+    <ol start="6">
+      <li><b>Lança</b> os resultados: abre o torneio, clica no jogador, <b>"⛳ Por buraco"</b> ou <b>"Σ Por total"</b>. Os atletas veem tudo em direto em <b>vizelgolfe.net</b> (separador Torneios).</li>
+      <li>Chegou alguém à última hora? <b>Inscreve-o</b> e, em Protocolos, escolhe <b>"Só os que ainda não imprimi"</b>.</li>
+      <li>Só se decide o formato nesse dia? Em <b>⚙️ Configurar → Formato do dia</b>, antes de lançares resultados.</li>
+    </ol></div>
+  <div class="g-fase"><h3>No fim (passar para a 4.ª jornada)</h3>
+    <ol start="9">
+      <li><b>💾 CÓPIA</b> → "Gerar e descarregar cópia". Faz sempre antes de importar.</li>
+      <li>No torneio: <b>"📥 Usar como jornada do Campeonato"</b> → escolhe <b>Campeonato de Vizela 2026</b> e a <b>Jornada 4</b> → "Continuar".</li>
+      <li>Confirma o <b>formato da jornada</b>, liga as voltas (Mini com Mini, Peter com Peter) e confirma os jogadores. <b>Ficam de fora</b> quem não é atleta da Consola, quem está marcado "só torneio" e quem ainda não jogou nenhuma jornada (caixa recomendada). Clica <b>"Importar para a Jornada 4"</b>.</li>
+      <li>Em <b>Campeonato e Nacional → ⚖️ Desempates</b>, decide os empates (se houver aviso). Confere em <b>📊 Classificações</b>.</li>
+    </ol>
+    <p class="g-nota"><b>Plano B:</b> se a importação falhar, lança a jornada à mão em "✏️ Inserir Result.". Os cartões em papel são sempre a fonte de verdade.</p></div>
+</div>
+
+<h2><span>5</span> A TV: quem gere e quem vê</h2>
+<table class="g-table">
+  <thead><tr><th></th><th>Projetor no campo</th><th>Atletas e sócios (campo e dia a dia)</th></tr></thead>
+  <tbody>
+    <tr><td><b>Endereço</b></td><td><code>vizelgolfe.net/tv.html?modo=tv</code></td><td><code>vizelgolfe.net</code></td></tr>
+    <tr><td><b>Quem gere</b></td><td>Só tu, em <b>📺 Ecrãs</b>, de qualquer aparelho (telemóvel ou PC)</td><td>Ninguém: é só leitura. Cada pessoa escolhe o que quer ver</td></tr>
+    <tr><td><b>Quem vê</b></td><td>Quem está no campo, no ecrã grande</td><td>Qualquer pessoa, no telemóvel ou no computador</td></tr>
+    <tr><td><b>O que mostra</b></td><td>O que escolheres em "1. O que mostrar" e enviares com <b>"Enviar para a TV"</b></td><td>Por defeito, a última jornada do Campeonato. Menu: Campeonato, Nacional, Torneios. O botão <b>"📺 Projetor"</b> deixa seguir o que está no ecrã grande</td></tr>
+    <tr><td><b>Como se liga</b></td><td>Abre o endereço no PC do projetor (F11, ecrã inteiro). Fica a obedecer à Gestão, sem lhe mexer</td><td>Basta abrir o link. Os torneios novos aparecem sozinhos (<b>"Publicação automática: ligada"</b> em Ecrãs)</td></tr>
+  </tbody>
+</table>
+<p class="g-nota">O que está no projetor <b>não muda</b> o que os atletas veem no telemóvel, e vice-versa.</p>
+
+<h2><span>6</span> Perguntas rápidas</h2>
+<details><summary>Os protocolos saem sozinhos ao inscrever?</summary><p>Não saem sozinhos para a impressora, mas <b>ficam sempre prontos</b>: clicas em <b>🖨️ Protocolos</b> e saem todos, já preenchidos. Quem se inscrever depois entra na lista automaticamente. À mão só escreves os resultados no papel.</p></details>
+<details><summary>O formato (2+2 ou outro) só se sabe no dia. Posso imprimir antes?</summary><p>Sim. O cartão sai <b>neutro</b> (igual ao original, sem "Mini/Peter"). No dia escolhes o formato em <b>⚙️ Configurar → Formato do dia</b>, e na importação para a jornada escolhes <b>"Normal"</b> ou <b>"Só Peter, 4 voltas"</b>.</p></details>
+<details><summary>Aparece um convidado, um iniciante ou alguém que nunca jogou o Campeonato</summary><p>Marca-o <b>🚫 "Só torneio"</b> (ao inscrever, ou no botão 🏆/🚫 do jogador). Quem não é atleta da Consola nunca é importado, e quem é mas ainda não jogou nenhuma jornada fica retido pela caixa recomendada, na importação. A decisão final é sempre tua: na lista da importação, escolhes o nome ou "— ignorar —".</p></details>
+<details><summary>Falhou a internet no campo</summary><p>Escreve nos cartões de papel e lança depois. Nada se perde.</p></details>
+<details><summary>Importei por engano, ou corrigi um resultado depois de importar</summary><p>Em <b>Campeonato e Nacional → ✏️ Inserir Result.</b>, na jornada, clica <b>"↩ Anular importação"</b>. Corrige no torneio e volta a importar. O Campeonato <b>não se atualiza sozinho</b> quando mudas o torneio.</p></details>
+<details><summary>Como mudo a data de uma jornada?</summary><p><b>Campeonato e Nacional → ⚙️ Gerir Provas</b>: cada prova tem a data, e o Campeonato tem as "Datas das jornadas".</p></details>
+<details><summary>Quero um torneio que não conta para o Campeonato (Natal, Taça…)</summary><p>Faz exatamente igual, mas <b>não uses</b> "Usar como jornada do Campeonato". Fica só nos Torneios livres e na TV.</p></details>
+
+<h2><span>7</span> Para que saibas como está montado</h2>
+<p class="g-nota" style="font-size:.9rem">Por baixo, o <b>Campeonato e Nacional</b> e os <b>Torneios livres</b> continuam a ser duas ferramentas, com dados em sítios diferentes. A Gestão junta-as numa só <b>porta de entrada</b>: entras uma vez, passas de uma para a outra sem sair, e os botões "Usar como jornada" e "Protocolos" fazem a ligação. A ferramenta única, com tudo na mesma base, está em construção e <b>não é preciso para amanhã</b>.</p>
+
+</div></div></div>
 </div>
 
 <div id="toast"></div>
@@ -108,6 +248,7 @@ $('logo').src=LOGO;$('logo2').src=LOGO;
 
 /* ---------- separadores ---------- */
 const V={
+  inicio:{g:'inicio',nome:'Início',nativo:true,txt:'Guia e atalhos: tudo o que precisas, num só sítio.'},
   camp:{g:'comp',nome:'Campeonato e Nacional',src:'consola.html',txt:'Campeonato de Vizela e Nacional: atletas, jornadas, resultados e classificações.'},
   torneios:{g:'comp',nome:'Torneios livres',src:'torneio-livre.html',txt:'Criar torneios (categorias e voltas à tua escolha), inscrever jogadores e lançar resultados.'},
   ecras:{g:'ecras',nome:'Ecrãs',src:'tv-controlo.html',txt:'Escolhe o que aparece no ecrã do projetor. O link único dos atletas está aqui. Os torneios novos publicam-se sozinhos.',auto:true,
@@ -115,11 +256,11 @@ const V={
     extra:[['Ver como os atletas veem ↗',BASE+'tv.html']]},
   copia:{g:'copia',nome:'Cópia de segurança',src:'copia-seguranca.html',txt:'Guarda num ficheiro uma cópia de todos os dados. Faz isto antes de qualquer alteração importante.'}
 };
-const GRUPOS=[{id:'comp',ic:'🏆',nome:'Competições',sub:'campeonato, nacional e torneios',vista:'camp'},{id:'ecras',ic:'📺',nome:'Ecrãs',sub:'projetor e atletas',vista:'ecras'}];
-const ALIAS={tv:'ecras',atletas:'ecras',competicoes:'camp'};
+const GRUPOS=[{id:'inicio',ic:'🏠',nome:'Início',sub:'guia e atalhos',vista:'inicio'},{id:'comp',ic:'🏆',nome:'Competições',sub:'campeonato, nacional e torneios',vista:'camp'},{id:'ecras',ic:'📺',nome:'Ecrãs',sub:'projetor e atletas',vista:'ecras'}];
+const ALIAS={tv:'ecras',atletas:'ecras',competicoes:'camp',guia:'inicio',ajuda:'inicio'};
 let atual=null,ultimaComp='camp',noApp=false;
 
-function escolhido(){const h=(location.hash||'').slice(1),k=ALIAS[h]||h;return V[k]?k:'camp'}
+function escolhido(){const h=(location.hash||'').slice(1),k=ALIAS[h]||h;return V[k]?k:'inicio'}
 function montar(){
   $('tabs').innerHTML=GRUPOS.map(g=>'<button data-g="'+g.id+'"><span class="ic">'+g.ic+'</span><b>'+g.nome+'</b><small>'+g.sub+'</small></button>').join('');
   $('tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{const g=GRUPOS.find(x=>x.id===b.dataset.g);ir(g.id==='comp'?ultimaComp:g.vista)});
@@ -132,6 +273,11 @@ function ir(id){
   $('tabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.g===t.g));
   $('subtabs').style.display=t.g==='comp'?'flex':'none';
   $('subtabs').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.v===id));
+  if(t.nativo){
+    document.querySelectorAll('#frames iframe').forEach(x=>x.classList.remove('on'));$('inicio').classList.add('on');$('inicio').scrollTop=0;
+    $('barra').classList.remove('mostra');$('barra').innerHTML='<span class="txt">'+t.txt+'</span><span class="sp"></span><button id="bImp">🖨️ Imprimir este guia</button>';
+    $('bImp').onclick=()=>window.print();try{history.replaceState(null,'','#'+id)}catch(e){}return}
+  $('inicio').classList.remove('on');
   let f=$('f-'+id);
   if(!f){f=document.createElement('iframe');f.id='f-'+id;f.src=t.srcInicial||t.src;f.title=t.nome;f.allow='clipboard-write; fullscreen';$('frames').appendChild(f)}
   document.querySelectorAll('#frames iframe').forEach(x=>x.classList.toggle('on',x===f));
@@ -148,6 +294,12 @@ function ir(id){
     try{await navigator.clipboard.writeText(c[1]);b.textContent='Copiado ✓'}catch(e){prompt('Copia o link:',c[1])}setTimeout(()=>b.textContent=o,1800)});
   try{history.replaceState(null,'','#'+id)}catch(e){}
 }
+// guia: botões que levam a cada ferramenta e botões de copiar
+$('inicio').addEventListener('click',ev=>{
+  const c=ev.target.closest('[data-copia]');
+  if(c){const u=c.dataset.copia,o=c.textContent;navigator.clipboard.writeText(u).then(()=>{c.textContent='Copiado ✓'}).catch(()=>prompt('Copia o link:',u));setTimeout(()=>c.textContent=o,1800);return}
+  const d=ev.target.closest('[data-ir]');if(d)ir(d.dataset.ir)});
+addEventListener('beforeprint',()=>document.querySelectorAll('#inicio details').forEach(x=>x.open=true));
 // o botão «Usar como jornada» (no torneio) pede à Consola para abrir a importação
 addEventListener('message',ev=>{
   if(ev.origin!==location.origin||!noApp)return;
