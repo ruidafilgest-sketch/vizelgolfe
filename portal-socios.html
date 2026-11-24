@@ -818,7 +818,7 @@ input,select,textarea{color:#f2f6ff}
           <option>Normal</option>
           <option>Reformado</option>
           <option>Fundador</option>
-          <option>Socio beneficios</option>
+          <option>Socio beneficios</option><option>Benemérito</option>
           <option>Socio Falecido</option>
           <option>Honorário</option>
           <option>Júnior</option>
@@ -847,7 +847,7 @@ input,select,textarea{color:#f2f6ff}
             </select>
             <select id="rel-dev-cat" onchange="renderRelatorioDevedores()" style="padding:7px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;outline:none">
               <option value="">Todas as categorias</option>
-              <option>Atleta</option><option>Normal</option><option>Reformado</option><option>Fundador</option><option>Socio beneficios</option><option>Honorário</option><option>Júnior</option>
+              <option>Atleta</option><option>Normal</option><option>Reformado</option><option>Fundador</option><option>Socio beneficios</option><option>Benemérito</option><option>Honorário</option><option>Júnior</option>
             </select>
             <button class="btn btn-accent" onclick="imprimirRelatorioDevedores()">🖨️ Imprimir</button>
             <button class="btn btn-outline" onclick="document.getElementById('rel-devedores').style.display='none'">✕ Fechar</button>
@@ -1942,7 +1942,7 @@ input,select,textarea{color:#f2f6ff}
       <div class="form-grid">
         <div class="form-group"><label>Número de Sócio</label><input id="s-num" type="text" placeholder="Ex: 208" /></div>
         <div class="form-group"><label>Categoria</label>
-          <select id="s-cat"><option>Atleta</option><option>Normal</option><option>Reformado</option><option>Fundador</option><option>Socio beneficios</option><option>Honorário</option><option>Júnior</option></select>
+          <select id="s-cat"><option>Atleta</option><option>Normal</option><option>Reformado</option><option>Fundador</option><option>Socio beneficios</option><option>Benemérito</option><option>Honorário</option><option>Júnior</option></select>
         </div>
         <div class="form-group full"><label>Nome Completo</label><input id="s-nome" type="text" placeholder="Nome e apelido" /></div>
         <div class="form-group"><label>Email</label><input id="s-email" type="email" placeholder="email@exemplo.com" /></div>
@@ -2414,7 +2414,22 @@ let currentSocioData = null;
 
 // ── Helpers de quotas/admissão (admissões futuras não geram dívida) ──
 window.admissaoFutura = function(s){ return !!(s && s.inscricao && String(s.inscricao) > new Date().toISOString().slice(0,10)); };
-window.qEmDivida = function(q){ return !!q && q.estado !== 'pago' && Number(q.ano) <= new Date().getFullYear(); };
+// Categorias isentas de quota (Honorário, Benemérito, Sócio benefícios): nunca ficam em dívida; podem fazer contribuição voluntária
+window.isentoQuota = function(s){
+  const c = String((s && s.categoria) || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  return /honorari|benemerit|benefici|benfeitor/.test(c);
+};
+window.qEmDivida = function(q){
+  if (!q || q.estado === 'pago' || Number(q.ano) > new Date().getFullYear()) return false;
+  try { if (typeof socios !== 'undefined' && isentoQuota(socios[q.socioKey])) return false; } catch(e){}
+  return true;
+};
+window.qEstadoBase = function(s, qa){
+  const e = qa && qa[1] && qa[1].estado;
+  if (e === 'pago') return 'pago';
+  if (isentoQuota(s)) return 'isento';
+  return e || (admissaoFutura(s) ? 'futura' : 'pendente');
+};
 // Estado efetivo do torneio: passa a "terminado" no dia seguinte à data final (ou à data, se for de 1 dia)
 window.torneioEstadoEf = function(t){
   if(!t) return '';
@@ -2598,7 +2613,7 @@ function renderAreaSocio() {
   const anoAtual = new Date().getFullYear().toString();
   const minhasQuotas = Object.entries(quotas).filter(([,q]) => q.socioKey === key);
   const quotaAtual   = minhasQuotas.find(([,q]) => String(q.ano) === anoAtual);
-  let qEstado        = quotaAtual?.[1]?.estado || (admissaoFutura(s) ? 'futura' : 'pendente');
+  let qEstado        = qEstadoBase(s, quotaAtual);
   // Tolerância: de 1 jan a 31 mar, quem tem a quota do ano anterior paga continua válido
   if (qEstado === 'pendente' && new Date().getMonth() <= 2) {
     const qAnt = minhasQuotas.find(([,q]) => String(q.ano) === String(Number(anoAtual)-1));
@@ -2611,8 +2626,8 @@ function renderAreaSocio() {
   if (pills) pills.innerHTML = `
     <div class="s-pill"><span>Nº</span><strong>${s.numero||'—'}</strong></div>
     <div class="s-pill"><strong>${s.categoria||'—'}</strong></div>
-    <div class="s-pill ${qEstado==='pago'?'green':(qEstado==='parcial'||qEstado==='futura'||qEstado==='tolerancia')?'orange':'red'}">
-      ${qEstado==='pago'?'✅ Quota paga':qEstado==='parcial'?'⚠️ Quota parcial':qEstado==='futura'?'🕒 Admissão a '+s.inscricao:qEstado==='tolerancia'?'🕒 Válida até 31/03':'❌ Quota pendente'}
+    <div class="s-pill ${(qEstado==='pago'||qEstado==='isento')?'green':(qEstado==='parcial'||qEstado==='futura'||qEstado==='tolerancia')?'orange':'red'}">
+      ${qEstado==='pago'?'✅ Quota paga':qEstado==='isento'?'🎗️ Isento de quota':qEstado==='parcial'?'⚠️ Quota parcial':qEstado==='futura'?'🕒 Admissão a '+s.inscricao:qEstado==='tolerancia'?'🕒 Válida até 31/03':'❌ Quota pendente'}
     </div>
     ${minhasInsc.length ? `<div class="s-pill"><strong>${minhasInsc.length}</strong> inscrição(ões)</div>` : ''}
   `;
@@ -2620,7 +2635,7 @@ function renderAreaSocio() {
   // ── Aviso quota (no tab Início) ──
   const avisoEl  = document.getElementById('socio-aviso-pendente');
   const pagoBanner = document.getElementById('socio-aviso-pago');
-  if (qEstado !== 'pago' && qEstado !== 'futura') {
+  if (qEstado !== 'pago' && qEstado !== 'futura' && qEstado !== 'isento') {
     if (avisoEl) avisoEl.style.display = 'block';
     if (pagoBanner) pagoBanner.style.display = 'none';
     const _t=document.getElementById('aviso-titulo'), _x=document.getElementById('aviso-texto');
@@ -2654,7 +2669,7 @@ function renderAreaSocio() {
     dadoLinha('Nº Sócio', s.numero) +
     dadoLinha('Categoria', s.categoria) +
     dadoLinha('Estado', s.estado) +
-    dadoLinha('Quota ' + anoAtual, qEstado === 'pago' ? '✅ Paga' : qEstado === 'futura' ? '🕒 Ainda não aplicável' : '❌ Pendente') +
+    dadoLinha('Quota ' + anoAtual, qEstado === 'pago' ? '✅ Paga' : qEstado === 'isento' ? '🎗️ Isento (sem quota)' : qEstado === 'futura' ? '🕒 Ainda não aplicável' : '❌ Pendente') +
     (totalPago > 0 ? dadoLinha('Total quotas pagas', totalPago.toFixed(2) + ' €') : '') +
     (meusRecibos.length > 0 ? dadoLinha('Recibos emitidos', meusRecibos.length + ' recibo(s)') : '');
 
@@ -2782,7 +2797,7 @@ function renderInicioPremium(s, qEstado, anoAtual){
   const sa=document.getElementById('socio-saudacao');
   if(sa) sa.innerHTML='<div class="saud"><small>ÁREA DO SÓCIO</small><b>'+_esc(primeiro)+'</b><i class="saud-linha"></i></div>';
 
-  const est = qEstado==='pago' ? ['ok','✔ VÁLIDO '+anoAtual] : qEstado==='tolerancia' ? ['warn','🕒 VÁLIDO ATÉ 31/03'] : qEstado==='futura' ? ['warn','🕒 ADMISSÃO '+_esc(s.inscricao||'')] : qEstado==='parcial' ? ['warn','⚠ QUOTA PARCIAL'] : ['bad','QUOTA PENDENTE'];
+  const est = qEstado==='pago' ? ['ok','✔ VÁLIDO '+anoAtual] : qEstado==='tolerancia' ? ['warn','🕒 VÁLIDO ATÉ 31/03'] : qEstado==='isento' ? ['ok','🎗️ SÓCIO ISENTO'] : qEstado==='futura' ? ['warn','🕒 ADMISSÃO '+_esc(s.inscricao||'')] : qEstado==='parcial' ? ['warn','⚠ QUOTA PARCIAL'] : ['bad','QUOTA PENDENTE'];
   const desde=(s.inscricao||'').slice(0,4)||'—';
   const num=String(s.numero||'0').padStart(4,'0');
   const foto=s.foto?'<img src="'+_esc(s.foto)+'" alt="">':_esc((s.nome||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase());
@@ -2804,11 +2819,11 @@ function renderInicioPremium(s, qEstado, anoAtual){
     pb.innerHTML=(s.nascimento && String(s.nascimento).slice(5,10)===mmdd) ? '<div class="parab">🎂 Parabéns, '+_esc(primeiro)+'! A Vizelgolfe deseja-lhe um dia fantástico.</div>' : '';
   }
 
-  const pend = !['pago','futura','tolerancia'].includes(qEstado);
+  const pend = !['pago','futura','tolerancia','isento'].includes(qEstado);
   const at=document.getElementById('socio-atalhos');
   if(at){
     const nRec = Object.values(recibos||{}).filter(r=>r.socioKey===currentSocioKey && !r.anulado).length;
-    const subQ = qEstado==='pago' ? 'Em dia · '+anoAtual : qEstado==='tolerancia' ? 'Válida até 31/03' : qEstado==='futura' ? 'Admissão '+_esc(s.inscricao||'') : qEstado==='parcial' ? 'Pagamento parcial' : 'Por pagar';
+    const subQ = qEstado==='pago' ? 'Em dia · '+anoAtual : qEstado==='tolerancia' ? 'Válida até 31/03' : qEstado==='isento' ? 'Isento · contribuição voluntária' : qEstado==='futura' ? 'Admissão '+_esc(s.inscricao||'') : qEstado==='parcial' ? 'Pagamento parcial' : 'Por pagar';
     at.innerHTML=[
       [pend?'dest':'','💳','Quotas',subQ,"irTab('quotas')",''],
       ['','🧾','Recibos',nRec? nRec+(nRec===1?' recibo':' recibos') : 'Os teus recibos',"irTab('recibos')",''],
@@ -3061,7 +3076,7 @@ function renderDashboard() {
   const pct = ativos.length ? Math.round(pagas.length/ativos.length*100) : 0;
   document.getElementById('stat-pagos-pct').textContent = `${pct}% dos sócios ativos`;
   document.getElementById('stat-pendentes').textContent = Math.max(0, ativos.length - pagas.length);
-  const pendVal = quotasAno.filter(q=>q.estado!=='pago').reduce((a,q)=>a+parseFloat(q.valor||0),0);
+  const pendVal = quotasAno.filter(q=>q.estado!=='pago' && !isentoQuota(socios[q.socioKey])).reduce((a,q)=>a+parseFloat(q.valor||0),0);
   document.getElementById('stat-pendentes-val').textContent = pendVal > 0 ? `${pendVal.toFixed(0)}€ em dívida` : 'Em dia ✅';
   document.getElementById('stat-rec-ano').textContent = totalRec >= 1000 ? (totalRec/1000).toFixed(1)+'k €' : totalRec.toFixed(0)+' €';
   const res = totalRec - totalDesp;
@@ -3136,7 +3151,7 @@ function renderDashboard() {
   const sociosComKey = Object.entries(socios);
   const quotasPagasKeys = new Set(pagas.map(q=>q.socioKey));
   const devedores = sociosComKey
-    .filter(([k,s])=>s.estado==='Ativo' && !admissaoFutura(s) && !quotasPagasKeys.has(k))
+    .filter(([k,s])=>s.estado==='Ativo' && !admissaoFutura(s) && !isentoQuota(s) && !quotasPagasKeys.has(k))
     .slice(0,8);
 
   const divDev=document.getElementById('dash-devedores');
@@ -3329,7 +3344,7 @@ window.renderQuotas = function() {
   // Resumo
   const qAno = Object.values(quotas).filter(x => x.ano == ano);
   const totalPago = qAno.filter(x => x.estado==='pago').reduce((a,x) => a + parseFloat(x.valor||0), 0);
-  const totalPendente = qAno.filter(x => x.estado!=='pago').reduce((a,x) => a + parseFloat(x.valor||0), 0);
+  const totalPendente = qAno.filter(x => x.estado!=='pago' && !isentoQuota(socios[x.socioKey])).reduce((a,x) => a + parseFloat(x.valor||0), 0);
   const pct = totalPago + totalPendente > 0 ? (totalPago/(totalPago+totalPendente)*100) : 0;
 
   document.getElementById('quota-resumo').innerHTML = `
@@ -3342,7 +3357,7 @@ window.renderQuotas = function() {
     <div class="quota-card">
       <h4>Pendente ${ano}</h4>
       <div class="quota-amount" style="color:var(--red)">${totalPendente.toFixed(2)}€</div>
-      <div class="quota-sub">${qAno.filter(x=>x.estado!=='pago').length} por cobrar</div>
+      <div class="quota-sub">${qAno.filter(x=>x.estado!=='pago' && !isentoQuota(socios[x.socioKey])).length} por cobrar</div>
     </div>
     <div class="quota-card">
       <h4>Taxa de Cobrança</h4>
@@ -6254,8 +6269,8 @@ window.verInscritos = function(key) {
   const t = torneios[key];
   document.getElementById('modal-inscritos-title').textContent = `🏆 ${t.nome} — Inscritos`;
   const inscTorneio = Object.entries(inscricoes).filter(([,i]) => i.torneioKey === key);
-  const estadoCor = { pendente:'var(--accent)', confirmado:'var(--green)', rejeitado:'var(--red)' };
-  const estadoLabel = { pendente:'⏳ Pendente', confirmado:'✅ Confirmado', rejeitado:'❌ Rejeitado' };
+  const estadoCor = { pendente:'var(--accent)', confirmado:'var(--green)', rejeitado:'var(--red)', cancelamento:'var(--accent)' };
+  const estadoLabel = { pendente:'⏳ Pendente', confirmado:'✅ Confirmado', rejeitado:'❌ Rejeitado', cancelamento:'↩️ Pede cancelamento' };
 
   // Botão inscrever sócio manualmente
   const btnInscAdmin = `<div style="margin-bottom:14px">
@@ -6275,13 +6290,17 @@ window.verInscritos = function(key) {
               <div style="font-weight:700;font-size:14px">${i.socioNome||'—'}</div>
               <div style="font-size:12px;color:var(--text2)">Nº ${i.socioNum||'—'} · ${i.categoria||'—'}</div>
               ${i.obs ? `<div style="font-size:11px;color:var(--text2);margin-top:2px">${i.obs}</div>` : ''}
+              ${i.estado==='cancelamento' ? `<div style="font-size:12px;color:var(--accent);margin-top:4px">Motivo: ${_esc(i.motivoCancelamento||'—')}</div>` : ''}
               <div style="font-size:11px;color:var(--text2);margin-top:2px">Inscrito em ${i.criadoEm ? new Date(i.criadoEm).toLocaleDateString('pt-PT') : '—'}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <span style="font-size:12px;font-weight:700;color:${estadoCor[i.estado]||'var(--text2)'};background:rgba(0,0,0,0.2);padding:4px 10px;border-radius:20px">
                 ${estadoLabel[i.estado]||i.estado}
               </span>
-              ${i.estado === 'pendente' ? `
+              ${i.estado === 'cancelamento' ? `
+                <button class="btn btn-green btn-sm" onclick="aceitarCancelamento('${ik}')">✅ Aceitar cancelamento</button>
+                <button class="btn btn-outline btn-sm" onclick="alterarEstadoInscricao('${ik}','confirmado')">Manter inscrição</button>
+              ` : i.estado === 'pendente' ? `
                 <button class="btn btn-green btn-sm" onclick="alterarEstadoInscricao('${ik}','confirmado')">✅ Confirmar</button>
                 <button class="btn btn-danger btn-sm" onclick="alterarEstadoInscricao('${ik}','rejeitado')">❌ Rejeitar</button>
               ` : `
@@ -6377,6 +6396,18 @@ window.alterarEstadoInscricao = async function(key, estado) {
   } catch(e) { toast('Erro: ' + e.message, 'error'); }
 };
 
+window.aceitarCancelamento = async function(key) {
+  const insc = inscricoes[key]; if (!insc) return;
+  if (!confirm('Aceitar o cancelamento? A inscrição é removida e o sócio recebe email.')) return;
+  try {
+    const sc = socios[insc.socioKey];
+    await remove(ref(db, `/portal/inscricoes/${key}`));
+    toast('Cancelamento aceite');
+    if (sc?.email) await enviarNotificacaoInscricao(insc, sc, 'cancelada');
+    verInscritos(insc.torneioKey);
+  } catch(e) { toast('Erro: ' + e.message, 'error'); }
+};
+
 window.apagarInscricao = async function(key) {
   if (!confirm('Remover esta inscrição?')) return;
   const insc = inscricoes[key];
@@ -6389,7 +6420,7 @@ window.apagarInscricao = async function(key) {
 window.renderTorneiosAdmin = function() {
   const lista = Object.entries(torneios).sort((a,b) => (b[1].data||'').localeCompare(a[1].data||''));
   const totalInsc = Object.values(inscricoes).length;
-  const pendentes = Object.values(inscricoes).filter(i => i.estado === 'pendente').length;
+  const pendentes = Object.values(inscricoes).filter(i => i.estado === 'pendente' || i.estado === 'cancelamento').length;
   const abertos   = lista.filter(([,t]) => torneioEstadoEf(t) === 'aberto').length;
 
   const el = id => document.getElementById(id);
@@ -6415,7 +6446,7 @@ window.renderTorneiosAdmin = function() {
   cont.innerHTML = lista.map(([key,t]) => {
     const inscT = Object.values(inscricoes).filter(i => i.torneioKey === key);
     const conf  = inscT.filter(i => i.estado === 'confirmado').length;
-    const pend  = inscT.filter(i => i.estado === 'pendente').length;
+    const pend  = inscT.filter(i => i.estado === 'pendente' || i.estado === 'cancelamento').length;
     const prazoPass = t.prazo && t.prazo < new Date().toISOString().slice(0,10);
     return `
       <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:20px;margin-bottom:14px">
@@ -6502,8 +6533,8 @@ window.renderTorneisosSocio = function() {
     return;
   }
 
-  const estadoCor   = { pendente:'var(--accent)', confirmado:'var(--green)', rejeitado:'var(--red)' };
-  const estadoLabel = { pendente:'⏳ Pendente confirmação', confirmado:'✅ Inscrito e confirmado', rejeitado:'❌ Inscrição rejeitada' };
+  const estadoCor   = { pendente:'var(--accent)', confirmado:'var(--green)', rejeitado:'var(--red)', cancelamento:'var(--accent)' };
+  const estadoLabel = { pendente:'⏳ Pendente confirmação', confirmado:'✅ Inscrito e confirmado', rejeitado:'❌ Inscrição rejeitada', cancelamento:'↩️ Cancelamento pedido' };
 
   cont.innerHTML = lista.map(([key,t]) => {
     const minhaInsc = minhasInsc.find(([,i]) => i.torneioKey === key);
@@ -6534,6 +6565,10 @@ window.renderTorneisosSocio = function() {
               </div>
               ${minhaInsc[1].estado === 'pendente' ? `
                 <button class="btn btn-danger btn-sm" onclick="cancelarInscricaoSocio('${minhaInsc[0]}')">Cancelar inscrição</button>
+              ` : minhaInsc[1].estado === 'confirmado' ? `
+                <button class="btn btn-danger btn-sm" onclick="pedirCancelamentoInscricao('${minhaInsc[0]}')">Pedir cancelamento</button>
+              ` : minhaInsc[1].estado === 'cancelamento' ? `
+                <div style="font-size:11px;color:var(--text2);max-width:190px;margin-left:auto">A direção vai analisar o teu pedido.</div>
               ` : ''}
             ` : podeInscrever ? `
               ${semVagas ? `<span style="font-size:12px;color:var(--red)">Sem vagas disponíveis</span>` : `
@@ -6592,6 +6627,23 @@ window.cancelarInscricaoSocio = async function(key) {
   if (!confirm('Cancelar a tua inscrição?')) return;
   await remove(ref(db, `/portal/inscricoes/${key}`));
   toast('Inscrição cancelada');
+};
+// Inscrição já confirmada: o sócio pede cancelamento (com motivo); a direção aceita ou recusa
+window.pedirCancelamentoInscricao = async function(key) {
+  const i = inscricoes[key]; if (!i) return;
+  const t = torneios[i.torneioKey] || {};
+  if (t.prazo && t.prazo < new Date().toISOString().slice(0,10)) {
+    alert('O prazo de inscrição já terminou. Para cancelar, contacta a direção: gestao.vizelgolfe@gmail.com'); return;
+  }
+  const motivo = prompt('Pedido de cancelamento da inscrição em "' + (t.nome||i.torneioNome||'') + '".\n\nIndica o motivo (a direção será avisada):');
+  if (motivo === null) return;
+  if (motivo.trim().length < 3) { alert('Escreve o motivo, por favor.'); return; }
+  try {
+    await update(ref(db, `/portal/inscricoes/${key}`), { estado:'cancelamento', motivoCancelamento: motivo.trim().slice(0,300), cancelamentoPedidoEm: new Date().toISOString() });
+    const chk = await get(ref(db, `/portal/inscricoes/${key}/estado`));
+    if (chk.val() !== 'cancelamento') throw new Error('O pedido não ficou guardado.');
+    toast('Pedido de cancelamento enviado ✅ A direção vai confirmar.');
+  } catch(e) { alert('Não foi possível enviar o pedido: ' + e.message + '\nContacta a direção.'); }
 };
 
 // ── EXPORTAÇÃO EXCEL (SheetJS) ─────────────────────
@@ -6875,6 +6927,7 @@ window.abrirFicha = function(key) {
   // Configurar botões do footer
   document.getElementById('ficha-btn-editar').onclick = () => { closeModal('modal-ficha'); editarSocio(key); };
   document.getElementById('ficha-btn-quota').onclick  = () => { closeModal('modal-ficha'); abrirModalQuota(key); };
+  document.getElementById('ficha-btn-quota').textContent = isentoQuota(s) ? '🎗️ Contribuição voluntária' : '💰 Nova Quota';
   document.getElementById('ficha-btn-aviso').onclick  = () => gerarAvisoCobranca(key);
   document.getElementById('ficha-btn-email-aviso').onclick = () => enviarAvisoEmail(key);
   document.getElementById('ficha-btn-email-cartao').onclick = () => enviarCartaoPorEmail(key);
@@ -6886,14 +6939,14 @@ window.abrirFicha = function(key) {
   const meusRec     = Object.entries(recibos).filter(([,r]) => r.socioKey === key);
   const minhasInsc  = Object.entries(inscricoes||{}).filter(([,i]) => i.socioKey === key);
   const quotaAtual  = minhasQ.find(([,q]) => String(q.ano) === anoAtual);
-  const qEstado     = quotaAtual?.[1]?.estado || (admissaoFutura(s) ? 'futura' : 'pendente');
+  const qEstado     = qEstadoBase(s, quotaAtual);
   const totalPago   = minhasQ.filter(([,q])=>q.estado==='pago').reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
   const divida      = minhasQ.filter(([,q])=>qEmDivida(q)).reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
 
   document.getElementById('modal-ficha-title').textContent = `👤 ${s.nome} — Nº ${s.numero||'—'}`;
 
   // Mostrar/ocultar botão aviso
-  document.getElementById('ficha-btn-aviso').style.display = (qEstado !== 'pago' && qEstado !== 'futura') ? 'inline-flex' : 'none';
+  document.getElementById('ficha-btn-aviso').style.display = (qEstado !== 'pago' && qEstado !== 'futura' && qEstado !== 'isento') ? 'inline-flex' : 'none';
   const emailAvisoBtn = document.getElementById('ficha-btn-email-aviso');
   if (emailAvisoBtn) {
     emailAvisoBtn.style.display = 'inline-flex'; // sempre visível
@@ -6905,8 +6958,8 @@ window.abrirFicha = function(key) {
   const infoRow  = (l, v, mono) => v ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 20px;border-bottom:1px solid var(--border2);font-size:13px"><span style="color:var(--text2)">${l}</span><span style="${mono?'font-family:DM Mono,monospace;':''}font-weight:500">${v}</span></div>` : '';
 
   // Cor estado quota
-  const corQ = qEstado==='pago'?'var(--green)':qEstado==='futura'?'var(--blue)':qEstado==='parcial'?'var(--accent)':'var(--red)';
-  const lblQ = qEstado==='pago'?'✅ Paga':qEstado==='parcial'?'⚠️ Parcial':qEstado==='futura'?'🕒 Admissão futura':'❌ Pendente';
+  const corQ = qEstado==='pago'?'var(--green)':qEstado==='isento'?'var(--blue)':qEstado==='futura'?'var(--blue)':qEstado==='parcial'?'var(--accent)':'var(--red)';
+  const lblQ = qEstado==='pago'?'✅ Paga':qEstado==='parcial'?'⚠️ Parcial':qEstado==='isento'?'🎗️ Isento':qEstado==='futura'?'🕒 Admissão futura':'❌ Pendente';
 
   let html = '';
 
@@ -7158,11 +7211,11 @@ window.imprimirFichasTodas = function() {
     const minhasQ   = Object.entries(quotas).filter(([,q]) => q.socioKey === k);
     const meusRec   = Object.entries(recibos).filter(([,r]) => r.socioKey === k);
     const quotaAtual = minhasQ.find(([,q]) => String(q.ano) === anoAtual);
-    const qEstado   = quotaAtual?.[1]?.estado || (admissaoFutura(s) ? 'futura' : 'pendente');
+    const qEstado   = qEstadoBase(s, quotaAtual);
     const totalPago = minhasQ.filter(([,q])=>q.estado==='pago').reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
     const divida    = minhasQ.filter(([,q])=>qEmDivida(q)).reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
-    const corQ = qEstado==='pago'?'#27ae60':qEstado==='futura'?'#2980b9':qEstado==='parcial'?'#e67e22':'#e74c3c';
-    const lblQ = qEstado==='pago'?'✅ Paga':qEstado==='parcial'?'⚠️ Parcial':qEstado==='futura'?'🕒 Admissão futura':'❌ Pendente';
+    const corQ = qEstado==='pago'?'#27ae60':qEstado==='isento'?'#2980b9':qEstado==='futura'?'#2980b9':qEstado==='parcial'?'#e67e22':'#e74c3c';
+    const lblQ = qEstado==='pago'?'✅ Paga':qEstado==='parcial'?'⚠️ Parcial':qEstado==='isento'?'🎗️ Isento':qEstado==='futura'?'🕒 Admissão futura':'❌ Pendente';
     const fotoHtml = s.foto ? `<img src="${s.foto}" style="width:70px;height:88px;object-fit:cover;border-radius:6px;border:2px solid #1a3a6b;float:right;margin-left:12px">` : `<div style="width:70px;height:88px;border-radius:6px;border:2px dashed #ccd;background:#f4f7fb;display:flex;align-items:center;justify-content:center;font-size:24px;float:right;margin-left:12px">👤</div>`;
 
     const quotasHTML = minhasQ.length ? minhasQ.sort((a,b)=>b[1].ano-a[1].ano).slice(0,6).map(([,q])=>{
@@ -7244,11 +7297,11 @@ window.imprimirFicha = function() {
   const meusRec  = Object.entries(recibos).filter(([,r]) => r.socioKey === fichaKey);
   const minhasInsc = Object.entries(inscricoes||{}).filter(([,i]) => i.socioKey === fichaKey);
   const quotaAtual = minhasQ.find(([,q]) => String(q.ano) === anoAtual);
-  const qEstado  = quotaAtual?.[1]?.estado || (admissaoFutura(s) ? 'futura' : 'pendente');
+  const qEstado  = qEstadoBase(s, quotaAtual);
   const totalPago = minhasQ.filter(([,q])=>q.estado==='pago').reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
   const divida    = minhasQ.filter(([,q])=>qEmDivida(q)).reduce((a,[,q])=>a+parseFloat(q.valor||0),0);
-  const corQ = qEstado==='pago'?'#27ae60':qEstado==='futura'?'#2980b9':qEstado==='parcial'?'#e67e22':'#e74c3c';
-  const lblQ = qEstado==='pago'?'✅ Quota Paga':qEstado==='parcial'?'⚠️ Parcial':qEstado==='futura'?'🕒 Admissão futura':'❌ Quota Pendente';
+  const corQ = qEstado==='pago'?'#27ae60':qEstado==='isento'?'#2980b9':qEstado==='futura'?'#2980b9':qEstado==='parcial'?'#e67e22':'#e74c3c';
+  const lblQ = qEstado==='pago'?'✅ Quota Paga':qEstado==='parcial'?'⚠️ Parcial':qEstado==='isento'?'🎗️ Isento':qEstado==='futura'?'🕒 Admissão futura':'❌ Quota Pendente';
   const hoje = new Date().toLocaleDateString('pt-PT');
   const nomeAssoc = cfg.nome || 'Vizelgolfe — Associação de Minigolfe de Vizela';
   const nifAssoc  = cfg.nif  || '509 227 902';
@@ -7532,9 +7585,9 @@ function gerarCartaoComDados(key, s) {
   const anoAtual   = new Date().getFullYear().toString();
   const minhasQ    = Object.entries(quotas).filter(([,q]) => q.socioKey === key);
   const quotaAtual = minhasQ.find(([,q]) => String(q.ano) === anoAtual);
-  const qEstado    = quotaAtual?.[1]?.estado || (admissaoFutura(s) ? 'futura' : 'pendente');
-  const corVal     = qEstado === 'pago' ? '#2ecc71' : qEstado === 'futura' ? '#3498db' : '#e74c3c';
-  const lblVal     = qEstado === 'pago' ? 'Válido ' + anoAtual : qEstado === 'futura' ? 'Admissão ' + s.inscricao : 'Pendente ' + anoAtual;
+  const qEstado    = qEstadoBase(s, quotaAtual);
+  const corVal     = qEstado === 'pago' ? '#2ecc71' : (qEstado === 'futura'||qEstado === 'isento') ? '#3498db' : '#e74c3c';
+  const lblVal     = qEstado === 'pago' ? 'Válido ' + anoAtual : qEstado === 'isento' ? 'Isento de quota' : qEstado === 'futura' ? 'Admissão ' + s.inscricao : 'Pendente ' + anoAtual;
   const numFmt     = String(s.numero || '0').padStart(4, '0');
   const catAbrev   = {'Atleta':'ATL','Normal':'NOR','Reformado':'REF','Fundador':'FUN','Socio beneficios':'BEN','Honorário':'HON','Júnior':'JUN'};
   const catCod     = catAbrev[s.categoria] || (s.categoria||'SOC').slice(0,3).toUpperCase();
@@ -7793,7 +7846,7 @@ window.renderRelatorioDevedores = function() {
   const cat = document.getElementById('rel-dev-cat')?.value || '';
 
   // Sócios ativos com quota pendente no ano
-  const sociosAtivos = Object.entries(socios).filter(([,s]) => s.estado === 'Ativo' && !admissaoFutura(s) && (!cat || s.categoria === cat));
+  const sociosAtivos = Object.entries(socios).filter(([,s]) => s.estado === 'Ativo' && !admissaoFutura(s) && !isentoQuota(s) && (!cat || s.categoria === cat));
   const quotasAno    = Object.entries(quotas).filter(([,q]) => String(q.ano) === ano && q.estado === 'pago');
   const pagosKeys    = new Set(quotasAno.map(([,q]) => q.socioKey));
 
@@ -7867,7 +7920,7 @@ window.imprimirRelatorioDevedores = function() {
   const hoje = new Date().toLocaleDateString('pt-PT');
 
   // Recalcular para impressão (sem DOM)
-  const sociosAtivos = Object.entries(socios).filter(([,s]) => s.estado === 'Ativo' && !admissaoFutura(s) && (!cat || s.categoria === cat));
+  const sociosAtivos = Object.entries(socios).filter(([,s]) => s.estado === 'Ativo' && !admissaoFutura(s) && !isentoQuota(s) && (!cat || s.categoria === cat));
   const quotasAno    = Object.entries(quotas).filter(([,q]) => String(q.ano) === ano && q.estado === 'pago');
   const pagosKeys    = new Set(quotasAno.map(([,q]) => q.socioKey));
   const devedores    = sociosAtivos
@@ -8116,9 +8169,9 @@ window.enviarCartaoPorEmail = async function(key) {
   const anoAtual  = new Date().getFullYear().toString();
   const minhasQ   = Object.entries(quotas).filter(([,q]) => q.socioKey === key);
   const quotaAtual= minhasQ.find(([,q]) => String(q.ano) === anoAtual);
-  const qEstado   = quotaAtual?.[1]?.estado || (admissaoFutura(s) ? 'futura' : 'pendente');
-  const corVal    = qEstado === 'pago' ? '#27ae60' : qEstado === 'futura' ? '#2980b9' : '#e74c3c';
-  const lblVal    = qEstado === 'pago' ? '✅ Válido ' + anoAtual : qEstado === 'futura' ? '🕒 Admissão ' + s.inscricao : '❌ Quota Pendente';
+  const qEstado   = qEstadoBase(s, quotaAtual);
+  const corVal    = qEstado === 'pago' ? '#27ae60' : (qEstado === 'futura'||qEstado === 'isento') ? '#2980b9' : '#e74c3c';
+  const lblVal    = qEstado === 'pago' ? '✅ Válido ' + anoAtual : qEstado === 'isento' ? '🎗️ Isento de quota' : qEstado === 'futura' ? '🕒 Admissão ' + s.inscricao : '❌ Quota Pendente';
   const numFmt    = String(s.numero || '0').padStart(4, '0');
   const hoje      = new Date().toLocaleDateString('pt-PT');
 
@@ -8195,10 +8248,11 @@ async function enviarNotificacaoInscricao(insc, s, estado) {
   const nifAssoc  = cfg.nif  || '509 227 902';
   const t         = torneios[insc.torneioKey] || {};
   const hoje      = new Date().toLocaleDateString('pt-PT');
+  const cancelada = estado === 'cancelada';
   const confirmado = estado === 'confirmado';
-  const corEst    = confirmado ? '#27ae60' : '#e74c3c';
-  const icone     = confirmado ? '✅' : '❌';
-  const titulo    = confirmado ? 'Inscrição Confirmada!' : 'Inscrição não Aceite';
+  const corEst    = confirmado ? '#27ae60' : cancelada ? '#e67e22' : '#e74c3c';
+  const icone     = confirmado ? '✅' : cancelada ? '↩️' : '❌';
+  const titulo    = confirmado ? 'Inscrição Confirmada!' : cancelada ? 'Cancelamento Registado' : 'Inscrição não Aceite';
 
   const emailHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -8226,11 +8280,11 @@ async function enviarNotificacaoInscricao(insc, s, estado) {
     </div>
     <div class="hero">
       <div class="hero-titulo">${icone} ${titulo}</div>
-      <div class="hero-sub">A tua inscrição foi ${confirmado ? 'aceite pela organização' : 'analisada pela organização'}</div>
+      <div class="hero-sub">${cancelada ? 'O teu pedido de cancelamento foi aceite' : 'A tua inscrição foi ' + (confirmado ? 'aceite pela organização' : 'analisada pela organização')}</div>
     </div>
     <div class="body">
       <p class="intro">Caro(a) <strong>${s.nome}</strong> (Sócio Nº ${s.numero||'—'}),</p>
-      ${confirmado
+      ${cancelada ? `<p class="intro">Informamos que o teu pedido de cancelamento da inscrição no torneio abaixo foi <strong style="color:${corEst}">aceite</strong>. A vaga fica libertada. Se mudares de planos, podes voltar a inscrever-te enquanto o prazo estiver aberto.</p>` : confirmado
         ? `<p class="intro">Temos o prazer de informar que a tua inscrição no torneio abaixo foi <strong style="color:${corEst}">confirmada</strong>. Fica atento às comunicações da associação para mais detalhes sobre o evento.</p>`
         : `<p class="intro">Informamos que a tua inscrição no torneio abaixo <strong style="color:${corEst}">não foi aceite</strong>. Para mais informações, contacta a secretaria da associação.</p>`
       }
@@ -8241,7 +8295,7 @@ async function enviarNotificacaoInscricao(insc, s, estado) {
         ${t.tipo  ? `<div class="torneio-row">📋 <strong>Tipo:</strong> ${t.tipo}</div>` : ''}
         ${insc.categoria ? `<div class="torneio-row">🏅 <strong>Categoria inscrita:</strong> ${insc.categoria}</div>` : ''}
         <div class="torneio-row" style="margin-top:8px;padding-top:8px;border-top:1px solid #e0e8f0">
-          <strong style="color:${corEst}">${icone} Estado: ${confirmado ? 'CONFIRMADO' : 'NÃO ACEITE'}</strong>
+          <strong style="color:${corEst}">${icone} Estado: ${confirmado ? 'CONFIRMADO' : cancelada ? 'CANCELADO' : 'NÃO ACEITE'}</strong>
         </div>
       </div>
       <p style="font-size:12px;color:#666;line-height:1.6">
@@ -8255,6 +8309,7 @@ async function enviarNotificacaoInscricao(insc, s, estado) {
 
   const assunto = confirmado
     ? `✅ Inscrição confirmada — ${t.nome||insc.torneioNome}`
+    : cancelada ? `↩️ Cancelamento registado — ${t.nome||insc.torneioNome}`
     : `❌ Inscrição não aceite — ${t.nome||insc.torneioNome}`;
 
   await resendEnviar(s.email, s.nome, assunto, emailHTML);
