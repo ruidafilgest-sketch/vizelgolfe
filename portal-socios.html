@@ -9001,18 +9001,31 @@ async function carregarAvisosSocio() {
     const snap = await get(ref(db, '/portal/avisos'));
     if (!snap.exists()) { el.innerHTML = ''; return; }
     const hoje = new Date().toISOString().slice(0,10);
-    const ativos = Object.values(snap.val()).filter(a =>
-      a.ativo && (!a.expira || a.expira >= hoje)
-    ).sort((a,b) => (b.data||'').localeCompare(a.data||''));
+    let dispensados = [];
+    try { dispensados = JSON.parse(localStorage.getItem('avisosDispensados')||'[]'); } catch(e){}
+    const ativos = Object.entries(snap.val()).map(([k,a])=>({...a,_k:k})).filter(a =>
+      a.ativo && (!a.expira || a.expira >= hoje) && !dispensados.includes(a._k)
+    ).sort((a,b) => (b.data||'').localeCompare(a.data||'')).slice(0,3);
     if (!ativos.length) { el.innerHTML = ''; return; }
-    const corBd = { info: 'var(--border2)', importante: '#d97706', urgente: '#ef4444' };
-    el.innerHTML = ativos.map(a => `
-      <div style="background:var(--card);border:1px solid ${corBd[a.tipo]||'var(--border2)'};border-left:4px solid ${corBd[a.tipo]||'var(--accent)'};border-radius:10px;padding:14px 16px;margin-bottom:10px">
-        <div style="font-weight:700;font-size:13px;margin-bottom:4px">${a.titulo}</div>
-        <div style="font-size:12px;color:var(--text2);white-space:pre-wrap;line-height:1.5">${a.mensagem}</div>
-      </div>`).join('');
+    const cfg = { info:['📣','#f4c862','rgba(244,200,98,.10)'], importante:['⚠️','#f59e0b','rgba(245,158,11,.14)'], urgente:['🚨','#ef4444','rgba(239,68,68,.16)'] };
+    el.innerHTML = ativos.map(a => { const c = cfg[a.tipo]||cfg.info; return `
+      <div class="aviso-clube" style="position:relative;background:linear-gradient(135deg,${c[2]},rgba(16,38,72,.55));border:1px solid ${c[1]}55;border-left:4px solid ${c[1]};border-radius:16px;padding:14px 40px 14px 16px;margin-bottom:10px;box-shadow:0 6px 18px rgba(0,0,0,.25)">
+        <button onclick="dispensarAviso('${a._k}')" title="Fechar" style="position:absolute;top:8px;right:10px;background:transparent;border:none;color:#9db4d3;font-size:18px;cursor:pointer;line-height:1">✕</button>
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div style="font-size:22px;line-height:1.1">${c[0]}</div>
+          <div>
+            <div style="font-weight:800;font-size:14px;color:#fff;margin-bottom:3px;letter-spacing:.2px">${_esc(a.titulo||'')}</div>
+            <div style="font-size:12.5px;color:#cfdcf0;white-space:pre-wrap;line-height:1.55">${_esc(a.mensagem||'')}</div>
+          </div>
+        </div>
+      </div>`; }).join('');
   } catch(e) { el.innerHTML = ''; }
 }
+
+window.dispensarAviso = function(k){
+  try { const d = JSON.parse(localStorage.getItem('avisosDispensados')||'[]'); d.push(k); localStorage.setItem('avisosDispensados', JSON.stringify(d)); } catch(e){}
+  const el = event && event.target && event.target.closest('.aviso-clube'); if (el) el.remove();
+};
 
 // ─── PARTICIPAÇÕES — lê do ranking_portal calculado pela consola ───
 async function carregarParticipacoesSocio(resultadosId) {
