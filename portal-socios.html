@@ -564,8 +564,8 @@ input,select,textarea{color:#f2f6ff}
       <!-- Aviso quota (se pendente) -->
       <div id="socio-aviso-pendente" style="display:none;margin-bottom:12px">
         <div class="s-aviso">
-          <div id="aviso-titulo" style="font-weight:700;color:var(--red);margin-bottom:6px;font-size:13px">⚠️ Quota pendente</div>
-          <p id="aviso-texto" style="font-size:12px;color:var(--text2);margin-bottom:10px">A tua quota ainda não foi registada como paga.</p>
+          <div id="aviso-quota-titulo" style="font-weight:700;color:var(--red);margin-bottom:6px;font-size:13px">⚠️ Quota pendente</div>
+          <p id="aviso-quota-texto" style="font-size:12px;color:var(--text2);margin-bottom:10px">A tua quota ainda não foi registada como paga.</p>
           <div id="socio-aviso-dados"></div>
         </div>
       </div>
@@ -2638,7 +2638,7 @@ function renderAreaSocio() {
   if (qEstado !== 'pago' && qEstado !== 'futura' && qEstado !== 'isento') {
     if (avisoEl) avisoEl.style.display = 'block';
     if (pagoBanner) pagoBanner.style.display = 'none';
-    const _t=document.getElementById('aviso-titulo'), _x=document.getElementById('aviso-texto');
+    const _t=document.getElementById('aviso-quota-titulo'), _x=document.getElementById('aviso-quota-texto');
     if (_t && _x) {
       if (qEstado === 'tolerancia') { _t.style.color='var(--accent2)'; _t.textContent='🕒 Quota '+anoAtual+' a regularizar'; _x.textContent='A tua quota de '+(Number(anoAtual)-1)+' está válida até 31/03. Regulariza a de '+anoAtual+' até essa data.'; }
       else { _t.style.color='var(--red)'; _t.textContent='⚠️ Quota pendente'; _x.textContent='A tua quota ainda não foi registada como paga.'; }
