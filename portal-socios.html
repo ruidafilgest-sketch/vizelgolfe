@@ -6298,7 +6298,7 @@ window.verInscritos = function(key) {
                 ${estadoLabel[i.estado]||i.estado}
               </span>
               ${i.estado === 'cancelamento' ? `
-                <button class="btn btn-green btn-sm" onclick="aceitarCancelamento('${ik}')">✅ Aceitar cancelamento</button>
+                ${torneioEstadoEf(t) !== 'terminado' ? `<button class="btn btn-green btn-sm" onclick="aceitarCancelamento('${ik}')">✅ Aceitar cancelamento</button>` : ''}
                 <button class="btn btn-outline btn-sm" onclick="alterarEstadoInscricao('${ik}','confirmado')">Manter inscrição</button>
               ` : i.estado === 'pendente' ? `
                 <button class="btn btn-green btn-sm" onclick="alterarEstadoInscricao('${ik}','confirmado')">✅ Confirmar</button>
@@ -6565,8 +6565,9 @@ window.renderTorneisosSocio = function() {
               </div>
               ${minhaInsc[1].estado === 'pendente' ? `
                 <button class="btn btn-danger btn-sm" onclick="cancelarInscricaoSocio('${minhaInsc[0]}')">Cancelar inscrição</button>
-              ` : minhaInsc[1].estado === 'confirmado' ? `
+              ` : minhaInsc[1].estado === 'confirmado' ? (cancelamentoAberto(t) ? `
                 <button class="btn btn-danger btn-sm" onclick="pedirCancelamentoInscricao('${minhaInsc[0]}')">Pedir cancelamento</button>
+              ` : `<div style="font-size:11px;color:var(--text2);max-width:190px;margin-left:auto">Prazo de cancelamento terminado. Para alterações, contacta a direção.</div>`) + `
               ` : minhaInsc[1].estado === 'cancelamento' ? `
                 <div style="font-size:11px;color:var(--text2);max-width:190px;margin-left:auto">A direção vai analisar o teu pedido.</div>
               ` : ''}
@@ -6629,10 +6630,18 @@ window.cancelarInscricaoSocio = async function(key) {
   toast('Inscrição cancelada');
 };
 // Inscrição já confirmada: o sócio pede cancelamento (com motivo); a direção aceita ou recusa
+// Cancelamento só enquanto o prazo de inscrição está aberto (ou, sem prazo, antes do torneio) e o torneio não terminou
+window.cancelamentoAberto = function(t){
+  if (!t) return false;
+  if (torneioEstadoEf(t) === 'terminado') return false;
+  const hoje = new Date().toISOString().slice(0,10);
+  const limite = t.prazo || t.data || '';
+  return !limite || hoje <= limite;
+};
 window.pedirCancelamentoInscricao = async function(key) {
   const i = inscricoes[key]; if (!i) return;
   const t = torneios[i.torneioKey] || {};
-  if (t.prazo && t.prazo < new Date().toISOString().slice(0,10)) {
+  if (!cancelamentoAberto(t)) {
     alert('O prazo de inscrição já terminou. Para cancelar, contacta a direção: gestao.vizelgolfe@gmail.com'); return;
   }
   const motivo = prompt('Pedido de cancelamento da inscrição em "' + (t.nome||i.torneioNome||'') + '".\n\nIndica o motivo (a direção será avisada):');
