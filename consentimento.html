@@ -521,6 +521,7 @@ window.submeter = async function() {
 
     btn.textContent = '⏳ A guardar...';
     await set(ref(db, `portal/consentimentos/${foundKey}`), consentimento);
+    { const chk = await get(ref(db, `portal/consentimentos/${foundKey}`)); if (!chk.exists() || chk.val().timestamp !== consentimento.timestamp) throw new Error('A gravação não ficou confirmada. Tenta novamente.'); }
 
     // Gerar PDF e guardar na Biblioteca
     btn.textContent = '⏳ A gerar documento...';

@@ -2212,6 +2212,14 @@ function switchLoginTab(t){if(window._switchLoginTab)window._switchLoginTab(t);e
 </div>
 
 
+<!-- MODAL CONSENTIMENTO RGPD (sócio) -->
+<div class="modal-overlay" id="modal-consent-socio">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header"><h3>🔒 O meu consentimento</h3><button class="modal-close" onclick="closeModal('modal-consent-socio')">✕</button></div>
+    <div class="modal-body" id="cs-body"></div>
+  </div>
+</div>
+
 <!-- MODAL TORNEIO (admin) -->
 <div class="modal-overlay" id="modal-torneio">
   <div class="modal" style="max-width:560px">
@@ -8324,13 +8332,98 @@ window.abrirCartaoSocioLogado = function() {
   gerarCartaoComDados(currentSocioKey, currentSocioData);
 };
 
-window.abrirConsentimentoSocio = function() {
-  if (!currentSocioData || !currentSocioKey) {
-    toast('Sessão expirada. Faz login novamente.', 'error');
+// ─── Consentimento RGPD dentro do portal (sem voltar a identificar) ───
+const CS_ITENS = [
+  ['fotos','📸','Publicação de Fotografias','Autorizo que fotografias onde apareço sejam publicadas no site, redes sociais (Facebook, Instagram) e enviadas para meios de comunicação social.'],
+  ['videos','🎥','Publicação de Vídeos','Autorizo que vídeos onde apareço sejam publicados no site, redes sociais e plataformas de vídeo (YouTube, etc.).'],
+  ['classificacoes','🏆','Classificações e Resultados Públicos','Autorizo que o meu nome apareça em classificações, rankings e resultados de torneios divulgados publicamente (site, redes sociais, imprensa).'],
+  ['relatorios','📊','Relatórios de Performance Internos','Autorizo que o meu nome e resultados constem em relatórios de performance para uso interno do clube e da Federação.'],
+  ['contacto','📧','Contacto pelo Clube','Autorizo que o clube me contacte por email e/ou WhatsApp para assuntos relacionados com atividades, torneios e informações da associação.']
+];
+function _csMenor(s){ const d=s&&s.nascimento; if(!d) return false; const n=new Date(d); if(isNaN(n)) return false; const h=new Date(); let i=h.getFullYear()-n.getFullYear(); const m=h.getMonth()-n.getMonth(); if(m<0||(m===0&&h.getDate()<n.getDate())) i--; return i<18; }
+async function _csIp(){ try{ const c=new AbortController(); const t=setTimeout(()=>c.abort(),2000); const r=await fetch('https://api.ipify.org?format=json',{signal:c.signal}); clearTimeout(t); return (await r.json()).ip||''; }catch(_){ return ''; } }
+window.abrirConsentimentoSocio = async function() {
+  if (!currentSocioData || !currentSocioKey) { toast('Sessão expirada. Faz login novamente.', 'error'); return; }
+  openModal('modal-consent-socio');
+  const body = document.getElementById('cs-body');
+  body.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text2)">A carregar o teu consentimento…</div>';
+  let c = null;
+  try {
+    const sn = await get(ref(db, 'portal/consentimentos/' + currentSocioKey));
+    c = sn.exists() ? sn.val() : null;
+  } catch(e) {
+    // Sem permissão de leitura: deixa o sócio registar na mesma (a escrita funciona), avisando que não consegue ver o anterior.
+    if (String(e.code||e.message).toUpperCase().includes('PERMISSION')) {
+      _csRender(null);
+      body.insertAdjacentHTML('afterbegin','<div class="s-aviso" style="margin-bottom:12px"><b style="color:var(--accent2)">Aviso:</b> <span style="font-size:12px;color:var(--text2)">não é possível mostrar o consentimento anterior (falta permissão de leitura na base de dados). Podes registar na mesma, e o administrador vê o registo.</span></div>');
+      return;
+    }
+    body.innerHTML = '<div class="s-aviso"><b style="color:var(--red)">Não foi possível ler o teu consentimento.</b><p style="font-size:12px;color:var(--text2);margin-top:6px">'+_esc((e.code||'')+' '+(e.message||e))+'</p></div>';
     return;
   }
-  const num = currentSocioData.numero || currentSocioData.Número || currentSocioKey;
-  window.open(`https://vizelgolfe.net/consentimento.html?s=${num}`, '_blank');
+  _csRender(c);
+};
+function _csRender(c, msgOk) {
+  const s = currentSocioData, menor = _csMenor(s), body = document.getElementById('cs-body');
+  const dt = c && c.timestamp ? new Date(c.timestamp).toLocaleString('pt-PT') : '';
+  const estado = c
+    ? '<div class="s-aviso-pago" style="margin-bottom:14px"><b style="color:var(--green)">✅ Consentimento registado em '+_esc(dt)+'</b><div style="font-size:12px;color:var(--text2);margin-top:4px">Podes alterar as tuas escolhas a qualquer momento.</div></div>'
+    : '<div class="s-aviso" style="margin-bottom:14px"><b style="color:var(--red)">⚠️ Ainda não registaste o teu consentimento</b><div style="font-size:12px;color:var(--text2);margin-top:4px">Escolhe abaixo o que autorizas e clica em Guardar.</div></div>';
+  const itens = CS_ITENS.map(it => '<label style="display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--border2);border-radius:12px;margin-bottom:8px;cursor:pointer;background:var(--bg2)">'
+    + '<span style="font-size:22px">'+it[1]+'</span><span style="flex:1"><b style="font-size:13px">'+it[2]+'</b><br><span style="font-size:12px;color:var(--text2);line-height:1.4">'+it[3]+'</span></span>'
+    + '<input type="checkbox" id="cs-'+it[0]+'" '+(c && c[it[0]] ? 'checked' : '')+' style="width:22px;height:22px;flex:none;margin-top:2px"></label>').join('');
+  const enc = menor
+    ? '<div style="margin:14px 0;padding:14px;border:2px solid var(--accent);border-radius:12px;background:rgba(224,170,62,.08)"><b style="color:var(--accent2)">👨‍👧 Sócio menor de idade</b><p style="font-size:12px;color:var(--text2);margin:6px 0 10px">O consentimento tem de ser dado pelo encarregado de educação, em nome do menor.</p>'
+      + '<input id="cs-enc-nome" type="text" placeholder="Nome completo do encarregado de educação" value="'+_esc(c&&c.encarregadoNome||'')+'" style="width:100%;margin-bottom:8px;background:var(--bg2);color:var(--text);border:1px solid var(--border2);padding:11px 12px;font-size:14px;">'
+      + '<select id="cs-enc-qual" style="width:100%;margin-bottom:8px;background:var(--bg2);color:var(--text);border:1px solid var(--border2);padding:11px 12px;font-size:14px;"><option value="">Qualidade…</option>'+['Pai','Mãe','Tutor legal','Outro representante legal'].map(q=>'<option'+((c&&c.encarregadoQualidade)===q?' selected':'')+'>'+q+'</option>').join('')+'</select>'
+      + '<label style="display:flex;gap:10px;font-size:12px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="cs-enc-ok" '+(c&&c.menor?'checked':'')+' style="width:20px;height:20px;flex:none"><span>Declaro ser o encarregado de educação / representante legal do menor e dar este consentimento em seu nome.</span></label></div>'
+    : '';
+  body.innerHTML = (msgOk ? '<div class="s-aviso-pago" style="margin-bottom:14px"><b style="color:var(--green)">'+msgOk+'</b></div>' : '') + estado + itens + enc
+    + '<div id="cs-erro" style="display:none;margin-top:10px" class="s-aviso"></div>'
+    + '<button id="cs-guardar" class="btn btn-accent" style="width:100%;padding:14px;font-size:15px;margin-top:10px" onclick="guardarConsentimentoSocio()">💾 '+(c?'Guardar alterações':'Guardar consentimento')+'</button>'
+    + '<p style="font-size:11px;color:var(--text2);margin-top:10px;line-height:1.5">Este registo fica guardado com data, hora e endereço IP como prova de consentimento. Responsável pelo tratamento: Vizelgolfe — Associação de Minigolfe de Vizela.</p>';
+}
+window.guardarConsentimentoSocio = async function() {
+  const s = currentSocioData, key = currentSocioKey, menor = _csMenor(s);
+  const btn = document.getElementById('cs-guardar'), err = document.getElementById('cs-erro');
+  err.style.display = 'none';
+  let encNome='', encQual='';
+  if (menor) {
+    encNome = (document.getElementById('cs-enc-nome').value||'').trim();
+    encQual = document.getElementById('cs-enc-qual').value;
+    if (!encNome || !encQual || !document.getElementById('cs-enc-ok').checked) {
+      err.innerHTML = '<b style="color:var(--red)">Preenche o nome do encarregado de educação, a qualidade e confirma a declaração.</b>'; err.style.display='block'; return;
+    }
+  }
+  btn.disabled = true; btn.textContent = '⏳ A guardar…';
+  try {
+    const obj = {
+      fotos: document.getElementById('cs-fotos').checked, videos: document.getElementById('cs-videos').checked,
+      classificacoes: document.getElementById('cs-classificacoes').checked, relatorios: document.getElementById('cs-relatorios').checked,
+      contacto: document.getElementById('cs-contacto').checked,
+      timestamp: Date.now(), ip: await _csIp(), nome: s.nome || '', numero: s.numero || key,
+      ...(menor ? { menor: true, encarregadoNome: encNome, encarregadoQualidade: encQual } : {})
+    };
+    await set(ref(db, 'portal/consentimentos/' + key), obj);
+    // Confirmação real: voltar a ler da base de dados. Só mostra "guardado" se estiver mesmo lá.
+    let chk = null, semLeitura = false;
+    try { chk = await get(ref(db, 'portal/consentimentos/' + key)); }
+    catch(eL) { if (String(eL.code||eL.message).toUpperCase().includes('PERMISSION')) semLeitura = true; else throw eL; }
+    if (semLeitura) {
+      // A escrita foi aceite pela base de dados, mas o sócio não tem permissão para voltar a ler (regra do Firebase).
+      _csRender(obj, '✅ Guardado. (Aviso técnico: este acesso não tem permissão para reler o registo — pede ao administrador para ajustar as regras de leitura de "consentimentos".)');
+      return;
+    }
+    if (!chk.exists() || chk.val().timestamp !== obj.timestamp) throw new Error('A gravação não ficou confirmada na base de dados.');
+    try { await gerarEGuardarPdfRgpd(s, chk.val(), key); } catch(ePdf) { console.warn('PDF RGPD não gerado:', ePdf); }
+    _csRender(chk.val(), '✅ Guardado com sucesso e confirmado.');
+    if (typeof verificarEstadoRgpdSocio === 'function') verificarEstadoRgpdSocio();
+  } catch(e) {
+    console.error('Consentimento — erro:', e);
+    btn.disabled = false; btn.textContent = '💾 Tentar novamente';
+    err.innerHTML = '<b style="color:var(--red)">NÃO ficou guardado.</b><div style="font-size:12px;color:var(--text2);margin-top:4px">Tenta novamente. Se persistir, contacta a secretaria. Detalhe técnico: '+_esc((e.code?e.code+' — ':'')+(e.message||e))+'</div>';
+    err.style.display = 'block';
+  }
 };
 
 window.verificarEstadoRgpdSocio = async function() {
