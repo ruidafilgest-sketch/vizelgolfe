@@ -416,6 +416,57 @@ function switchLoginTab(t){if(window._switchLoginTab)window._switchLoginTab(t);e
   .s-tab { padding:9px 12px; font-size:11px; }
 }
 </style>
+<style>
+/* ═══ ÁREA DO SÓCIO — visual premium ═══ */
+#app-socio{background:radial-gradient(900px 420px at 10% -5%,rgba(26,92,170,.35),transparent 60%),radial-gradient(700px 380px at 100% 0%,rgba(26,188,156,.18),transparent 55%),#06101f}
+#app-socio header{background:linear-gradient(90deg,#071326,#0e2447 60%,#0b3a52);border-bottom:none;position:sticky;box-shadow:0 2px 16px rgba(0,0,0,.5)}
+#app-socio header::after{content:'';position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,transparent,#e0aa3e 20%,#f4c862 50%,#1abc9c 80%,transparent)}
+.s-logo{background:linear-gradient(180deg,#fff3cf,#e0aa3e);-webkit-background-clip:text;background-clip:text;color:transparent}
+.s-hero{background:linear-gradient(160deg,rgba(18,40,74,.85),rgba(9,26,51,.6));border-bottom:1px solid rgba(255,255,255,.06);backdrop-filter:blur(6px)}
+.s-avatar{background:linear-gradient(135deg,#f4c862,#e0aa3e 60%,#c98d1f);color:#241800;box-shadow:0 4px 14px rgba(224,170,62,.35)}
+.s-tab{font-size:13px}.s-tab.active{color:#f4c862;border-bottom-color:#f4c862;background:linear-gradient(180deg,transparent,rgba(224,170,62,.10))}
+.s-content{max-width:760px}
+.s-card{background:linear-gradient(145deg,#132a4d,#0f2342 65%,#0c3552 140%);border:1px solid rgba(255,255,255,.08);border-radius:18px;box-shadow:0 10px 28px rgba(0,0,0,.40);padding:18px}
+.s-card-title{color:#9db4d3}
+/* Saudação */
+.saud{padding:6px 4px 14px}
+.saud small{display:block;color:#e0aa3e;font-size:11px;font-weight:800;letter-spacing:3px;margin-bottom:2px}
+.saud-linha{display:block;width:56px;height:3px;border-radius:3px;margin-top:8px;background:linear-gradient(90deg,#e0aa3e,#1abc9c)}
+.saud b{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:1.5px;background:linear-gradient(180deg,#fff,#f4c862);-webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.05}
+/* Cartão de sócio digital */
+.cart-wrap{perspective:900px;margin-bottom:14px}
+.cart{position:relative;border-radius:22px;padding:20px 22px;color:#fff;min-height:210px;overflow:hidden;background:linear-gradient(135deg,#0a2a5e 0%,#0b4690 48%,#0d8a94 100%);border:1.5px solid rgba(244,200,98,.55);box-shadow:0 22px 50px rgba(0,0,0,.55),inset 0 0 0 1px rgba(255,255,255,.06);transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .15s ease-out;will-change:transform}
+.cart::before{content:'';position:absolute;inset:-40% -20%;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.16) 47%,rgba(255,255,255,.04) 53%,transparent 62%);transform:translateX(var(--sx,-30%));transition:transform .2s}
+.cart::after{content:'⛳';position:absolute;right:-10px;bottom:-34px;font-size:150px;opacity:.07}
+.cart-top{display:flex;align-items:center;gap:12px;position:relative}
+.cart-top img{width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+.cart-top b{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:3px;line-height:1;color:#fff3cf}
+.cart-top small{display:block;font-size:10px;letter-spacing:.6px;color:#bfe3ee;text-transform:uppercase}
+.cart-sel{margin-left:auto;font-size:10px;font-weight:800;letter-spacing:1.5px;border:1px solid rgba(244,200,98,.7);color:#f4c862;border-radius:6px;padding:3px 8px}
+.cart-mid{display:flex;align-items:center;gap:16px;margin:18px 0 16px;position:relative}
+.cart-foto{width:64px;height:82px;border-radius:10px;border:2px solid rgba(244,200,98,.75);background:rgba(255,255,255,.10);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:28px;color:#f4c862;overflow:hidden;flex:none;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+.cart-foto img{width:100%;height:100%;object-fit:cover;display:block}
+.cart-nome{font-family:'Bebas Neue',sans-serif;font-size:27px;letter-spacing:1.5px;line-height:1.05;text-shadow:0 2px 8px rgba(0,0,0,.4)}
+.cart-cat{font-size:12px;letter-spacing:1.8px;color:#bfe3ee;text-transform:uppercase;margin-top:4px}
+.cart-bot{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-end;position:relative}
+.cart-bot small{display:block;font-size:9px;letter-spacing:1.4px;color:#9fd0df;text-transform:uppercase}
+.cart-bot b{font-family:'DM Mono',monospace;font-size:17px;letter-spacing:1px}
+.cart-est{margin-left:auto;font-size:11px;font-weight:800;letter-spacing:1px;padding:6px 12px;border-radius:20px}
+.cart-est.ok{background:rgba(46,230,128,.18);color:#5cf0a0;border:1px solid rgba(92,240,160,.5)}
+.cart-est.warn{background:rgba(244,200,98,.18);color:#f4c862;border:1px solid rgba(244,200,98,.5)}
+.cart-est.bad{background:rgba(255,99,90,.18);color:#ff8a82;border:1px solid rgba(255,138,130,.5)}
+/* Atalhos */
+.atalhos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.atalho{background:linear-gradient(145deg,#15305a,#102648);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:14px 6px 12px;text-align:center;cursor:pointer;color:#e8f0fe;font-size:12px;font-weight:700;line-height:1.25;transition:transform .15s,border-color .15s,box-shadow .15s;font-family:inherit}
+.atalho i{display:block;font-style:normal;font-size:26px;margin-bottom:6px}
+.atalho:hover{transform:translateY(-3px);border-color:rgba(244,200,98,.7);box-shadow:0 10px 24px rgba(0,0,0,.45)}
+.atalho.dest{background:linear-gradient(135deg,#f4c862,#e0aa3e 60%,#c98d1f);color:#241800;border-color:transparent}
+.parab{background:linear-gradient(135deg,rgba(244,200,98,.20),rgba(26,188,156,.16));border:1px solid rgba(244,200,98,.5);border-radius:16px;padding:14px 16px;margin-bottom:14px;font-weight:700;font-size:15px}
+.s-aviso{border-radius:16px}.s-aviso-pago{border-radius:16px}
+.copiar{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;font-size:11px;padding:4px 10px;cursor:pointer;margin-left:8px}
+@media(max-width:480px){.cart{padding:16px;min-height:200px}.cart-nome{font-size:23px}.atalho{font-size:11px;padding:12px 4px}.saud b{font-size:28px}}
+</style>
+
 
 <div id="app-socio" style="display:none">
   <header>
@@ -458,6 +509,12 @@ function switchLoginTab(t){if(window._switchLoginTab)window._switchLoginTab(t);e
 
     <!-- ── INÍCIO ── -->
     <div class="s-section active" id="s-sec-inicio">
+      <!-- Saudação + cartão digital + atalhos -->
+      <div id="socio-saudacao"></div>
+      <div id="socio-cartao-wrap"></div>
+      <div id="socio-parabens"></div>
+      <div class="s-card-title" style="margin:6px 4px 10px">⚡ Acesso rápido</div>
+      <div id="socio-atalhos" class="atalhos"></div>
       <!-- Avisos do clube -->
       <div id="socio-avisos-clube" style="margin-bottom:12px"></div>
       <!-- Aviso quota (se pendente) -->
@@ -2599,6 +2656,93 @@ function renderAreaSocio() {
   if (dp) dp.innerHTML = dadoLinha('Nome',s.nome)+dadoLinha('Nº Sócio',s.numero)+dadoLinha('Categoria',s.categoria)+dadoLinha('Estado',s.estado)+dadoLinha('Data de Nascimento',s.nascimento)+dadoLinha('Data de Inscrição',s.inscricao);
   const dc = document.getElementById('socio-dados-contactos');
   if (dc) dc.innerHTML = dadoLinha('Email',s.email)+dadoLinha('Telefone',s.telefone)+dadoLinha('NIF',s.nif)+dadoLinha('Morada',s.morada);
+
+  // ── Início premium (cartão digital, atalhos, saudação) ──
+  try { renderInicioPremium(s, qEstado, anoAtual); } catch(e) { console.warn('Início premium:', e); }
+}
+
+// ═══ Início premium do sócio ═══
+function _esc(x){ return String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+window.irTab = function(t){
+  const b=[...document.querySelectorAll('.s-tabs .s-tab')].find(x=>(x.getAttribute('onclick')||'').includes("'"+t+"'"));
+  showSocioTab(t,b); window.scrollTo({top:0,behavior:'smooth'});
+};
+window.copiarTexto = function(txt, msg){
+  const ok=()=>toast(msg||'Copiado ✅');
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).then(ok).catch(()=>{});
+  else { const t=document.createElement('textarea'); t.value=txt; document.body.appendChild(t); t.select(); try{document.execCommand('copy');ok();}catch(e){} t.remove(); }
+};
+window.contactarClube = function(assunto, corpo){
+  const cfg=configuracoes||{}; const to=cfg.email||'secretaria@vizelgolfe.net';
+  location.href='mailto:'+to+'?subject='+encodeURIComponent(assunto||'Contacto de sócio')+'&body='+encodeURIComponent(corpo||'');
+};
+window.corrigirDadosEmail = function(){
+  const s=currentSocioData||{};
+  contactarClube('Correção de dados — sócio nº '+(s.numero||''), 'Olá,\n\nGostaria de corrigir os meus dados de sócio ('+(s.nome||'')+', nº '+(s.numero||'')+').\n\nDado a corrigir: \nValor correto: \n\nObrigado.');
+};
+window.exportarCalendarioTorneios = function(){
+  const pad=n=>String(n).padStart(2,'0');
+  const d8=str=>String(str).replace(/-/g,'');
+  const mais1=str=>{const d=new Date(str+'T12:00:00');d.setDate(d.getDate()+1);return d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate());};
+  const lista=Object.values(torneios||{}).filter(t=>t.data && ['aberto','fechado'].includes(torneioEstadoEf(t)));
+  if(!lista.length){ toast('Sem torneios futuros para adicionar','error'); return; }
+  const esc=x=>String(x||'').replace(/[\\;,]/g,m=>'\\'+m).replace(/\n/g,'\\n');
+  let ics='BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Vizelgolfe//Portal de Socios//PT\r\nCALSCALE:GREGORIAN\r\n';
+  lista.forEach((t,i)=>{
+    ics+='BEGIN:VEVENT\r\nUID:vzg-'+i+'-'+d8(t.data)+'@vizelgolfe.net\r\nDTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z\r\nDTSTART;VALUE=DATE:'+d8(t.data)+'\r\nDTEND;VALUE=DATE:'+mais1(t.datafim||t.data)+'\r\nSUMMARY:'+esc('⛳ '+t.nome)+'\r\n'+(t.local?'LOCATION:'+esc(t.local)+'\r\n':'')+(t.descricao?'DESCRIPTION:'+esc(t.descricao)+'\r\n':'')+'END:VEVENT\r\n';
+  });
+  ics+='END:VCALENDAR\r\n';
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'})); a.download='torneios-vizelgolfe.ics'; document.body.appendChild(a); a.click(); a.remove();
+  toast('Calendário descarregado — abre o ficheiro para adicionar ✅');
+};
+function renderInicioPremium(s, qEstado, anoAtual){
+  const h=new Date().getHours(); const saud=h<6?'Boa noite':h<13?'Bom dia':h<20?'Boa tarde':'Boa noite';
+  const primeiro=(s.nome||'').split(' ')[0]||'';
+  const sa=document.getElementById('socio-saudacao');
+  if(sa) sa.innerHTML='<div class="saud"><small>ÁREA DO SÓCIO</small><b>'+_esc(primeiro)+'</b><i class="saud-linha"></i></div>';
+
+  const est = qEstado==='pago' ? ['ok','✔ VÁLIDO '+anoAtual] : qEstado==='futura' ? ['warn','🕒 ADMISSÃO '+_esc(s.inscricao||'')] : qEstado==='parcial' ? ['warn','⚠ QUOTA PARCIAL'] : ['bad','QUOTA PENDENTE'];
+  const desde=(s.inscricao||'').slice(0,4)||'—';
+  const num=String(s.numero||'0').padStart(4,'0');
+  const foto=s.foto?'<img src="'+_esc(s.foto)+'" alt="">':_esc((s.nome||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase());
+  const cw=document.getElementById('socio-cartao-wrap');
+  if(cw){
+    cw.innerHTML='<div class="cart-wrap"><div class="cart" id="cart-el">'
+     +'<div class="cart-top"><img src="'+LOGO_B64+'" alt=""><div><b>VIZELGOLFE</b><small>Associação de Minigolfe de Vizela</small></div><span class="cart-sel">SÓCIO</span></div>'
+     +'<div class="cart-mid"><div class="cart-foto">'+foto+'</div><div><div class="cart-nome">'+_esc(s.nome||'')+'</div><div class="cart-cat">'+_esc(s.categoria||'Sócio')+'</div></div></div>'
+     +'<div class="cart-bot"><div><small>Nº sócio</small><b>'+num+'</b></div><div><small>Sócio desde</small><b>'+_esc(desde)+'</b></div><span class="cart-est '+est[0]+'">'+est[1]+'</span></div>'
+     +'</div></div>';
+    const c=document.getElementById('cart-el'), w=c.parentElement;
+    w.addEventListener('pointermove',e=>{const r=w.getBoundingClientRect();const x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;c.style.setProperty('--ry',(x*10)+'deg');c.style.setProperty('--rx',(-y*8)+'deg');c.style.setProperty('--sx',(x*80)+'%');});
+    w.addEventListener('pointerleave',()=>{c.style.setProperty('--ry','0deg');c.style.setProperty('--rx','0deg');c.style.setProperty('--sx','-30%');});
+  }
+
+  const pb=document.getElementById('socio-parabens');
+  if(pb){
+    const hoje=new Date(); const mmdd=String(hoje.getMonth()+1).padStart(2,'0')+'-'+String(hoje.getDate()).padStart(2,'0');
+    pb.innerHTML=(s.nascimento && String(s.nascimento).slice(5,10)===mmdd) ? '<div class="parab">🎂 Parabéns, '+_esc(primeiro)+'! A Vizelgolfe deseja-lhe um dia fantástico.</div>' : '';
+  }
+
+  const pend = !['pago','futura'].includes(qEstado);
+  const at=document.getElementById('socio-atalhos');
+  if(at) at.innerHTML=[
+    [pend?'dest':'', '💳', pend?'Pagar a quota':'As minhas quotas', "irTab('quotas')"],
+    ['', '🧾', 'Recibos', "irTab('recibos')"],
+    ['', '🏆', 'Torneios e inscrições', "irTab('torneios')"],
+    ['', '📁', 'Documentos do clube', "irTab('documentos')"],
+    ['', '📅', 'Datas no meu calendário', "exportarCalendarioTorneios()"],
+    ['', '🔒', 'O meu consentimento', "abrirConsentimentoSocio()"],
+    ['', '👤', 'O meu perfil', "irTab('perfil')"],
+    ['', '✏️', 'Corrigir os meus dados', "corrigirDadosEmail()"],
+    ['', '✉️', 'Falar com o clube', "contactarClube('Contacto de sócio nº '+(currentSocioData&&currentSocioData.numero||''),'')"]
+  ].map(a=>'<button class="atalho '+a[0]+'" onclick="'+a[3]+'"><i>'+a[1]+'</i>'+a[2]+'</button>').join('');
+
+  // botão copiar IBAN no bloco de pagamento
+  const dados=document.getElementById('socio-aviso-dados');
+  if(dados && !dados.querySelector('.copiar')){
+    const v=dados.querySelector('.s-pay-val');
+    if(v){ const iban=v.textContent.trim(); const b=document.createElement('button'); b.className='copiar'; b.textContent='Copiar'; b.onclick=()=>copiarTexto(iban.replace(/\s+/g,''),'IBAN copiado ✅'); v.appendChild(b); }
+  }
 }
 
 function dadoLinha(label, val) {
@@ -8630,6 +8774,8 @@ async function carregarParticipacoesSocio(resultadosId) {
   const card = document.getElementById('card-participacoes');
   const el   = document.getElementById('s-inicio-participacoes');
   if (!card || !el) return;
+  // DESATIVADO: o resumo de participações não se atualizava sozinho (dados incompletos). Mais vale não mostrar nada.
+  card.style.display = 'none'; el.innerHTML = ''; return;
   if (!resultadosId) { card.style.display = 'none'; return; }
 
   const rid = String(resultadosId);
