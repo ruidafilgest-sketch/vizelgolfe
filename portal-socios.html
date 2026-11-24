@@ -299,6 +299,21 @@ td{border-top:1px solid rgba(255,255,255,.05)}
 .lg-titulo{background:linear-gradient(180deg,#fff,#f4c862);-webkit-background-clip:text;background-clip:text;color:transparent}
 .lg-btn-socio{background:linear-gradient(135deg,#3be08f,#1fb56a);color:#04200f;box-shadow:0 8px 22px rgba(47,210,125,.30)}
 .lg-btn-socio:hover{background:linear-gradient(135deg,#55ee9f,#28c477)}
+
+/* ── Admin: aspeto moderno ── */
+.adm-hero{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 20px;padding:20px 24px;border-radius:20px;background:linear-gradient(120deg,#0a2a5e 0%,#0b4690 55%,#0d8a94 100%);border:1px solid rgba(244,200,98,.35);box-shadow:0 14px 36px rgba(0,0,0,.45);position:relative;overflow:hidden}
+.adm-hero::after{content:'⛳';position:absolute;right:130px;bottom:-40px;font-size:140px;opacity:.07}
+.adm-hero-sub{font-size:11px;letter-spacing:2px;color:#f4c862;font-weight:800;text-transform:uppercase}
+.adm-hero-tit{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:2px;color:#fff;line-height:1.05}
+.adm-hero-acoes{display:flex;gap:8px;flex-wrap:wrap;position:relative;z-index:1}
+.adm-hero-acoes .btn-outline{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.28);color:#fff}
+.adm-hero-acoes .btn-outline:hover{background:rgba(255,255,255,.2);color:#fff;border-color:#f4c862}
+nav{padding:8px 12px;gap:4px}
+.nav-tab{border-radius:10px;border-bottom:none !important;padding:9px 13px;margin:2px 0}
+.nav-tab.active{background:linear-gradient(135deg,#f4c862,#e0aa3e 60%,#c98d1f);color:#241800 !important;box-shadow:0 4px 12px rgba(224,170,62,.3)}
+.nav-tab:hover:not(.active){background:rgba(255,255,255,.07)}
+main{padding-top:20px}
+.badge-live{border-radius:20px}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:#244a7c;border-radius:8px}::-webkit-scrollbar-track{background:#08162a}
 </style>
 <script>
@@ -661,6 +676,18 @@ function switchLoginTab(t){if(window._switchLoginTab)window._switchLoginTab(t);e
 
     <!-- DASHBOARD -->
     <div id="page-dashboard" class="page active">
+      <div class="adm-hero">
+        <div>
+          <div class="adm-hero-sub" id="adm-hero-data"></div>
+          <div class="adm-hero-tit">Painel de Administração</div>
+        </div>
+        <div class="adm-hero-acoes">
+          <button class="btn btn-accent" onclick="openModalSocio()">＋ Novo sócio</button>
+          <button class="btn btn-outline" onclick="showPage('quotas')">💰 Quotas</button>
+          <button class="btn btn-outline" onclick="openModalTorneio()">🏆 Novo torneio</button>
+          <button class="btn btn-outline" onclick="abrirModalAviso()">📣 Novo aviso</button>
+        </div>
+      </div>
 
       <!-- KPIs principais -->
       <div class="stats-grid" style="margin-bottom:20px">
@@ -2695,6 +2722,26 @@ window.exportarCalendarioTorneios = function(){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([ics],{type:'text/calendar'})); a.download='torneios-vizelgolfe.ics'; document.body.appendChild(a); a.click(); a.remove();
   toast('Calendário descarregado — abre o ficheiro para adicionar ✅');
 };
+window.declaracaoQuotasSocio = function(){
+  const s=currentSocioData||{}; const key=currentSocioKey;
+  const pagas=Object.values(quotas||{}).filter(q=>q.socioKey===key && q.estado==='pago').sort((a,b)=>String(a.ano).localeCompare(String(b.ano)));
+  if(!pagas.length){ toast('Ainda não tens quotas pagas registadas','error'); return; }
+  const cfg=configuracoes||{}; const nomeAssoc=cfg.nome||'Vizelgolfe — Associação de Minigolfe de Vizela';
+  const total=pagas.reduce((a,q)=>a+parseFloat(q.valor||0),0);
+  const hoje=new Date().toLocaleDateString('pt-PT');
+  const linhas=pagas.map(q=>'<tr><td>'+_esc(q.ano)+'</td><td>'+_esc(q.descricao||'Quota anual')+'</td><td>'+_esc(q.dataPag||'—')+'</td><td style="text-align:right">'+Number(q.valor||0).toFixed(2)+' €</td></tr>').join('');
+  const w=window.open('','_blank');
+  if(!w){ toast('O browser bloqueou a janela. Permite pop-ups para este site.','error'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Declaração de quotas pagas</title><style>body{font-family:Arial,sans-serif;color:#111;max-width:760px;margin:30px auto;padding:0 24px}h1{font-size:20px;margin:0}.top{border-bottom:3px solid #0b4690;padding-bottom:12px;margin-bottom:22px}.sub{color:#555;font-size:12px}h2{font-size:17px;margin:20px 0 10px;color:#0b4690;letter-spacing:1px}table{width:100%;border-collapse:collapse;font-size:13px}th{background:#0b4690;color:#fff;text-align:left;padding:8px}td{padding:8px;border-bottom:1px solid #ddd}.tot{font-weight:700;background:#eef4fb}.nota{margin-top:26px;font-size:11px;color:#555;line-height:1.5}.bt{margin:18px 0}@media print{.bt{display:none}}</style></head><body>'
+   +'<div class="top"><h1>'+_esc(nomeAssoc)+'</h1><div class="sub">NIF 509 227 902</div></div>'
+   +'<h2>DECLARAÇÃO DE QUOTAS PAGAS</h2>'
+   +'<p>Declara-se que <b>'+_esc(s.nome||'')+'</b>, sócio n.º <b>'+_esc(s.numero||'')+'</b>'+(s.nif?' (NIF '+_esc(s.nif)+')':'')+', tem registado o pagamento das seguintes quotas associativas:</p>'
+   +'<table><thead><tr><th>Ano</th><th>Descrição</th><th>Data de pagamento</th><th style="text-align:right">Valor</th></tr></thead><tbody>'+linhas+'<tr class="tot"><td colspan="3">TOTAL</td><td style="text-align:right">'+total.toFixed(2)+' €</td></tr></tbody></table>'
+   +'<p class="nota">Documento informativo emitido pelo Portal de Sócios em '+hoje+', com base nos registos da associação. Não substitui os recibos oficiais.</p>'
+   +'<div class="bt"><button onclick="window.print()" style="padding:10px 18px;font-size:14px;cursor:pointer">🖨️ Imprimir / Guardar em PDF</button></div></body></html>');
+  w.document.close();
+};
+(function(){ try{ const el=document.getElementById('adm-hero-data'); if(el) el.textContent=new Date().toLocaleDateString('pt-PT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }catch(e){} })();
 function renderInicioPremium(s, qEstado, anoAtual){
   const h=new Date().getHours(); const saud=h<6?'Boa noite':h<13?'Bom dia':h<20?'Boa tarde':'Boa noite';
   const primeiro=(s.nome||'').split(' ')[0]||'';
@@ -2729,12 +2776,12 @@ function renderInicioPremium(s, qEstado, anoAtual){
     [pend?'dest':'', '💳', pend?'Pagar a quota':'As minhas quotas', "irTab('quotas')"],
     ['', '🧾', 'Recibos', "irTab('recibos')"],
     ['', '🏆', 'Torneios e inscrições', "irTab('torneios')"],
-    ['', '📁', 'Documentos do clube', "irTab('documentos')"],
+    ['', '🪪', 'O meu cartão de sócio', "abrirCartaoSocioLogado()"],
+    ['', '📄', 'Declaração de quotas pagas', "declaracaoQuotasSocio()"],
     ['', '📅', 'Datas no meu calendário', "exportarCalendarioTorneios()"],
+    ['', '📁', 'Documentos do clube', "irTab('documentos')"],
     ['', '🔒', 'O meu consentimento', "abrirConsentimentoSocio()"],
-    ['', '👤', 'O meu perfil', "irTab('perfil')"],
-    ['', '✏️', 'Corrigir os meus dados', "corrigirDadosEmail()"],
-    ['', '✉️', 'Falar com o clube', "contactarClube('Contacto de sócio nº '+(currentSocioData&&currentSocioData.numero||''),'')"]
+    ['', '👤', 'O meu perfil', "irTab('perfil')"]
   ].map(a=>'<button class="atalho '+a[0]+'" onclick="'+a[3]+'"><i>'+a[1]+'</i>'+a[2]+'</button>').join('');
 
   // botão copiar IBAN no bloco de pagamento

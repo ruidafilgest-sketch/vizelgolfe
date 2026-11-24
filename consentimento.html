@@ -534,7 +534,8 @@ window.submeter = async function() {
     try { await signOut(auth); } catch(_) {}   // não deixar a sessão aberta neste dispositivo
 
   } catch(e) {
-    document.getElementById('txt-erro').textContent = 'Erro: ' + e.message;
+    console.error('Consentimento — erro ao gravar:', e);
+    document.getElementById('txt-erro').textContent = 'Não foi possível gravar. Detalhe técnico: ' + (e.code ? e.code + ' — ' : '') + (e.message || e);
     mostrar('step-erro');
   }
 };
