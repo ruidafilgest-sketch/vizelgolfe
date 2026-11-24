@@ -238,6 +238,20 @@
     <input type="date" id="inp-nascimento">
     <div class="err" id="err-nasc">Data de nascimento não corresponde ao nosso registo.</div>
 
+    <!-- ENCARREGADO DE EDUCAÇÃO (só aparece se o sócio for menor de 18 anos) -->
+    <div id="bloco-menor" style="display:none;margin-top:14px;padding:16px;border:2px solid #d4820a;border-radius:12px;background:rgba(212,130,10,.08)">
+      <p style="font-weight:800;margin:0 0 6px;color:#d4820a">👨‍👧 Sócio menor de idade</p>
+      <p style="margin:0 0 12px;font-size:13px;line-height:1.5">Como o sócio tem menos de 18 anos, este consentimento tem de ser dado <b>pelo encarregado de educação</b>, em nome do menor.</p>
+      <label class="field-label">Nome completo do encarregado de educação *</label>
+      <input type="text" id="inp-enc-nome" placeholder="Nome completo" autocomplete="name">
+      <label class="field-label">Qualidade *</label>
+      <select id="inp-enc-qual" style="width:100%;padding:12px;border-radius:8px;font-size:15px;margin-bottom:10px">
+        <option value="">Selecionar…</option><option>Pai</option><option>Mãe</option><option>Tutor legal</option><option>Outro representante legal</option>
+      </select>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.4;cursor:pointer"><input type="checkbox" id="chk-enc" style="margin-top:3px;width:20px;height:20px;flex:none"> <span>Declaro ser o encarregado de educação / representante legal do menor e dar o consentimento abaixo em seu nome.</span></label>
+      <div class="err" id="err-enc">Preencha o nome, a qualidade e confirme a declaração.</div>
+    </div>
+
     <hr class="divider">
 
     <p class="perm-title">Seleciona o que autorizas:</p>
@@ -395,6 +409,8 @@ async function getIp() {
 }
 
 // ─── Submeter ──────────────────────────────────
+function _eMenor(d){ if(!d) return false; const n=new Date(d); if(isNaN(n)) return false; const h=new Date(); let i=h.getFullYear()-n.getFullYear(); const m=h.getMonth()-n.getMonth(); if(m<0||(m===0&&h.getDate()<n.getDate())) i--; return i<18; }
+document.getElementById('inp-nascimento').addEventListener('input',function(){ document.getElementById('bloco-menor').style.display = _eMenor(this.value) ? 'block' : 'none'; });
 window.submeter = async function() {
   // Se já estava identificado (a editar), usar dados guardados directamente
   if (consentimentoExistente && socioKey && socioData) {
@@ -412,7 +428,8 @@ window.submeter = async function() {
         timestamp:      Date.now(),
         ip,
         nome:   socioData.nome || socioData.Nome || '',
-        numero: socioData.numero || socioData.Número || socioKey
+        numero: socioData.numero || socioData.Número || socioKey,
+        ...(consentimentoExistente.menor ? { menor: true, encarregadoNome: consentimentoExistente.encarregadoNome || '', encarregadoQualidade: consentimentoExistente.encarregadoQualidade || '' } : {})
       };
       await set(ref(db, `portal/consentimentos/${socioKey}`), consentimento);
       btn.textContent = '⏳ A gerar documento...';
@@ -440,6 +457,17 @@ window.submeter = async function() {
   if (!nascStr) {
     document.getElementById('err-nasc').textContent = 'Indica a tua data de nascimento.';
     document.getElementById('err-nasc').style.display = 'block';
+    return;
+  }
+
+  // Menor de idade: o consentimento é dado pelo encarregado de educação
+  const _menor = _eMenor(nascStr);
+  const _encNome = (document.getElementById('inp-enc-nome').value || '').trim();
+  const _encQual = document.getElementById('inp-enc-qual').value;
+  document.getElementById('err-enc').style.display = 'none';
+  if (_menor && (!_encNome || !_encQual || !document.getElementById('chk-enc').checked)) {
+    document.getElementById('err-enc').style.display = 'block';
+    document.getElementById('bloco-menor').scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
 
@@ -487,7 +515,8 @@ window.submeter = async function() {
       timestamp:      Date.now(),
       ip,
       nome:   foundSocio.nome || foundSocio.Nome || '',
-      numero: numStr
+      numero: numStr,
+      ...(_menor ? { menor: true, encarregadoNome: _encNome, encarregadoQualidade: _encQual } : {})
     };
 
     btn.textContent = '⏳ A guardar...';
@@ -535,6 +564,7 @@ function resumoHTML(c) {
     <p><span>🏆 Classificações públicas</span>${ico(c.classificacoes)}</p>
     <p><span>📊 Relatórios internos</span>${ico(c.relatorios)}</p>
     <p><span>📧 Contacto pelo clube</span>${ico(c.contacto)}</p>
+    ${c.menor ? `<p><span>👨‍👧 Encarregado de educação</span><span class="val" style="font-size:12px">${(c.encarregadoNome||'—')} (${c.encarregadoQualidade||'—'})</span></p>` : ''}
     <p><span>📅 Registado em</span><span class="val" style="font-size:11px">${c.timestamp ? new Date(c.timestamp).toLocaleString('pt-PT') : '—'}</span></p>`;
 }
 
@@ -605,7 +635,7 @@ async function gerarPdfRgpd(s, c, key, db) {
   doc.setTextColor(100, 100, 100);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  const intro = 'Nos termos do Regulamento Geral sobre a Proteção de Dados (RGPD — Regulamento UE 2016/679), o abaixo identificado declara expressamente as seguintes preferências relativamente ao tratamento e divulgação dos seus dados pessoais e imagem pela Vizelgolfe — Associação de Minigolfe de Vizela:';
+  const intro = (c.menor ? 'Nos termos do Regulamento Geral sobre a Proteção de Dados (RGPD — Regulamento UE 2016/679), ' + (c.encarregadoNome||'o encarregado de educação') + ' (' + (c.encarregadoQualidade||'encarregado de educação') + '), na qualidade de ENCARREGADO DE EDUCAÇÃO e em representação do menor abaixo identificado, declara expressamente as seguintes preferências relativamente ao tratamento e divulgação dos dados pessoais e imagem do menor pela Vizelgolfe — Associação de Minigolfe de Vizela:' : 'Nos termos do Regulamento Geral sobre a Proteção de Dados (RGPD — Regulamento UE 2016/679), o abaixo identificado declara expressamente as seguintes preferências relativamente ao tratamento e divulgação dos seus dados pessoais e imagem pela Vizelgolfe — Associação de Minigolfe de Vizela:');
   const introLines = doc.splitTextToSize(intro, W - 40);
   doc.text(introLines, 20, y);
   y += introLines.length * 4.5 + 6;
@@ -685,7 +715,7 @@ async function gerarPdfRgpd(s, c, key, db) {
 
   doc.setTextColor(120, 120, 120);
   doc.setFontSize(8);
-  doc.text('Assinatura do titular (se em papel)', 20, y + 5);
+  doc.text(c.menor ? 'Assinatura do encarregado de educação' : 'Assinatura do titular (se em papel)', 20, y + 5);
   doc.text('Pelo clube (se em papel)', 120, y + 5);
 
   // ── Rodapé página ──────────────────────────────────
